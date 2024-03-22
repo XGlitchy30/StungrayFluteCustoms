@@ -215,6 +215,8 @@ function Auxiliary.NormalSummonTarget(min,max,f)
 			local rg=Duel.SelectTribute(tp,c,min,max,mg,tp,zone,Duel.IsSummonCancelable())
 			if rg and #rg>0 then
 				g:Merge(rg)
+			else
+				return false
 			end
 		end
 		if #g>0 then
