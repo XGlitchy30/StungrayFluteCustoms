@@ -515,6 +515,10 @@ function Card.IsCapableOfAttacking(c,tp)
 end
 
 --Card Filters
+function Card.IsFaceupEx(c)
+	return c:IsFaceup() or c:IsLocation(LOCATION_HAND|LOCATION_GRAVE|LOCATION_DECK)
+end
+
 function Card.IsMonster(c,typ)
 	return c:IsType(TYPE_MONSTER) and (type(typ)~="number" or c:IsType(typ))
 end
