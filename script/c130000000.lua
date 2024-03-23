@@ -6,7 +6,6 @@ Scripted by: XGlitchy30
 
 local s,id,o=GetID()
 Duel.LoadScript("glitchylib_new.lua")
-Duel.LoadScript("glitchylib_tribute.lua")
 function s.initial_effect(c)
 	c:Activation()
 	--"Gravekeeper's" monsters on the field gain 500 ATK/DEF.

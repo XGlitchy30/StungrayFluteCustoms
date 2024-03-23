@@ -81,11 +81,11 @@ function Auxiliary.SpecialNormalSummonTarget()
 		end
 		
 		local g=Group.CreateGroup()
+		local forced=mg:Filter(Card.IsHasEffect,nil,EFFECT_EXTRA_RELEASE)
 		local decktributes=mg:Filter(Card.IsLocation,nil,LOCATION_DECK)
-		if #decktributes>0 and (#mg-#decktributes<min or Duel.SelectYesNo(tp,STRING_ASK_TRIBUTE_FROM_DECK)) then
+		if #decktributes>0 and #forced<min and (#mg-#decktributes<min or Duel.SelectYesNo(tp,STRING_ASK_TRIBUTE_FROM_DECK)) then
 			local minc=#mg-#decktributes<min and min-#mg+#decktributes or 1
-			Duel.HintMessage(tp,HINTMSG_RELEASE)
-			local dg=decktributes:Select(tp,1,max,nil)
+			local dg=aux.SelectUnselectGroup(decktributes,e,tp,minc,max-#forced,aux.TRUE,1,tp,HINTMSG_RELEASE,nil,nil,true)
 			if #dg>0 then
 				min=min-#dg
 				max=max-#dg
@@ -131,100 +131,111 @@ function maplevel(level)
 	end
 	return 0
 end
+
+local _NormalSummonCondition1, _NormalSummonTarget, _NormalSummonOperation = aux.NormalSummonCondition1, aux.NormalSummonTarget, aux.NormalSummonOperation
+
 function Auxiliary.NormalSummonCondition1(min,max,f,opt)
 	return function (e,c,minc,zone,relzone,exeff)
 		if c==nil then return true end
-		local tp=c:GetControler()
-		
-		local toreset={}
-		for _,ce in ipairs({c:IsHasEffect(EFFECT_ADD_EXTRA_TRIBUTE_GLITCHY)}) do
-			local val=ce:GetValue()
-			local f,loc1,loc2,pos=val(ce,c)
-			local e1=Effect.CreateEffect(c)
-			e1:SetType(EFFECT_TYPE_SINGLE)
-			e1:SetProperty(EFFECT_FLAG_CANNOT_DISABLE|EFFECT_FLAG_UNCOPYABLE)
-			e1:SetCode(EFFECT_ADD_EXTRA_TRIBUTE)
-			e1:SetTargetRange(loc1,loc2)
-			e1:SetTarget(f)
-			e1:SetValue(pos)
-			c:RegisterEffect(e1)
-			table.insert(toreset,e1)
+		if not c:IsHasEffect(EFFECT_ADD_EXTRA_TRIBUTE_GLITCHY) then
+			return _NormalSummonCondition1(min,max,f,opt)(e,c,minc,zone,relzone,exeff)
+		else
+			local tp=c:GetControler()
+			
+			local toreset={}
+			for _,ce in ipairs({c:IsHasEffect(EFFECT_ADD_EXTRA_TRIBUTE_GLITCHY)}) do
+				local val=ce:GetValue()
+				local f,loc1,loc2,pos=val(ce,c)
+				local e1=Effect.CreateEffect(c)
+				e1:SetType(EFFECT_TYPE_SINGLE)
+				e1:SetProperty(EFFECT_FLAG_CANNOT_DISABLE|EFFECT_FLAG_UNCOPYABLE)
+				e1:SetCode(EFFECT_ADD_EXTRA_TRIBUTE)
+				e1:SetTargetRange(loc1,loc2)
+				e1:SetTarget(f)
+				e1:SetValue(pos)
+				c:RegisterEffect(e1)
+				table.insert(toreset,e1)
+			end
+			
+			local mg=Duel.GetTributeGroup(c)
+			if relzone~=0xff00ff then
+				mg:Match(Auxiliary.IsZone,nil,relzone,tp)
+			end
+			if f then
+				mg:Match(f,nil,tp)
+			end
+			local tributes=maplevel(c:GetLevel())
+			local res=(not opt or (tributes>0 and tributes~=max)) and minc<=min and Duel.CheckTribute(c,min,max,mg,tp,zone)
+			
+			for _,ce in ipairs(toreset) do
+				ce:Reset()
+			end
+			return res
 		end
-		
-		local mg=Duel.GetTributeGroup(c)
-		if relzone~=0xff00ff then
-			mg:Match(Auxiliary.IsZone,nil,relzone,tp)
-		end
-		if f then
-			mg:Match(f,nil,tp)
-		end
-		local tributes=maplevel(c:GetLevel())
-		local res=(not opt or (tributes>0 and tributes~=max)) and minc<=min and Duel.CheckTribute(c,min,max,mg,tp,zone)
-		
-		for _,ce in ipairs(toreset) do
-			ce:Reset()
-		end
-		return res
 	end
 end
 
 function Auxiliary.NormalSummonTarget(min,max,f)
 	return function (e,tp,eg,ep,ev,re,r,rp,chk,c,minc,zone,relzone,exeff)
-		
-		local toreset={}
-		for _,ce in ipairs({c:IsHasEffect(EFFECT_ADD_EXTRA_TRIBUTE_GLITCHY)}) do
-			local val=ce:GetValue()
-			local f,loc1,loc2,pos=val(ce,c)
-			local e1=Effect.CreateEffect(c)
-			e1:SetType(EFFECT_TYPE_SINGLE)
-			e1:SetProperty(EFFECT_FLAG_CANNOT_DISABLE|EFFECT_FLAG_UNCOPYABLE)
-			e1:SetCode(EFFECT_ADD_EXTRA_TRIBUTE)
-			e1:SetTargetRange(loc1,loc2)
-			e1:SetTarget(f)
-			e1:SetValue(pos)
-			c:RegisterEffect(e1,true)
-			table.insert(toreset,e1)
-		end
-				
-		local mg=Duel.GetTributeGroup(c)
-		if relzone~=0xff00ff then
-			mg:Match(Auxiliary.IsZone,nil,relzone,tp)
-		end
-		if f then
-			mg:Match(f,nil,tp)
-		end
-		
-		for _,ce in ipairs(toreset) do
-			ce:Reset()
-		end
-		
-		local g=Group.CreateGroup()
-		local decktributes=mg:Filter(Card.IsLocation,nil,LOCATION_DECK)
-		if #decktributes>0 and (#mg-#decktributes<min or Duel.SelectYesNo(tp,STRING_ASK_TRIBUTE_FROM_DECK)) then
-			local minc=#mg-#decktributes<min and min-#mg+#decktributes or 1
-			Duel.HintMessage(tp,HINTMSG_RELEASE)
-			local dg=decktributes:Select(tp,minc,max,nil)
-			if #dg>0 then
-				min=min-#dg
-				max=max-#dg
-				g:Merge(dg)
-				mg:Sub(dg)
+		if c==nil then return true end
+		if not c:IsHasEffect(EFFECT_ADD_EXTRA_TRIBUTE_GLITCHY) then
+			return _NormalSummonTarget(min,max,f)(e,tp,eg,ep,ev,re,r,rp,chk,c,minc,zone,relzone,exeff)
+		else
+			local toreset={}
+			for _,ce in ipairs({c:IsHasEffect(EFFECT_ADD_EXTRA_TRIBUTE_GLITCHY)}) do
+				local val=ce:GetValue()
+				local f,loc1,loc2,pos=val(ce,c)
+				local e1=Effect.CreateEffect(c)
+				e1:SetType(EFFECT_TYPE_SINGLE)
+				e1:SetProperty(EFFECT_FLAG_CANNOT_DISABLE|EFFECT_FLAG_UNCOPYABLE)
+				e1:SetCode(EFFECT_ADD_EXTRA_TRIBUTE)
+				e1:SetTargetRange(loc1,loc2)
+				e1:SetTarget(f)
+				e1:SetValue(pos)
+				c:RegisterEffect(e1,true)
+				table.insert(toreset,e1)
 			end
-		end
-		if min>0 then
-			local rg=Duel.SelectTribute(tp,c,min,max,mg,tp,zone,Duel.IsSummonCancelable())
-			if rg and #rg>0 then
-				g:Merge(rg)
-			else
-				return false
+					
+			local mg=Duel.GetTributeGroup(c)
+			if relzone~=0xff00ff then
+				mg:Match(Auxiliary.IsZone,nil,relzone,tp)
 			end
+			if f then
+				mg:Match(f,nil,tp)
+			end
+			
+			for _,ce in ipairs(toreset) do
+				ce:Reset()
+			end
+			
+			local g=Group.CreateGroup()
+			local forced=mg:Filter(Card.IsHasEffect,nil,EFFECT_EXTRA_RELEASE)
+			local decktributes=mg:Filter(Card.IsLocation,nil,LOCATION_DECK)
+			if #decktributes>0 and #forced<min and (#mg-#decktributes<min or Duel.SelectYesNo(tp,STRING_ASK_TRIBUTE_FROM_DECK)) then
+				local minc=#mg-#decktributes<min and min-#mg+#decktributes or 1
+				local dg=aux.SelectUnselectGroup(decktributes,e,tp,minc,max-#forced,aux.TRUE,1,tp,HINTMSG_RELEASE,nil,nil,true)
+				if #dg>0 then
+					min=min-#dg
+					max=max-#dg
+					g:Merge(dg)
+					mg:Sub(dg)
+				end
+			end
+			if min>0 then
+				local rg=Duel.SelectTribute(tp,c,min,max,mg,tp,zone,Duel.IsSummonCancelable())
+				if rg and #rg>0 then
+					g:Merge(rg)
+				else
+					return false
+				end
+			end
+			if #g>0 then
+				g:KeepAlive()
+				e:SetLabelObject(g)
+				return true
+			end
+			return false
 		end
-		if #g>0 then
-			g:KeepAlive()
-			e:SetLabelObject(g)
-			return true
-		end
-		return false
 	end
 end
 
