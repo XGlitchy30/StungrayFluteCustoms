@@ -72,7 +72,7 @@ end
 function s.atkop(e,tp,eg,ep,ev,re,r,rp)
 	local c=e:GetHandler()
 	local tc=Duel.GetFirstTarget()
-	if tc:IsRelateToChain() and tc:IsFaceup() and not tc:IsType(TYPE_SPIRIT) then
+	if tc:IsRelateToChain(0) and tc:IsFaceup() and not tc:IsType(TYPE_SPIRIT) then
 		local e1=Effect.CreateEffect(c)
 		e1:SetType(EFFECT_TYPE_SINGLE)
 		e1:SetProperty(EFFECT_FLAG_CANNOT_DISABLE)
@@ -105,7 +105,7 @@ function s.retg(e,tp,eg,ep,ev,re,r,rp,chk)
 end
 function s.reop(e,tp,eg,ep,ev,re,r,rp)
     local c=e:GetHandler()
-	if c:IsRelateToChain() and c:IsFieldSpell() and not c:IsForbidden() then
+	if c:IsRelateToChain(0) and c:IsFieldSpell() and not c:IsForbidden() then
 		local b1=c:CheckUniqueOnField(tp,LOCATION_FZONE)
 		local b2=c:CheckUniqueOnField(1-tp,LOCATION_FZONE) and c:IsAbleToChangeControler()
         -- which field?
