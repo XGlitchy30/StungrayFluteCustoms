@@ -1,4 +1,5 @@
 --Custom Categories
+CATEGORIES_SEARCH = CATEGORY_SEARCH|CATEGORY_TOHAND
 
 --Custom Effects
 EFFECT_CANNOT_MODIFY_ATTACK		= 	2001	--Players affected by this effect cannot change ATK of the specified cards. Needed for implementation of "Hidden Monastery of Necrovalley".
@@ -7,10 +8,14 @@ EFFECT_CANNOT_MODIFY_DEFENSE	=	2002	--Players affected by this effect cannot cha
 --Custom Archetypes
 
 --Custom Cards
+CARD_REGRESSED_RITUAL_ART	=	130000003
 
 --Custom Counters
 
 --Desc
+
+STRING_ADD_TO_HAND		=	1105
+STRING_CHANGE_POSITION	=	aux.Stringid(130000010,2)
 
 --Locations
 
@@ -409,7 +414,7 @@ end
 function Duel.Search(g,tp,p)
 	if type(g)=="Card" then g=Group.FromCards(g) end
 	local ct=Duel.SendtoHand(g,p,REASON_EFFECT)
-	local cg=g:Filter(aux.PLChk,nil,tp,LOCATION_HAND)
+	local cg=g:Filter(aux.PLChk,nil,p,LOCATION_HAND)
 	if #cg>0 then
 		Duel.ConfirmCards(1-tp,cg)
 	end
@@ -672,6 +677,10 @@ function Card.IsContained(c,g,exc)
 	return g:IsContains(c) and (not exc or not exc:IsContains(c))
 end
 
+function Card.GetResidence(c)
+	return c:GetControler(),c:GetLocation(),c:GetSequence(),c:GetPosition()
+end
+
 --Chain Info
 function Duel.GetTargetParam()
 	return Duel.GetChainInfo(0,CHAININFO_TARGET_PARAM)
@@ -817,7 +826,7 @@ function Auxiliary.Option(id,tp,desc,...)
 	if #ops==0 then return end
 	local op=Duel.SelectOption(tp,table.unpack(ops))+1
 	local sel=opval[op]
-	Duel.Hint(HINT_OPSELECTED,1-tp,ops[op])
+	--Duel.Hint(HINT_OPSELECTED,1-tp,ops[op])
 	return sel
 end
 
