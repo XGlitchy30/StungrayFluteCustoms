@@ -38,6 +38,8 @@ function Auxiliary.SpecialNormalSummonCondition()
 			table.insert(toreset,e1)
 		end
 		
+		if #toreset==0 then return false end
+		
 		local min,max=c:GetTributeRequirement()
 		local mg=Duel.GetTributeGroup(c)
 		if relzone~=0xff00ff then
