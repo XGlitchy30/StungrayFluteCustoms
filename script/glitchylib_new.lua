@@ -65,44 +65,14 @@ MAX_RATING = 14
 RESET_TURN_SELF = RESET_SELF_TURN
 RESET_TURN_OPPO = RESET_OPPO_TURN
 
---AnnounceNumber
--- local _AnnounceNumber = Duel.AnnounceNumber
+--Chain Relation
+local _IsRelateToChain = Card.IsRelateToChain
 
--- Duel.AnnounceNumber = function(p,n1,...)
-	-- local x={...}
-	-- table.insert(x,1,n1)
-	-- local negatives={}
-	-- for i=#x,1,-1 do
-		-- local n=x[i]
-		-- if n<0 then
-			-- table.insert(negatives,n*-1)
-			-- table.remove(x,i)
-		-- end
-	-- end
-	
-	-- if #negatives==0 then
-		-- return _AnnounceNumber(p,n1,...)
-	-- else
-		-- local opt=aux.Option(p,false,false,{#x>0,STRING_INPUT_NONNEGATIVE_NUMBER},{true,STRING_INPUT_NEGATIVE_NUMBER})
-		-- if opt==0 then
-			-- return _AnnounceNumber(p,table.unpack(x))
-		-- elseif opt==1 then
-			-- local ct1,ct2=_AnnounceNumber(p,table.unpack(negatives))
-			-- return ct1*-1,ct2
-		-- end
-		-- return false
-	-- end
--- end
+Card.IsRelateToChain = function(c,ch)
+	local ch = ch or 0
+	return _IsRelateToChain(c,ch)
+end
 
--- function Duel.AnnounceNumberMinMax(p,min,max,f)
-	-- local tab={}
-	-- for i=min,max do
-		-- if not f or f(i) then
-			-- table.insert(tab,i)
-		-- end
-	-- end
-	-- return Duel.AnnounceNumber(p,table.unpack(tab))
--- end
 --Shortcuts
 function Duel.IsExists(target,f,tp,loc1,loc2,min,exc,...)
 	if type(target)~="boolean" then Debug.Message("Duel.IsExists: First argument should be boolean") return false end
@@ -445,11 +415,11 @@ function Duel.Search(g,tp,p)
 	end
 	return ct,#cg,cg
 end
-function Duel.SearchAndCheck(g,tp,p)
+function Duel.SearchAndCheck(g,tp,p,ignore_confirm)
 	if type(g)=="Card" then g=Group.FromCards(g) end
 	local ct=Duel.SendtoHand(g,p,REASON_EFFECT)
-	local cg=g:Filter(aux.PLChk,nil,tp,LOCATION_HAND)
-	if #cg>0 then
+	local cg=g:Filter(aux.PLChk,nil,p,LOCATION_HAND)
+	if #cg>0 and not ignore_confirm then
 		Duel.ConfirmCards(1-tp,cg)
 	end
 	return ct>0 and #cg>0
@@ -528,12 +498,12 @@ end
 function Card.IsTrap(c,typ)
 	return c:IsType(TYPE_TRAP) and (type(typ)~="number" or c:IsType(typ))
 end
-function Card.IsNormalSpell(c)
-	return c:GetType()&(TYPE_SPELL|TYPE_CONTINUOUS|TYPE_RITUAL|TYPE_EQUIP|TYPE_QUICKPLAY|TYPE_FIELD)==TYPE_SPELL
-end
-function Card.IsNormalTrap(c)
-	return c:GetType()&(TYPE_TRAP|TYPE_CONTINUOUS|TYPE_COUNTER)==TYPE_TRAP
-end
+-- function Card.IsNormalSpell(c)
+	-- return c:GetType()&(TYPE_SPELL|TYPE_CONTINUOUS|TYPE_RITUAL|TYPE_EQUIP|TYPE_QUICKPLAY|TYPE_FIELD)==TYPE_SPELL
+-- end
+-- function Card.IsNormalTrap(c)
+	-- return c:GetType()&(TYPE_TRAP|TYPE_CONTINUOUS|TYPE_COUNTER)==TYPE_TRAP
+-- end
 function Card.IsNormalST(c)
 	return c:IsNormalSpell() or c:IsNormalTrap()
 end
@@ -555,9 +525,9 @@ end
 function Card.HasAttack(c)
 	return true
 end
-function Card.HasDefense(c)
-	return not c:IsOriginalType(TYPE_LINK)
-end
+-- function Card.HasDefense(c)
+	-- return not c:IsOriginalType(TYPE_LINK)
+-- end
 
 function Card.HasHighest(c,stat,g,f)
 	if not g then g=Duel.GetFieldGroup(0,LOCATION_MZONE,LOCATION_MZONE):Filter(Card.IsFaceup,nil) end
@@ -797,21 +767,14 @@ function Auxiliary.ExceptThis(c)
 end
 
 --Descriptions
-function Effect.Desc(e,id,...)
-	local x = {...}
-	local code = #x>0 and x[1] or e:GetOwner():GetOriginalCode()
-	if id<16 then
-		return e:SetDescription(aux.Stringid(code,id))
+local _SetDescription = Effect.SetDescription
+
+Effect.SetDescription = function(e,id,str)
+	if not str then
+		return _SetDescription(e,id)
 	else
-		return e:SetDescription(id)
+		return _SetDescription(e,aux.Stringid(id,str))
 	end
-end
-function Card.AskPlayer(c,tp,desc)
-	if type(aux.EffectBeingApplied)=="Effect" and type(aux.ProxyEffect)=="Effect" and aux.ProxyEffect:GetHandler()==c then
-		c=aux.EffectBeingApplied:GetHandler()
-	end
-	local string = desc<=15 and aux.Stringid(c:GetOriginalCode(),desc) or desc
-	return Duel.SelectYesNo(tp,string)
 end
 
 function Auxiliary.Option(id,tp,desc,...)
@@ -1376,6 +1339,13 @@ function Effect.SHOPT(e,oath)
 	else
 		return e:SetCountLimit(ct,{cid,aux.HOPTTracker[c],flag})
 	end
+end
+
+--Operation Infos
+function Duel.SetCardOperationInfo(g,cat)
+	local tc = type(g)=="Card" and g or g:GetFirst()
+	local ct = type(g)=="Card" and 1 or #g
+	return Duel.SetOperationInfo(0,cat,g,ct,tc:GetControler(),tc:GetLocation())
 end
 
 --Phases
