@@ -29,11 +29,11 @@ function s.thfilter(c,codes)
 	return c:IsSpell() and c:IsRealCode(table.unpack(codes)) and c:IsAbleToHand()
 end
 function s.target(e,tp,eg,ep,ev,re,r,rp,chk,chkc)
-	if chkc then return chkc:IsLocation(LOCATION_GRAVE) and chkc:IsControler(tp) and s.filter(chkc,tp) end
+	if chkc then return chkc:IsLocation(LOCATION_GRAVE) and s.filter(chkc,tp) end
 	if chk==0 then
-		return Duel.IsExists(true,s.filter,tp,LOCATION_GRAVE,0,1,nil,tp)
+		return Duel.IsExists(true,s.filter,tp,LOCATION_GRAVE,LOCATION_GRAVE,1,nil,tp)
 	end
-	local g=Duel.Select(HINTMSG_TARGET,true,tp,s.filter,tp,LOCATION_GRAVE,0,1,1,nil,tp)
+	local g=Duel.Select(HINTMSG_TARGET,true,tp,s.filter,tp,LOCATION_GRAVE,LOCATION_GRAVE,1,1,nil,tp)
 	Duel.SetOperationInfo(0,CATEGORY_TOHAND,nil,1,tp,LOCATION_DECK)
 	Duel.SetOperationInfo(0,CATEGORY_RECOVER,nil,0,tp,500)
 end
