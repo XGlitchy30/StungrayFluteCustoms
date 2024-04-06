@@ -1,6 +1,6 @@
 --[[
 Spirit of Perfection
-Card Author: Fishy
+Card Author: Sock
 Scripted by: XGlitchy30
 ]]
 
