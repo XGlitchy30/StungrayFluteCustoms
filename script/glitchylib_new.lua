@@ -1,5 +1,6 @@
 --Custom Categories
 CATEGORIES_SEARCH = CATEGORY_SEARCH|CATEGORY_TOHAND
+CATEGORIES_ATKDEF = CATEGORY_ATKCHANGE|CATEGORY_DEFCHANGE
 
 --Custom Effects
 EFFECT_CANNOT_MODIFY_ATTACK		= 	2001	--Players affected by this effect cannot change ATK of the specified cards. Needed for implementation of "Hidden Monastery of Necrovalley".
@@ -8,6 +9,7 @@ EFFECT_CANNOT_MODIFY_DEFENSE	=	2002	--Players affected by this effect cannot cha
 --Custom Archetypes
 
 --Official Cards/Custom Cards
+CARD_DHERO_DRILLDARK		=	91691605
 CARD_ZOMBIE_WORLD			=	4064256
 
 CARD_REGRESSED_RITUAL_ART	=	130000003
@@ -15,9 +17,10 @@ CARD_REGRESSED_RITUAL_ART	=	130000003
 --Custom Counters
 
 --Desc
-
-STRING_ADD_TO_HAND		=	1105
-STRING_CHANGE_POSITION	=	aux.Stringid(130000010,2)
+STRING_ADD_TO_HAND					=	1105
+STRING_BANISH_REDIRECT				=	3300
+STRING_CHANGE_POSITION				=	aux.Stringid(130000010,2)
+STRING_SHUFFLE_INTO_DECK_REDIRECT	=	3301
 
 --Locations
 
@@ -1359,9 +1362,51 @@ function Card.IsAbleToExtraFaceupAsCost(c,p,tp)
 	return dest==LOCATION_DECK
 end
 
---redirect
-
 --Relation
+
+--Special Summons
+function Duel.SpecialSummonRedirect(redirect,e,g,sumtype,sump,fieldp,ignore_sumcon,ignore_revive_limit,pos,zone,desc)
+	if type(redirect)=="Effect" then
+		redirect,e,g,sumtype,sump,fieldp,ignore_sumcon,ignore_revive_limit,pos,zone = LOCATION_REMOVED,redirect,e,g,sumtype,sump,fieldp,ignore_sumcon,ignore_revive_limit,pos
+	end
+	if type(g)=="Card" then g=Group.FromCards(g) end
+	
+	if not desc then
+		if redirect==LOCATION_REMOVED then
+			desc=STRING_BANISH_REDIRECT
+		elseif redirect==LOCATION_DECKSHF then
+			desc=STRING_SHUFFLE_INTO_DECK_REDIRECT
+		end
+	end
+	
+	local owner=e:GetHandler()
+	for dg in aux.Next(g) do
+		local finalzone=zone
+		if type(zone)=="table" then
+			finalzone=zone[fieldp+1]
+			if tc:IsCanBeSpecialSummoned(e,sumtype,sump,ignore_sumcon,ignore_revive_limit,pos,1-fieldp,zone[2-fieldp])
+			and (not tc:IsCanBeSpecialSummoned(e,sumtype,sump,ignore_sumcon,ignore_revive_limit,pos,fieldp,finalzone) or Duel.SelectYesNo(sump,aux.Stringid(61665245,2))) then
+				fieldp=1-fieldp
+				finalzone=zone[fieldp+1]
+			end
+		end
+		if Duel.SpecialSummonStep(dg,sumtype,sump,fieldp,ignore_sumcon,ignore_revive_limit,pos,finalzone) then
+			local e1=Effect.CreateEffect(owner)
+			e1:SetType(EFFECT_TYPE_SINGLE)
+			e1:SetCode(EFFECT_LEAVE_FIELD_REDIRECT)
+			if desc then
+				e1:SetDescription(desc)
+				e1:SetProperty(EFFECT_FLAG_CANNOT_DISABLE|EFFECT_FLAG_CLIENT_HINT)
+			else
+				e1:SetProperty(EFFECT_FLAG_CANNOT_DISABLE)
+			end
+			e1:SetValue(redirect)
+			e1:SetReset(RESET_EVENT|RESETS_REDIRECT)
+			dg:RegisterEffect(e1,true)
+		end
+	end
+	return Duel.SpecialSummonComplete()
+end
 
 --Shortcuts
 function Duel.IsExists(target,f,tp,loc1,loc2,min,exc,...)
@@ -1445,13 +1490,26 @@ function Effect.EvaluateInteger(e,...)
 	end
 end
 
---Target function
-function aux.DummyTarget(e,tp,eg,ep,ev,re,r,rp,chk)
-	if chk==0 then return true end
-end
-
 --Stat Modifiers
 Auxiliary.ScriptSingleAsEquip = false
+
+function Card.HasATK(c)
+	return c:IsMonster()
+end
+function Card.IsCanChangeATK(c,atk)
+	return c:IsFaceup() and c:HasATK()
+end
+
+function Card.HasDEF(c)
+	return c:IsMonster() and not c:IsOriginalType(TYPE_LINK) and not c:IsMaximumMode()
+end
+function Card.IsCanChangeDEF(c,def)
+	return c:IsFaceup() and c:HasDEF()
+end
+
+function Card.IsCanChangeStats(c,atk,def)
+	return c:IsFaceup() and (c:HasATK() or c:HasDEF())
+end
 
 function Card.UpdateATK(c,atk,reset,rc,range,cond,prop,desc)
 	local typ = (aux.ScriptSingleAsEquip==true) and EFFECT_TYPE_EQUIP or EFFECT_TYPE_SINGLE
@@ -1813,6 +1871,11 @@ function Card.ChangeATKDEF(c,atk,def,reset,rc,range,cond,prop,desc)
 		local natk,ndef=c:GetAttack(),c:GetDefense()
 		return e,e1x,oatk,natk,odef,ndef,natk-oatk,ndef-odef
 	end
+end
+
+--Target function
+function aux.DummyTarget(e,tp,eg,ep,ev,re,r,rp,chk)
+	if chk==0 then return true end
 end
 
 
