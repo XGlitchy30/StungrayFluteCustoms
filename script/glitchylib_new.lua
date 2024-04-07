@@ -7,7 +7,9 @@ EFFECT_CANNOT_MODIFY_DEFENSE	=	2002	--Players affected by this effect cannot cha
 
 --Custom Archetypes
 
---Custom Cards
+--Official Cards/Custom Cards
+CARD_ZOMBIE_WORLD			=	4064256
+
 CARD_REGRESSED_RITUAL_ART	=	130000003
 
 --Custom Counters
@@ -71,92 +73,19 @@ RESET_TURN_SELF = RESET_SELF_TURN
 RESET_TURN_OPPO = RESET_OPPO_TURN
 
 --Chain Relation
-local _IsRelateToChain = Card.IsRelateToChain
+local _IsRelateToChain, _GetTargetCards = Card.IsRelateToChain, Duel.GetTargetCards
 
 Card.IsRelateToChain = function(c,ch)
 	local ch = ch or 0
 	return _IsRelateToChain(c,ch)
 end
 
---Shortcuts
-function Duel.IsExists(target,f,tp,loc1,loc2,min,exc,...)
-	if type(target)~="boolean" then Debug.Message("Duel.IsExists: First argument should be boolean") return false end
-	local func = (target==true) and Duel.IsExistingTarget or Duel.IsExistingMatchingCard
-	
-	return func(f,tp,loc1,loc2,min,exc,...)
-end
-function Duel.Select(hint,target,tp,f,pov,loc1,loc2,min,max,exc,...)
-	if type(target)~="boolean" then return false end
-	local func = (target==true) and Duel.SelectTarget or Duel.SelectMatchingCard
-	local hint = hint or HINTMSG_TARGET
-	
-	Duel.Hint(HINT_SELECTMSG,tp,hint)
-	local g=func(tp,f,pov,loc1,loc2,min,max,exc,...)
-	return g
-end
-function Duel.Group(f,tp,loc1,loc2,exc,...)
-	local g=Duel.GetMatchingGroup(f,tp,loc1,loc2,exc,...)
-	return g
-end
-function Duel.HintMessage(tp,msg)
-	return Duel.Hint(HINT_SELECTMSG,tp,msg)
-end
-function Auxiliary.Necro(f)
-	return aux.NecroValleyFilter(f)
-end
-function Card.Activation(c,oath)
-	local e1=Effect.CreateEffect(c)
-	if c:IsOriginalType(TYPE_PENDULUM) then
-		e1:SetDescription(STRING_ACTIVATE_PENDULUM)
-	end
-	e1:SetType(EFFECT_TYPE_ACTIVATE)
-	e1:SetCode(EVENT_FREE_CHAIN)
-	if oath then
-		e1:HOPT(true)
-	end
-	c:RegisterEffect(e1)
-	return e1
-end
-function Effect.SetFunctions(e,cond,cost,tg,op,val)
-	if cond then
-		e:SetCondition(cond)
-	end
-	if cost then
-		e:SetCost(cost)
-	end
-	if tg then
-		e:SetTarget(tg)
-	end
-	if op then
-		e:SetOperation(op)
-	end
-	if val then
-		e:SetValue(val)
-	end
-end
---[[Effect.Evaluate
-Get the value of an effect. If the effect has a function as value, it calculates the value of the function
-]]
-function Effect.Evaluate(e,...)
-	local extraargs={...}
-	local val=e:GetValue()
-	if not val then return false end
-	if type(val)=="function" then
-		local results={val(e,table.unpack(extraargs))}
-		return table.unpack(results)
+Duel.GetTargetCards = function(e)
+	if e then
+		return _GetTargetCards(e)
 	else
-		return val
-	end
-end
-function Effect.EvaluateInteger(e,...)
-	local extraargs={...}
-	local val=e:GetValue()
-	if not val then return 0 end
-	if type(val)=="function" then
-		local results={val(e,table.unpack(extraargs))}
-		return table.unpack(results)
-	else
-		return val
+		local tg=Duel.GetChainInfo(0,CHAININFO_TARGET_CARDS)
+		return tg and tg:Filter(Card.IsRelateToChain,nil) or nil
 	end
 end
 
@@ -184,13 +113,61 @@ end
 -- end
 
 --New Operation Infos
--- function Duel.SetCustomOperationInfo(ch,cat,g,ct,p,val,...)
-	-- local extra={...}
-	-- if not global_effect_info_table[ch+1] or #global_effect_info_table[ch+1]>0 then
-		-- global_effect_info_table[ch+1]={}
-	-- end
-	-- table.insert(global_effect_info_table[ch+1],{cat,g,ct,p,val,table.unpack(extra)})
--- end
+if not global_effect_category_table_global_check then
+	--global_effect_category_table_global_check=true
+	--global_effect_category_table={}
+	global_effect_info_table={}
+	--global_possible_custom_effect_info_table={}
+	--global_additional_info_table={}
+	--global_possible_info_table={}
+end
+
+function Auxiliary.ClearCustomOperationInfo(e,tp,eg,ep,ev,re,r,rp)
+	for _,chtab in pairs(global_effect_info_table) do
+		for _,tab in ipairs(chtab) do
+			local dg=tab[2]
+			if dg then
+				dg:DeleteGroup()
+			end
+		end
+	end
+	global_effect_info_table={}
+	e:Reset()
+end
+function Duel.SetCustomOperationInfo(ch,cat,g,ct,p,val,...)
+	local extra={...}
+	local chain = ch==0 and Duel.GetCurrentChain() or ch
+	if g then
+		if type(g)=="Card" then
+			g=Group.FromCards(g)
+		end
+		g:KeepAlive()
+	end
+	if not global_effect_info_table[chain] then
+		global_effect_info_table[chain]={}
+	end
+	local e1=Effect.GlobalEffect()
+	e1:SetType(EFFECT_TYPE_FIELD|EFFECT_TYPE_CONTINUOUS)
+	e1:SetCode(EVENT_CHAIN_END)
+	e1:SetOperation(aux.ClearCustomOperationInfo)
+	Duel.RegisterEffect(e1,0)
+	table.insert(global_effect_info_table[chain],{cat,g,ct,p,val,table.unpack(extra)})
+end
+function Duel.GetCustomOperationInfo(chain,cat)
+	if not global_effect_info_table[chain] then return end
+	if not cat then
+		return global_effect_info_table[chain]
+	else
+		local res={}
+		local global=global_effect_info_table[chain]
+		for _,tab in ipairs(global) do
+			if tab[1]&cat==cat then
+				table.insert(res,tab)
+			end
+		end
+		return res
+	end
+end
 
 --Card Actions
 function Duel.Attach(c,xyz)
@@ -218,90 +195,6 @@ function Duel.Banish(g,pos,r)
 	if not pos then pos=POS_FACEUP end
 	if not r then r=REASON_EFFECT end
 	return Duel.Remove(g,pos,r)
-end
-
-function Auxiliary.TimingCondition(phase,p,disregard_turncount)
-	return	function(e,tp,eg,ep,ev,re,r,rp)
-				--Debug.Message(Duel.GetTurnCount(p).." "..e:GetLabel())
-				return Duel.GetCurrentPhase()==phase and (not p or Duel.GetTurnPlayer()==p) and (disregard_turncount or Duel.GetTurnCount(p)==e:GetLabel())
-			end
-end
-function Auxiliary.TimingConditionButCountsTurns(counts_turns)
-	return	function(e,tp,eg,ep,ev,re,r,rp)
-				local tc=e:GetOwner()
-				local ct=tc:GetTurnCounter()
-				--Debug.Message(ct.." "..counts_turns)
-				if ct==counts_turns then
-					return true
-				end
-				if ct>counts_turns then
-					e:Reset()
-				end
-				return false
-			end
-end
-function Auxiliary.ReturnLabelObjectToFieldOp(id,counts_turns)
-	return	function(e,tp,eg,ep,ev,re,r,rp)
-				local g=e:GetLabelObject()
-				--Debug.Message("OBJSIZE: "..#g)
-				local sg=g:Filter(Card.HasFlagEffect,nil,id)
-				local rg=Group.CreateGroup()
-				for p=tp,1-tp,1-2*tp do
-					local sg1=sg:Filter(Card.IsPreviousControler,nil,p)
-					if #sg1>0 then
-						local sgm=sg1:Filter(Card.IsPreviousLocation,nil,LOCATION_MZONE)
-						--Debug.Message("SGM: "..#sgm)
-						local ft=Duel.GetLocationCount(p,LOCATION_MZONE)
-						if ft>0 then
-							if ft<#sgm then
-								Duel.Hint(HINT_SELECTMSG,tp,HINTMSG_TOFIELD)
-								local tg=sgm:Select(tp,ft,ft,nil)
-								if #tg>0 then
-									rg:Merge(tg)
-								end
-							else
-								rg:Merge(sgm)
-							end
-						end
-						local sgs=sg1:Filter(Card.IsPreviousLocation,nil,LOCATION_SZONE):Filter(aux.NOT(Card.IsPreviousLocation),nil,LOCATION_FZONE)
-						--Debug.Message("SGS: "..#sgs)
-						local ft=Duel.GetLocationCount(p,LOCATION_SZONE)
-						if ft>0 then
-							if ft<#sgs then
-								Duel.Hint(HINT_SELECTMSG,tp,HINTMSG_TOFIELD)
-								local tg=sgs:Select(tp,ft,ft,nil)
-								if #tg>0 then
-									rg:Merge(tg)
-								end
-							else
-								rg:Merge(sgs)
-							end
-						end
-					end
-				end
-				--Debug.Message(#rg)
-				if #rg>0 then
-					for tc in aux.Next(rg) do
-						if tc:IsPreviousLocation(LOCATION_FZONE) then
-							Duel.MoveToField(tc,tp,tc:GetPreviousControler(),LOCATION_FZONE,tc:GetPreviousPosition(),true)
-						else
-							local e1
-							if tc:IsInExtra() and tc:IsFaceup() then
-								e1=Effect.CreateEffect(tc)
-								e1:SetType(EFFECT_TYPE_SINGLE)
-								e1:SetProperty(EFFECT_FLAG_CANNOT_DISABLE|EFFECT_FLAG_UNCOPYABLE|EFFECT_FLAG_IGNORE_IMMUNE)
-								e1:SetCode(EFFECT_EXTRA_TOMAIN_KOISHI)
-								e1:SetValue(1)
-								e1:SetReset(RESET_EVENT|RESETS_STANDARD)
-								tc:RegisterEffect(e1,true)
-							end
-							Duel.ReturnToField(tc,tc:GetPreviousPosition(),(~EXTRA_MONSTER_ZONE)&0xffff)
-							if e1 then e1:Reset() end
-						end
-					end
-				end
-				g:DeleteGroup()
-			end
 end
 
 function Duel.EquipAndRegisterLimit(p,be_equip,equip_to,...)
@@ -333,17 +226,6 @@ function Duel.EquipAndRegisterCustomLimit(f,p,be_equip,equip_to,...)
 	end
 	return res and equip_to:GetEquipGroup():IsContains(be_equip)
 end
-
--- function Card.Recreate(c,...)
-	-- local x={...}
-	-- if #x==0 then return end
-	-- local datalist={CARDDATA_CODE,CARDDATA_ALIAS,CARDDATA_SETCODE,CARDDATA_TYPE,CARDDATA_LEVEL,CARDDATA_ATTRIBUTE,CARDDATA_RACE,CARDDATA_ATTACK,CARDDATA_DEFENSE,CARDDATA_LSCALE,CARDDATA_RSCALE}
-	-- for i,newval in ipairs(x) do
-		-- if newval then
-			-- c:SetCardData(datalist[i],newval)
-		-- end
-	-- end
--- end
 
 function Card.CheckNegateConjunction(c,e1,e2,e3)
 	return not c:IsImmuneToEffect(e1) and not c:IsImmuneToEffect(e2) and (not e3 or not c:IsImmuneToEffect(e3))
@@ -773,6 +655,14 @@ end
 function Auxiliary.ExceptThis(c)
 	if type(c)=="Effect" then c=c:GetHandler() end
 	if c:IsRelateToChain() then return c else return nil end
+end
+
+--Deep Label Objects
+function Effect.SetLabelObjectObject(e,obj)
+	return e:GetLabelObject():SetLabelObject(obj)
+end
+function Effect.GetLabelObjectObject(e)
+	return e:GetLabelObject():GetLabelObject()
 end
 
 --Descriptions
@@ -1473,37 +1363,458 @@ end
 
 --Relation
 
---Remain on field
-function Auxiliary.RemainOnFieldCost(e,tp,eg,ep,ev,re,r,rp,chk)
-	if chk==0 then return true end
-	local c=e:GetHandler()
-	local cid=Duel.GetChainInfo(0,CHAININFO_CHAIN_ID)
-	local e1=Effect.CreateEffect(c)
-	e1:SetType(EFFECT_TYPE_SINGLE)
-	e1:SetCode(EFFECT_REMAIN_FIELD)
-	e1:SetProperty(EFFECT_FLAG_OATH)
-	e1:SetReset(RESET_CHAIN)
-	c:RegisterEffect(e1)
-	local e2=Effect.CreateEffect(c)
-	e2:SetType(EFFECT_TYPE_FIELD|EFFECT_TYPE_CONTINUOUS)
-	e2:SetCode(EVENT_CHAIN_DISABLED)
-	e2:SetOperation(aux.RemainOnFieldCostFunction)
-	e2:SetLabel(cid)
-	e2:SetReset(RESET_CHAIN)
-	Duel.RegisterEffect(e2,tp)
+--Shortcuts
+function Duel.IsExists(target,f,tp,loc1,loc2,min,exc,...)
+	if type(target)~="boolean" then Debug.Message("Duel.IsExists: First argument should be boolean") return false end
+	local func = (target==true) and Duel.IsExistingTarget or Duel.IsExistingMatchingCard
+	
+	return func(f,tp,loc1,loc2,min,exc,...)
 end
-function Auxiliary.RemainOnFieldCostFunction(e,tp,eg,ep,ev,re,r,rp)
-	local cid=Duel.GetChainInfo(ev,CHAININFO_CHAIN_ID)
-	if cid~=e:GetLabel() then return end
-	if e:GetOwner():IsRelateToChain(ev) then
-		e:GetOwner():CancelToGrave(false)
+function Duel.Select(hint,target,tp,f,pov,loc1,loc2,min,max,exc,...)
+	if type(target)~="boolean" then return false end
+	local func = (target==true) and Duel.SelectTarget or Duel.SelectMatchingCard
+	local hint = hint or HINTMSG_TARGET
+	
+	Duel.Hint(HINT_SELECTMSG,tp,hint)
+	local g=func(tp,f,pov,loc1,loc2,min,max,exc,...)
+	return g
+end
+function Duel.Group(f,tp,loc1,loc2,exc,...)
+	local g=Duel.GetMatchingGroup(f,tp,loc1,loc2,exc,...)
+	return g
+end
+function Duel.HintMessage(tp,msg)
+	return Duel.Hint(HINT_SELECTMSG,tp,msg)
+end
+function Auxiliary.Necro(f)
+	return aux.NecroValleyFilter(f)
+end
+function Card.Activation(c,oath)
+	local e1=Effect.CreateEffect(c)
+	if c:IsOriginalType(TYPE_PENDULUM) then
+		e1:SetDescription(STRING_ACTIVATE_PENDULUM)
+	end
+	e1:SetType(EFFECT_TYPE_ACTIVATE)
+	e1:SetCode(EVENT_FREE_CHAIN)
+	if oath then
+		e1:HOPT(true)
+	end
+	c:RegisterEffect(e1)
+	return e1
+end
+function Effect.SetFunctions(e,cond,cost,tg,op,val)
+	if cond then
+		e:SetCondition(cond)
+	end
+	if cost then
+		e:SetCost(cost)
+	end
+	if tg then
+		e:SetTarget(tg)
+	end
+	if op then
+		e:SetOperation(op)
+	end
+	if val then
+		e:SetValue(val)
+	end
+end
+--[[Effect.Evaluate
+Get the value of an effect. If the effect has a function as value, it calculates the value of the function
+]]
+function Effect.Evaluate(e,...)
+	local extraargs={...}
+	local val=e:GetValue()
+	if not val then return false end
+	if type(val)=="function" then
+		local results={val(e,table.unpack(extraargs))}
+		return table.unpack(results)
+	else
+		return val
+	end
+end
+function Effect.EvaluateInteger(e,...)
+	local extraargs={...}
+	local val=e:GetValue()
+	if not val then return 0 end
+	if type(val)=="function" then
+		local results={val(e,table.unpack(extraargs))}
+		return table.unpack(results)
+	else
+		return val
 	end
 end
 
---Location Check
-function Effect.SetLabelObjectObject(e,obj)
-	return e:GetLabelObject():SetLabelObject(obj)
+--Target function
+function aux.DummyTarget(e,tp,eg,ep,ev,re,r,rp,chk)
+	if chk==0 then return true end
 end
-function Effect.GetLabelObjectObject(e)
-	return e:GetLabelObject():GetLabelObject()
+
+--Stat Modifiers
+Auxiliary.ScriptSingleAsEquip = false
+
+function Card.UpdateATK(c,atk,reset,rc,range,cond,prop,desc)
+	local typ = (aux.ScriptSingleAsEquip==true) and EFFECT_TYPE_EQUIP or EFFECT_TYPE_SINGLE
+	if not reset and not range then
+		range = c:GetOriginalType()&TYPE_FIELD>0 and LOCATION_FZONE or c:GetOriginalType()&TYPE_ST>0 and LOCATION_SZONE or LOCATION_MZONE
+	end
+	
+	local donotdisable=false
+	local rc = rc and rc or c
+    local rct=1
+    if type(reset)=="table" then
+        rct=reset[2]
+        reset=reset[1]
+    end
+	
+	if type(rc)=="table" then
+        donotdisable=rc[2]
+        rc=rc[1]
+    end
+	
+	if not prop then prop=0 end
+	
+	local att=c:GetAttack()
+	local e=Effect.CreateEffect(rc)
+	e:SetType(typ)
+	if range and not aux.ScriptSingleAsEquip then
+		prop=prop|EFFECT_FLAG_SINGLE_RANGE
+		e:SetRange(range)
+	end
+	e:SetCode(EFFECT_UPDATE_ATTACK)
+	e:SetValue(atk)
+	if cond then
+		e:SetCondition(cond)
+	end
+	
+	if reset then
+		if type(reset)~="number" then reset=0 end
+		if rc==c and not donotdisable then
+			reset = reset|RESET_DISABLE
+			prop=prop|EFFECT_FLAG_COPY_INHERIT
+		else
+			prop=prop|EFFECT_FLAG_CANNOT_DISABLE
+		end
+		e:SetReset(RESET_EVENT|RESETS_STANDARD|reset,rct)
+	end
+	
+	if prop~=0 then
+		e:SetProperty(prop)
+	end
+	
+	c:RegisterEffect(e)
+	
+	if reset then
+		return e,c:GetAttack()-att
+	else
+		return e
+	end
 end
+function Card.UpdateDEF(c,def,reset,rc,range,cond,prop,desc)
+	local typ = (aux.ScriptSingleAsEquip==true) and EFFECT_TYPE_EQUIP or EFFECT_TYPE_SINGLE
+	if not reset and not range then
+		range = c:GetOriginalType()&TYPE_FIELD>0 and LOCATION_FZONE or c:GetOriginalType()&TYPE_ST>0 and LOCATION_SZONE or LOCATION_MZONE
+	end
+	local rc = rc and rc or c
+    local rct=1
+    if type(reset)=="table" then
+        rct=reset[2]
+        reset=reset[1]
+    end
+	if not prop then prop=0 end
+	
+	local df=c:GetDefense()
+	local e=Effect.CreateEffect(rc)
+	e:SetType(typ)
+	if range and not aux.ScriptSingleAsEquip then
+		prop=prop|EFFECT_FLAG_SINGLE_RANGE
+		e:SetRange(range)
+	end
+	e:SetCode(EFFECT_UPDATE_DEFENSE)
+	e:SetValue(def)
+	if cond then
+		e:SetCondition(cond)
+	end
+	if reset then
+		if type(reset)~="number" then reset=0 end
+		if rc==c and not donotdisable then
+			reset = reset|RESET_DISABLE
+			prop=prop|EFFECT_FLAG_COPY_INHERIT
+		else
+			prop=prop|EFFECT_FLAG_CANNOT_DISABLE
+		end
+		e:SetReset(RESET_EVENT|RESETS_STANDARD|reset,rct)
+	end
+	
+	if prop~=0 then
+		e:SetProperty(prop)
+	end
+	
+	c:RegisterEffect(e)
+	if reset then
+		return e,c:GetDefense()-df
+	else
+		return e
+	end
+end
+function Card.UpdateATKDEF(c,atk,def,reset,rc,range,cond,prop,desc)
+	local typ = (aux.ScriptSingleAsEquip==true) and EFFECT_TYPE_EQUIP or EFFECT_TYPE_SINGLE
+	if not reset and not range then
+		range = c:GetOriginalType()&TYPE_FIELD>0 and LOCATION_FZONE or c:GetOriginalType()&TYPE_ST>0 and LOCATION_SZONE or LOCATION_MZONE
+	end
+	
+	local donotdisable=false
+    local rct=1
+    if type(reset)=="table" then
+        rct=reset[2]
+        reset=reset[1]
+    end
+	
+	if type(rc)=="table" then
+        donotdisable=rc[2]
+        rc=rc[1]
+    end
+	local rc = rc and rc or c
+	
+	if not atk then
+		atk=def
+	elseif not def then
+		def=atk
+	end
+	
+	if not prop then prop=0 end
+	
+	local oatk,odef=c:GetAttack(),c:GetDefense()
+	local e=Effect.CreateEffect(rc)
+	e:SetType(typ)
+	
+	if range and not aux.ScriptSingleAsEquip then
+		prop=prop|EFFECT_FLAG_SINGLE_RANGE
+		e:SetRange(range)
+	end
+	
+	e:SetCode(EFFECT_UPDATE_ATTACK)
+	e:SetValue(atk)
+	
+	if cond then
+		e:SetCondition(cond)
+	end
+	
+	if reset then
+		if type(reset)~="number" then reset=0 end
+		if rc==c and not donotdisable then
+			reset = reset|RESET_DISABLE
+			prop=prop|EFFECT_FLAG_COPY_INHERIT
+		else
+			prop=prop|EFFECT_FLAG_CANNOT_DISABLE
+		end
+		e:SetReset(RESET_EVENT|RESETS_STANDARD|reset,rct)
+	end
+	
+	if prop~=0 then
+		e:SetProperty(prop)
+	end
+	
+	c:RegisterEffect(e)
+	
+	local e1x=e:Clone()
+	e1x:SetCode(EFFECT_UPDATE_DEFENSE)
+	e1x:SetValue(def)
+	
+	c:RegisterEffect(e1x)
+	
+	if not reset then
+		return e,e1x
+	else
+		return e,e1x,c:GetAttack()-oatk,c:GetDefense()-odef
+	end
+end
+function Card.ChangeATK(c,atk,reset,rc,range,cond,prop,desc)
+	local typ = (aux.ScriptSingleAsEquip==true) and EFFECT_TYPE_EQUIP or EFFECT_TYPE_SINGLE
+	if not reset and not range then
+		range = c:GetOriginalType()&TYPE_FIELD>0 and LOCATION_FZONE or c:GetOriginalType()&TYPE_ST>0 and LOCATION_SZONE or LOCATION_MZONE
+	end
+	
+	local donotdisable=false
+    local rct=1
+    if type(reset)=="table" then
+        rct=reset[2]
+        reset=reset[1]
+    end
+	
+	if type(rc)=="table" then
+        donotdisable=rc[2]
+        rc=rc[1]
+    end
+	local rc = rc and rc or c
+	
+	if not prop then prop=0 end
+	
+	local oatk=c:GetAttack()
+	local e=Effect.CreateEffect(rc)
+	e:SetType(typ)
+	
+	if range and not aux.ScriptSingleAsEquip then
+		prop=prop|EFFECT_FLAG_SINGLE_RANGE
+		e:SetRange(range)
+	end
+	
+	e:SetCode(EFFECT_SET_ATTACK_FINAL)
+	e:SetValue(atk)
+	if cond then
+		e:SetCondition(cond)
+	end
+	if reset then
+		if type(reset)~="number" then reset=0 end
+		if rc==c and not donotdisable then
+			reset = reset|RESET_DISABLE
+			prop=prop|EFFECT_FLAG_COPY_INHERIT
+		else
+			prop=prop|EFFECT_FLAG_CANNOT_DISABLE
+		end
+		e:SetReset(RESET_EVENT|RESETS_STANDARD|reset,rct)
+	end
+	
+	if prop~=0 then
+		e:SetProperty(prop)
+	end
+	c:RegisterEffect(e)
+	if not reset then
+		return e
+	else
+		local natk=c:GetAttack()
+		return e,oatk,natk,natk-oatk
+	end
+end
+function Card.ChangeDEF(c,def,reset,rc,range,cond,prop,desc)
+	local typ = (aux.ScriptSingleAsEquip==true) and EFFECT_TYPE_EQUIP or EFFECT_TYPE_SINGLE
+	if not reset and not range then
+		range = c:GetOriginalType()&TYPE_FIELD>0 and LOCATION_FZONE or c:GetOriginalType()&TYPE_ST>0 and LOCATION_SZONE or LOCATION_MZONE
+	end
+	
+	local donotdisable=false
+    local rct=1
+    if type(reset)=="table" then
+        rct=reset[2]
+        reset=reset[1]
+    end
+	
+	if type(rc)=="table" then
+        donotdisable=rc[2]
+        rc=rc[1]
+    end
+	local rc = rc and rc or c
+	
+	if not prop then prop=0 end
+	
+	local odef=c:GetDefense()
+	local e=Effect.CreateEffect(rc)
+	e:SetType(typ)
+	
+	if range and not aux.ScriptSingleAsEquip then
+		prop=prop|EFFECT_FLAG_SINGLE_RANGE
+		e:SetRange(range)
+	end
+	
+	e:SetCode(EFFECT_SET_DEFENSE_FINAL)
+	e:SetValue(def)
+	if cond then
+		e:SetCondition(cond)
+	end
+	if reset then
+		if type(reset)~="number" then reset=0 end
+		if rc==c and not donotdisable then
+			reset = reset|RESET_DISABLE
+			prop=prop|EFFECT_FLAG_COPY_INHERIT
+		else
+			prop=prop|EFFECT_FLAG_CANNOT_DISABLE
+		end
+		e:SetReset(RESET_EVENT|RESETS_STANDARD|reset,rct)
+	end
+	
+	if prop~=0 then
+		e:SetProperty(prop)
+	end
+	
+	c:RegisterEffect(e)
+	if not reset then
+		return e
+	else
+		local ndef=c:GetDefense()
+		return e,odef,ndef,ndef-odef
+	end
+end
+function Card.ChangeATKDEF(c,atk,def,reset,rc,range,cond,prop,desc)
+	local typ = (aux.ScriptSingleAsEquip==true) and EFFECT_TYPE_EQUIP or EFFECT_TYPE_SINGLE
+	if not reset and not range then
+		range = c:GetOriginalType()&TYPE_FIELD>0 and LOCATION_FZONE or c:GetOriginalType()&TYPE_ST>0 and LOCATION_SZONE or LOCATION_MZONE
+	end
+	
+	local donotdisable=false
+    local rct=1
+    if type(reset)=="table" then
+        rct=reset[2]
+        reset=reset[1]
+    end
+	
+	if type(rc)=="table" then
+        donotdisable=rc[2]
+        rc=rc[1]
+    end
+	local rc = rc and rc or c
+	
+	if not prop then prop=0 end
+	
+	if not atk then
+		atk=def
+	elseif not def then
+		def=atk
+	end
+	
+	local oatk=c:GetAttack()
+	local odef=c:GetDefense()
+	local e=Effect.CreateEffect(rc)
+	e:SetType(typ)
+	
+	if range and not aux.ScriptSingleAsEquip then
+		prop=prop|EFFECT_FLAG_SINGLE_RANGE
+		e:SetRange(range)
+	end
+	
+	e:SetCode(EFFECT_SET_ATTACK_FINAL)
+	e:SetValue(atk)
+	if cond then
+		e:SetCondition(cond)
+	end
+	
+	if reset then
+		if type(reset)~="number" then reset=0 end
+		if rc==c and not donotdisable then
+			reset = reset|RESET_DISABLE
+			prop=prop|EFFECT_FLAG_COPY_INHERIT
+		else
+			prop=prop|EFFECT_FLAG_CANNOT_DISABLE
+		end
+		e:SetReset(RESET_EVENT|RESETS_STANDARD|reset,rct)
+	end
+	
+	if prop~=0 then
+		e:SetProperty(prop)
+	end
+	c:RegisterEffect(e)
+	
+	local e1x=e:Clone()
+	e1x:SetCode(EFFECT_SET_DEFENSE_FINAL)
+	e1x:SetValue(def)
+	c:RegisterEffect(e1x)
+	if not reset then
+		return e,e1x
+	else
+		local natk,ndef=c:GetAttack(),c:GetDefense()
+		return e,e1x,oatk,natk,odef,ndef,natk-oatk,ndef-odef
+	end
+end
+
+
+--LOAD OTHER LIBRARIES
+Duel.LoadScript("glitchylib_cond.lua")		--CONDITIONS
