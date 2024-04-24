@@ -190,9 +190,7 @@ function Auxiliary.MergedDelayEventCheckGlitchy1(event,id,f,range,evgcheck,se,op
 					for _,cid in ipairs(flags) do
 						local _eg=g:Clone()
 						_eg=_eg:Filter(Card.HasFlagEffectLabel,nil,cid,label)
-						if engage_label~=0 then
-							_eg=_eg:Filter(Card.HasFlagEffectLabel,nil,cid,engage_label)
-						end
+						
 						--Debug.Message("NOCHAIN_FILTERED_COUNT "..tostring(cid)..": "..tostring(#_eg))
 						G:Merge(_eg)
 					end

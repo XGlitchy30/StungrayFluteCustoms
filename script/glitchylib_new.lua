@@ -1,4 +1,6 @@
 --Custom Categories
+CATEGORY_ATTACH		=	0x1
+
 CATEGORIES_SEARCH = CATEGORY_SEARCH|CATEGORY_TOHAND
 CATEGORIES_ATKDEF = CATEGORY_ATKCHANGE|CATEGORY_DEFCHANGE
 
@@ -12,6 +14,9 @@ EFFECT_CANNOT_MODIFY_DEFENSE	=	2002	--Players affected by this effect cannot cha
 CARD_DHERO_DRILLDARK		=	91691605
 CARD_ZOMBIE_WORLD			=	4064256
 
+CARD_ADIRA_APOTHEOSIZED		=   130000020
+CARD_ADIRAS_WILL			=	130000021
+CARD_NUMBERS_REVOLUTION		=	130000015
 CARD_REGRESSED_RITUAL_ART	=	130000003
 
 --Custom Counters
@@ -21,6 +26,13 @@ STRING_ADD_TO_HAND					=	1105
 STRING_BANISH_REDIRECT				=	3300
 STRING_CHANGE_POSITION				=	aux.Stringid(130000010,2)
 STRING_SHUFFLE_INTO_DECK_REDIRECT	=	3301
+
+STRING_CANNOT_BE_DESTROYED								=	3008
+STRING_CANNOT_BE_DESTROYED_OR_TARGETED_BY_EFFECTS		=	3009
+STRING_CANNOT_BE_DESTROYED_OR_TARGETED_BY_EFFECTS_OPPO	=	3067
+
+----Hint messages
+HINTMSG_ATTACHTO					=	aux.Stringid(130000015,2)
 
 --Locations
 
@@ -55,6 +67,8 @@ EXTRA_MONSTER_ZONE=0x60
 
 --timings
 RELEVANT_TIMINGS = TIMINGS_CHECK_MONSTER|TIMING_MAIN_END|TIMING_END_PHASE
+RELEVANT_BATTLE_TIMINGS = TIMING_BATTLE_PHASE|TIMING_BATTLE_END|TIMING_ATTACK|TIMING_BATTLE_START|TIMING_BATTLE_STEP_END
+
 
 --win
 WIN_REASON_CUSTOM = 0xff
@@ -93,27 +107,27 @@ Duel.GetTargetCards = function(e)
 end
 
 --Custom Categories
--- if not global_effect_category_table_global_check then
-	-- global_effect_category_table_global_check=true
-	-- global_effect_category_table={}
-	-- global_effect_info_table={}
-	-- global_possible_info_table={}
--- end
--- function Effect.SetCustomCategory(e,cat,flags)
-	-- if not cat then cat=0 end
-	-- if not flags then flags=0 end
-	-- if not global_effect_category_table[e] then global_effect_category_table[e]={} end
-	-- global_effect_category_table[e][1]=cat
-	-- global_effect_category_table[e][2]=flags
--- end
--- function Effect.GetCustomCategory(e)
-	-- if not global_effect_category_table[e] then return 0,0 end
-	-- return global_effect_category_table[e][1], global_effect_category_table[e][2]
--- end
--- function Effect.IsHasCustomCategory(e,cat1,cat2)
-	-- local ocat1,ocat2=e:GetCustomCategory()
-	-- return (cat1 and ocat1&cat1>0) or (cat2 and ocat2&cat2>0)
--- end
+if not global_effect_category_table_global_check then
+	global_effect_category_table_global_check=true
+	global_effect_category_table={}
+	global_effect_info_table={}
+	global_possible_info_table={}
+end
+function Effect.SetCustomCategory(e,cat,flags)
+	if not cat then cat=0 end
+	if not flags then flags=0 end
+	if not global_effect_category_table[e] then global_effect_category_table[e]={} end
+	global_effect_category_table[e][1]=cat
+	global_effect_category_table[e][2]=flags
+end
+function Effect.GetCustomCategory(e)
+	if not global_effect_category_table[e] then return 0,0 end
+	return global_effect_category_table[e][1], global_effect_category_table[e][2]
+end
+function Effect.IsHasCustomCategory(e,cat1,cat2)
+	local ocat1,ocat2=e:GetCustomCategory()
+	return (cat1 and ocat1&cat1>0) or (cat2 and ocat2&cat2>0)
+end
 
 --New Operation Infos
 if not global_effect_category_table_global_check then
@@ -896,6 +910,10 @@ function Effect.SetRelevantTimings(e,extra_timings)
 	if not extra_timings then extra_timings=0 end
 	return e:SetHintTiming(extra_timings,RELEVANT_TIMINGS|extra_timings)
 end
+function Effect.SetRelevantBattleTimings(e,extra_timings)
+	if not extra_timings then extra_timings=0 end
+	return e:SetHintTiming(extra_timings,RELEVANT_BATTLE_TIMINGS|extra_timings)
+end
 
 
 --Labels
@@ -1364,6 +1382,11 @@ end
 
 --Relation
 
+--Ritual-Related
+function Card.IsMentionedByRitualSpell(c,spell)
+	return (spell.fit_monster and c:IsCode(table.unpack(spell.fit_monster))) or spell:ListsCode(c:GetCode())
+end
+
 --Special Summons
 function Duel.SpecialSummonRedirect(redirect,e,g,sumtype,sump,fieldp,ignore_sumcon,ignore_revive_limit,pos,zone,desc)
 	if type(redirect)=="Effect" then
@@ -1422,6 +1445,18 @@ function Duel.Select(hint,target,tp,f,pov,loc1,loc2,min,max,exc,...)
 	
 	Duel.Hint(HINT_SELECTMSG,tp,hint)
 	local g=func(tp,f,pov,loc1,loc2,min,max,exc,...)
+	return g
+end
+function Duel.ForcedSelect(hint,target,tp,f,pov,loc1,loc2,min,max,exc,...)
+	if type(target)~="boolean" then return false end
+	local func = (target==true) and Duel.SelectTarget or Duel.SelectMatchingCard
+	local hint = hint or HINTMSG_TARGET
+	
+	Duel.Hint(HINT_SELECTMSG,tp,hint)
+	local g=func(tp,f,pov,loc1,loc2,min,max,exc,...)
+	if not g or #g==0 then
+		g=func(tp,f,pov,loc1,loc2,min,max,exc)
+	end
 	return g
 end
 function Duel.Group(f,tp,loc1,loc2,exc,...)
@@ -1560,12 +1595,12 @@ function Card.UpdateATK(c,atk,reset,rc,range,cond,prop,desc)
 		e:SetProperty(prop)
 	end
 	
-	c:RegisterEffect(e)
+	local reg=c:RegisterEffect(e)
 	
 	if reset then
-		return e,c:GetAttack()-att
+		return e,c:GetAttack()-att,reg
 	else
-		return e
+		return e,reg
 	end
 end
 function Card.UpdateDEF(c,def,reset,rc,range,cond,prop,desc)
@@ -1881,3 +1916,4 @@ end
 
 --LOAD OTHER LIBRARIES
 Duel.LoadScript("glitchylib_cond.lua")		--CONDITIONS
+Duel.LoadScript("glitchylib_cost.lua")		--COSTS
