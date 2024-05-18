@@ -56,12 +56,12 @@ function s.addmods(e,tp,eg,ep,ev,re,r,rp)
 		local modcode=s.modcodes[code]
 		tc:Recreate(modcode,nil,nil,nil,nil,nil,nil,nil,nil,nil,nil,nil,true)
 	end
-	for p=0,1 do
-		local g0=g:Filter(Card.IsControler,nil,p)
-		if #g0>0 then
-			Duel.ConfirmCards(0,g0)
-		end
-	end
+	-- for p=0,1 do
+		-- local g0=g:Filter(Card.IsControler,nil,p)
+		-- if #g0>0 then
+			-- Duel.ConfirmCards(0,g0)
+		-- end
+	-- end
 end
 
 --E1
