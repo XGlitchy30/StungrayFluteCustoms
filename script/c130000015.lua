@@ -33,8 +33,36 @@ function s.initial_effect(c)
 	e2:OPT()
 	e2:SetFunctions(nil,aux.PayLPCost(500),s.attg,s.atop)
 	c:RegisterEffect(e2)
+	if not s.global_check then
+		s.global_check=true
+		local ge1=Effect.CreateEffect(c)
+		ge1:SetType(EFFECT_TYPE_FIELD|EFFECT_TYPE_CONTINUOUS)
+		ge1:SetCode(EVENT_STARTUP)
+		ge1:SetOperation(s.addmods)
+		Duel.RegisterEffect(ge1,0)
+	end
 end
 s.listed_series={SET_NUMBER}
+
+s.modcodes={[56840427]=56840457; [49221191]=49221221}
+
+function s.modfilter(c)
+	return s.modcodes[c:GetOriginalCode()]
+end
+function s.addmods(e,tp,eg,ep,ev,re,r,rp)
+	local g=Duel.GetMatchingGroup(s.modfilter,0,LOCATION_ALL,LOCATION_ALL,nil)
+	for tc in g:Iter() do
+		local code=tc:GetOriginalCode()
+		local modcode=s.modcodes[code]
+		tc:Recreate(modcode,nil,nil,nil,nil,nil,nil,nil,nil,nil,nil,nil,true)
+	end
+	for p=0,1 do
+		local g0=g:Filter(Card.IsControler,nil,p)
+		if #g0>0 then
+			Duel.ConfirmCards(0,g0)
+		end
+	end
+end
 
 --E1
 function s.lpcon(e)
