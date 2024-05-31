@@ -33,9 +33,13 @@ end
 function s.target(e,tp,eg,ep,ev,re,r,rp,chk,chkc)
 	if chkc then return false end
 	local rc=re:GetHandler()
-	if chk==0 then return rc:IsCanBeEffectTarget(e) and rc:IsRelateToChain(ev) and rc:IsNegatableSpellTrap() end
-	Duel.SetTargetCard(rc)
-	Duel.SetOperationInfo(0,CATEGORY_DISABLE,eg,1,0,0)
+	if chk==0 then return rc:IsCanBeEffectTarget(e) and rc:IsNegatableSpellTrap() end
+	if rc:IsRelateToChain(ev) and Duel.GetCurrentChain()==ev+1 then
+		Duel.SetTargetCard(rc)
+		Duel.SetOperationInfo(0,CATEGORY_DISABLE,eg,1,0,0)
+	else
+		Duel.SetOperationInfo(0,CATEGORY_DISABLE,nil,0,0,0)
+	end
 end
 function s.operation(e,tp,eg,ep,ev,re,r,rp)
 	local tc=Duel.GetFirstTarget()
