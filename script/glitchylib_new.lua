@@ -3,15 +3,25 @@ CATEGORY_ATTACH		=	0x1
 
 CATEGORIES_SEARCH = CATEGORY_SEARCH|CATEGORY_TOHAND
 CATEGORIES_ATKDEF = CATEGORY_ATKCHANGE|CATEGORY_DEFCHANGE
+CATEGORIES_FUSION_SUMMON 	= 	CATEGORY_SPECIAL_SUMMON|CATEGORY_FUSION_SUMMON
+CATEGORIES_TOKEN 			= 	CATEGORY_SPECIAL_SUMMON|CATEGORY_TOKEN
 
 --Custom Effects
 EFFECT_CANNOT_MODIFY_ATTACK		= 	2001	--Players affected by this effect cannot change ATK of the specified cards. Needed for implementation of "Hidden Monastery of Necrovalley".
 EFFECT_CANNOT_MODIFY_DEFENSE	=	2002	--Players affected by this effect cannot change DEF of the specified cards. Needed for implementation of "Hidden Monastery of Necrovalley"
 
+--Custom Cards associated with custom effects
+CARD_MX_MUSIC					=	130000022	--[[This effect must be assigned to monsters that cannot be Special Summoned from the banishment due to specific card effects and restrictions.
+													Named after "Mx. Music", this effect is necessary to correctly handle interactions with effects that banish a monster and Special Summon the same monster right after. It is the banishment analogue of the CARD_CLOCK_LIZARD effect, which handles Summons from the Extra Deck instead (see "Clock Lizard")]]
+
 --Custom Archetypes
 
 --Official Cards/Custom Cards
+CARD_AMPLIFIER				=	303660
 CARD_DHERO_DRILLDARK		=	91691605
+CARD_FIREWING_PEGASUS		=	27054370
+CARD_GAIA_THE_FIERCE_KNIGHT	=	6368038
+CARD_KAISER_DRAGON			=	94566432
 CARD_ZOMBIE_WORLD			=	4064256
 
 CARD_ADIRA_APOTHEOSIZED		=   130000020
@@ -247,7 +257,9 @@ end
 function Card.CheckNegateConjunction(c,e1,e2,e3)
 	return not c:IsImmuneToEffect(e1) and not c:IsImmuneToEffect(e2) and (not e3 or not c:IsImmuneToEffect(e3))
 end
-function Duel.Negate(tc,e,reset,notfield,forced)
+
+TYPE_NEGATE_ALL = TYPE_MONSTER|TYPE_SPELL|TYPE_TRAP
+function Duel.Negate(g,e,reset,notfield,forced,typ,cond)
 	local rct=1
 	if not reset then
 		reset=0
@@ -255,40 +267,64 @@ function Duel.Negate(tc,e,reset,notfield,forced)
 		rct=reset[2]
 		reset=reset[1]
 	end
-	Duel.NegateRelatedChain(tc,RESET_TURN_SET)
-	local e1=Effect.CreateEffect(e:GetHandler())
-	e1:SetType(EFFECT_TYPE_SINGLE)
-	e1:SetProperty(EFFECT_FLAG_CANNOT_DISABLE)
-	e1:SetCode(EFFECT_DISABLE)
-	e1:SetReset(RESET_EVENT+RESETS_STANDARD+reset,rct)
-	tc:RegisterEffect(e1,forced)
-	local e2=Effect.CreateEffect(e:GetHandler())
-	e2:SetType(EFFECT_TYPE_SINGLE)
-	e2:SetProperty(EFFECT_FLAG_CANNOT_DISABLE)
-	e2:SetCode(EFFECT_DISABLE_EFFECT)
-	if not notfield then
-		e2:SetValue(RESET_TURN_SET)
+	if not typ then typ=0 end
+	
+	local returntype=type(g)
+	if returntype=="Card" then
+		g=Group.FromCards(g)
 	end
-	e2:SetReset(RESET_EVENT+RESETS_STANDARD+reset,rct)
-	tc:RegisterEffect(e2,forced)
-	if not notfield and tc:IsType(TYPE_TRAPMONSTER) then
-		local e3=Effect.CreateEffect(e:GetHandler())
-		e3:SetType(EFFECT_TYPE_SINGLE)
-		e3:SetProperty(EFFECT_FLAG_CANNOT_DISABLE)
-		e3:SetCode(EFFECT_DISABLE_TRAPMONSTER)
-		e3:SetReset(RESET_EVENT+RESETS_STANDARD+reset,rct)
-		tc:RegisterEffect(e3,forced)
-		local res=tc:CheckNegateConjunction(e1,e2,e3)
+	local check=0
+	local c=e:GetHandler()
+	for tc in aux.Next(g) do
+		Duel.NegateRelatedChain(tc,RESET_TURN_SET)
+		local e1=Effect.CreateEffect(c)
+		e1:SetType(EFFECT_TYPE_SINGLE)
+		e1:SetProperty(EFFECT_FLAG_CANNOT_DISABLE)
+		e1:SetCode(EFFECT_DISABLE)
+		if cond then
+			e1:SetCondition(cond)
+		end
+		e1:SetReset(RESET_EVENT|RESETS_STANDARD|reset,rct)
+		tc:RegisterEffect(e1,forced)
+		local e2=Effect.CreateEffect(c)
+		e2:SetType(EFFECT_TYPE_SINGLE)
+		e2:SetProperty(EFFECT_FLAG_CANNOT_DISABLE)
+		e2:SetCode(EFFECT_DISABLE_EFFECT)
+		if cond then
+			e2:SetCondition(cond)
+		end
+		if not notfield then
+			e2:SetValue(RESET_TURN_SET)
+		end
+		e2:SetReset(RESET_EVENT|RESETS_STANDARD|reset,rct)
+		tc:RegisterEffect(e2,forced)
+		if not notfield and typ&TYPE_TRAP>0 and tc:IsType(TYPE_TRAPMONSTER) then
+			local e3=Effect.CreateEffect(c)
+			e3:SetType(EFFECT_TYPE_SINGLE)
+			e3:SetProperty(EFFECT_FLAG_CANNOT_DISABLE)
+			e3:SetCode(EFFECT_DISABLE_TRAPMONSTER)
+			if cond then
+				e3:SetCondition(cond)
+			end
+			e3:SetReset(RESET_EVENT+RESETS_STANDARD+reset,rct)
+			tc:RegisterEffect(e3,forced)
+			local res=tc:CheckNegateConjunction(e1,e2,e3)
+			if res then
+				Duel.AdjustInstantly(tc)
+			end
+			return e1,e2,e3,res
+		end
+		local res=tc:CheckNegateConjunction(e1,e2)
 		if res then
 			Duel.AdjustInstantly(tc)
 		end
-		return e1,e2,e3,res
+		if returntype=="Card" then
+			return e1,e2,res
+		elseif res then
+			check=check+1
+		end
 	end
-	local res=tc:CheckNegateConjunction(e1,e2)
-	if res then
-		Duel.AdjustInstantly(tc)
-	end
-	return e1,e2,res
+	return check
 end
 function Duel.NegateInGY(tc,e,reset)
 	if not reset then reset=0 end
@@ -474,6 +510,7 @@ end
 function Card.HasRank(c)
 	return c:IsType(TYPE_XYZ) or c:IsOriginalType(TYPE_XYZ) or c:IsHasEffect(EFFECT_ORIGINAL_LEVEL_RANK_DUALITY)
 end
+
 function Card.GetRating(c)
 	local list={false,false,false,false}
 	if c:HasLevel() then
@@ -489,6 +526,43 @@ function Card.GetRating(c)
 		list[4]=c:GetFuture()
 	end
 	return list
+end
+function Card.GetRatingAuto(c)
+	if c:HasLevel() then
+		return c:GetLevel(),0
+	end
+	if c:IsOriginalType(TYPE_XYZ) then
+		return c:GetRank(),TYPE_XYZ
+	end
+	if c:IsOriginalType(TYPE_LINK) then
+		return c:GetLink(),TYPE_LINK
+	end
+	return 0,nil
+end
+function Card.GetOriginalRating(c)
+	local list={false,false,false}
+	if c:HasLevel(true) then
+		list[1]=c:GetOriginalLevel()
+	end
+	if c:IsOriginalType(TYPE_XYZ) then
+		list[2]=c:GetOriginalRank()
+	end
+	if c:IsOriginalType(TYPE_LINK) then
+		list[3]=c:GetOriginalLink()
+	end
+	return list
+end
+function Card.GetOriginalRatingAuto(c)
+	if c:HasLevel(true) then
+		return c:GetOriginalLevel(),0
+	end
+	if c:IsOriginalType(TYPE_XYZ) then
+		return c:GetOriginalRank(),TYPE_XYZ
+	end
+	if c:IsOriginalType(TYPE_LINK) then
+		return c:GetOriginalLink(),TYPE_LINK
+	end
+	return 0,nil
 end
 	
 function Card.IsRating(c,rtyp,...)
@@ -741,6 +815,20 @@ function Duel.RegisterHint(p,flag,reset,rct,id,desc)
 	if not reset then reset=PHASE_END end
 	if not rct then rct=1 end
 	return Duel.RegisterFlagEffect(p,flag,RESET_PHASE+reset,EFFECT_FLAG_CLIENT_HINT,rct,0,aux.Stringid(id,desc))
+end
+
+--Equip
+function Card.IsEquippedWith(c,eq)
+	local g=c:GetEquipGroup()
+	if not g or #g==0 then return false end
+	if type(eq)=="Card" then
+		return g:IsContains(eq)
+	elseif type(eq)=="number" then
+		return g:IsExists(aux.FaceupFilter(Card.IsCode,eq),1,nil)
+	elseif type(eq)=="function" then
+		return g:IsExists(eq,1,nil,c)
+	end
+	return false
 end
 
 --Excavate
