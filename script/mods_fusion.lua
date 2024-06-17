@@ -1,4 +1,4 @@
-local _SelectMix = Fusion.SelectMix
+local _SelectMix, _SummonEffFilter = Fusion.SelectMix, Fusion.SummonEffFilter
 
 function Fusion.SelectMix(c,tp,mg,sg,mustg,fc,sub,sub2,contact,sumtype,chkf,...)
 	if not aux.FusionSelectMixMod then
@@ -51,5 +51,21 @@ function Fusion.SelectMix(c,tp,mg,sg,mustg,fc,sub,sub2,contact,sumtype,chkf,...)
 		sg:RemoveCard(c)
 		-- mg2:Merge(rg)
 		return res
+	end
+end
+
+function Fusion.SummonEffFilter(c,fusfilter,e,tp,mg,gc,chkf,value,sumlimit,nosummoncheck,sumpos,efmg)
+	if not aux.FusionSummonEffFilter then
+		return _SummonEffFilter(c,fusfilter,e,tp,mg,gc,chkf,value,sumlimit,nosummoncheck,sumpos,efmg)
+	else
+		if not c:IsType(TYPE_FUSION) then return false end
+		if efmg and #efmg>0 then
+			local g=efmg:Clone()
+			if #(g:Match(GetExtraMatEff,nil,c))>0 then
+				mg:Merge(g)
+			end
+		end
+		return (not fusfilter or fusfilter(c,tp)) and (nosummoncheck or c:IsCanBeSpecialSummoned(e,value,tp,sumlimit,false,sumpos))
+				and c:CheckFusionMaterial(mg,gc,chkf)
 	end
 end

@@ -9,6 +9,7 @@ Duel.LoadScript("glitchylib_new.lua")
 Duel.LoadScript("mods_fusion.lua")
 function s.initial_effect(c)
 	aux.FusionSelectMixMod=true
+	aux.FusionSummonEffFilterMod=true
 	--Discard 1 card, then target 1 or more monsters you control; Fusion Summon 1 Fusion Monster from your Extra Deck, using all those targets as material, and up to that many monsters your opponent controls, as Fusion Material. You can only activate 1 "Mega Polymerization" per turn.
 	local e1=Effect.CreateEffect(c)
 	e1:SetDescription(id,0)
