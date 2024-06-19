@@ -11,9 +11,14 @@ EFFECT_CANNOT_MODIFY_ATTACK		= 	2001	--Players affected by this effect cannot ch
 EFFECT_CANNOT_MODIFY_DEFENSE	=	2002	--Players affected by this effect cannot change DEF of the specified cards. Needed for implementation of "Hidden Monastery of Necrovalley"
 
 --Custom Cards associated with custom effects
-CARD_MX_MUSIC					=	130000022	--[[This effect must be assigned to monsters that cannot be Special Summoned from the banishment due to specific card effects and restrictions.
-													Named after "Mx. Music", this effect is necessary to correctly handle interactions with effects that banish a monster and Special Summon the same monster right after. It is the banishment analogue of the CARD_CLOCK_LIZARD effect, which handles Summons from the Extra Deck instead (see "Clock Lizard")]]
 
+--[[This effect must be assigned to monsters that cannot be Special Summoned from the banishment due to specific card effects and restrictions.
+Named after "Mx. Music", this effect is necessary to correctly handle interactions with effects that banish a monster and Special Summon the same monster right after.
+It is the banishment analogue of the CARD_CLOCK_LIZARD effect, which handles Summons from the Extra Deck instead (see "Clock Lizard")]]
+CARD_MX_MUSIC							=	130000022	
+
+--While this effect is applied to a card, that card will only be affected by the effect of EFFECT_NECRO_VALLEY that prevents the change of Type/Attribute											
+CARD_HIDDEN_MONASTERY_OF_NECROVALLEY	=	130000000	
 --Custom Archetypes
 
 --Official Cards/Custom Cards

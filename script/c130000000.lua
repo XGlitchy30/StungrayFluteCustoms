@@ -6,7 +6,9 @@ Scripted by: XGlitchy30
 
 local s,id,o=GetID()
 Duel.LoadScript("glitchylib_new.lua")
+Duel.LoadScript("glitchylib_archetypes.lua")
 function s.initial_effect(c)
+	aux.NecroValleyFilterMod=true
 	c:Activation()
 	--"Gravekeeper's" monsters on the field gain 500 ATK/DEF.
 	local e1=Effect.CreateEffect(c)
@@ -39,23 +41,38 @@ function s.initial_effect(c)
 	e3:SetCode(EFFECT_NECRO_VALLEY)
 	e3:SetRange(LOCATION_FZONE)
 	e3:SetTargetRange(LOCATION_GRAVE,0)
-	e3:SetCondition(s.contp)
+	e3:SetCondition(s.lvcontp(3))
+	e3:SetOperation(s.necrovalley(e3))
 	c:RegisterEffect(e3)
 	local e3x=e3:Clone()
 	e3x:SetTargetRange(0,LOCATION_GRAVE)
-	e3x:SetCondition(s.conntp)
+	e3x:SetCondition(s.lvconntp(3))
 	c:RegisterEffect(e3x)
+	local e3y=e3:Clone()
+	e3y:SetCode(id)
+	e3y:SetTargetRange(LOCATION_GRAVE,LOCATION_GRAVE)
+	e3y:SetCondition(aux.NOT(s.lvcon(7)))
+	c:RegisterEffect(e3y)
+	----Hard fix for Elementsabers and similar cards
+	local e3z=Effect.CreateEffect(c)
+	e3z:SetType(EFFECT_TYPE_FIELD|EFFECT_TYPE_CONTINUOUS)
+	e3z:SetCode(EVENT_CHAIN_SOLVING)
+	e3z:SetRange(LOCATION_FZONE)
+	e3z:SetCondition(s.lvcon(3))
+	e3z:SetOperation(s.elemsabfix)
+	c:RegisterEffect(e3z)
+	
 	local e4=Effect.CreateEffect(c)
 	e4:SetType(EFFECT_TYPE_FIELD)
 	e4:SetCode(EFFECT_NECRO_VALLEY)
 	e4:SetRange(LOCATION_FZONE)
 	e4:SetProperty(EFFECT_FLAG_PLAYER_TARGET)
 	e4:SetTargetRange(1,0)
-	e4:SetCondition(s.contp)
+	e4:SetCondition(s.lvcontp(3))
 	c:RegisterEffect(e4)
 	local e4x=e4:Clone()
 	e4x:SetTargetRange(0,1)
-	e4x:SetCondition(s.conntp)
+	e4x:SetCondition(s.lvconntp(3))
 	c:RegisterEffect(e4x)
 	---Custom effect to handle effects that change ATK or DEF in the GY
 	local e5=Effect.CreateEffect(c)
@@ -124,6 +141,7 @@ function s.initial_effect(c)
 	c:RegisterEffect(e9)
 end
 s.listed_series={SET_GRAVEKEEPERS}
+s.TypeAttrInGYCodes={45702014,18214905,72819261,46425662,19036557,83032858,70856343,9069157}
 
 --E2
 function s.extratributes(e,c)
@@ -139,6 +157,24 @@ function s.contp(e)
 end
 function s.conntp(e)
 	return not Duel.IsPlayerAffectedByEffect(1-e:GetHandler():GetControler(),EFFECT_NECRO_VALLEY_IM)
+end
+function s.necrovalley(e)
+	return	function(se,sc)
+				return s.lvcon(7)(e,nil)
+			end
+end
+function s.elemsabfix(e,tp,eg,ep,ev,re,r,rp)
+	local tc=re:GetHandler()
+	if not Duel.IsChainDisablable(ev) or tc:IsHasEffect(EFFECT_NECRO_VALLEY_IM) then return end
+	local res=false
+	local not_im0=not Duel.IsPlayerAffectedByEffect(0,EFFECT_NECRO_VALLEY_IM)
+	local not_im1=not Duel.IsPlayerAffectedByEffect(1,EFFECT_NECRO_VALLEY_IM)
+	if not res and s.discheck(ev,CATEGORY_LEAVE_GRAVE,re,not_im0,not_im1) and not re:GetHandler():IsOriginalCode(table.unpack(s.TypeAttrInGYCodes)) then
+		res=true
+	end
+	if res then
+		Duel.NegateEffect(ev)
+	end
 end
 
 --General Level condition for bulleted effects
