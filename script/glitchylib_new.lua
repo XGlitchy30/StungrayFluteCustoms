@@ -993,7 +993,7 @@ function Auxiliary.GainEffectType(c,oc,reset)
 		e:SetType(EFFECT_TYPE_SINGLE)
 		e:SetCode(EFFECT_ADD_TYPE)
 		e:SetValue(TYPE_EFFECT)
-		e:SetReset(RESET_EVENT+RESETS_STANDARD+reset)
+		e:SetReset(RESET_EVENT|RESETS_STANDARD|reset)
 		c:RegisterEffect(e,true)
 	end
 end
