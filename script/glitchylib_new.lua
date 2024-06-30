@@ -351,21 +351,51 @@ end
 function Duel.PositionChange(c)
 	return Duel.ChangePosition(c,POS_FACEUP_DEFENSE,POS_FACEDOWN_DEFENSE,POS_FACEUP_ATTACK,POS_FACEUP_ATTACK)
 end
-function Duel.Search(g,tp,p)
+function Duel.Search(g,p,r)
 	if type(g)=="Card" then g=Group.FromCards(g) end
-	local ct=Duel.SendtoHand(g,p,REASON_EFFECT)
+	if not r then r=REASON_EFFECT end
+	local ct=Duel.SendtoHand(g,p,r)
 	local cg=g:Filter(aux.PLChk,nil,p,LOCATION_HAND)
 	if #cg>0 then
-		Duel.ConfirmCards(1-tp,cg)
+		if p then
+			Duel.ConfirmCards(1-p,cg)
+		else
+			for tp=0,1 do
+				local pg=cg:Filter(Card.IsControler,nil,tp)
+				if #pg>0 then
+					Duel.ConfirmCards(1-tp,pg)
+				end
+			end
+		end
 	end
 	return ct,#cg,cg
 end
-function Duel.SearchAndCheck(g,tp,p,ignore_confirm)
+function Duel.SearchAndCheck(g,p,brk,r)
 	if type(g)=="Card" then g=Group.FromCards(g) end
-	local ct=Duel.SendtoHand(g,p,REASON_EFFECT)
+	if not r then r=REASON_EFFECT end
+	local ct=Duel.SendtoHand(g,p,r)
 	local cg=g:Filter(aux.PLChk,nil,p,LOCATION_HAND)
-	if #cg>0 and not ignore_confirm then
-		Duel.ConfirmCards(1-tp,cg)
+	if #cg>0 then
+		local ignore_confirm=false
+		if type(brk)~="nil" then
+			if brk==true then
+				Duel.BreakEffect()
+			elseif brk==false then
+				ignore_confirm=true
+			end
+		end
+		if not ignore_confirm then
+			if p then
+				Duel.ConfirmCards(1-p,cg)
+			else
+				for tp=0,1 do
+					local pg=cg:Filter(Card.IsControler,nil,tp)
+					if #pg>0 then
+						Duel.ConfirmCards(1-tp,pg)
+					end
+				end
+			end
+		end
 	end
 	return ct>0 and #cg>0
 end

@@ -45,7 +45,7 @@ function s.activate(e,tp,eg,ep,ev,re,r,rp)
 		if tc:IsAbleToHand() then
 			Duel.BreakEffect()
 		end
-		if Duel.SearchAndCheck(tc,tp,nil,true) then
+		if Duel.SearchAndCheck(tc,nil,nil,true) then
 			Duel.Draw(1-tp,1,REASON_EFFECT)
 		end
 	end

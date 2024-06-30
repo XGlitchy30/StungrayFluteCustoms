@@ -38,12 +38,12 @@ function s.thtg(e,tp,eg,ep,ev,re,r,rp,chk)
 end
 function s.thop(e,tp,eg,ep,ev,re,r,rp)
 	local g=Duel.ForcedSelect(HINTMSG_ATOHAND,false,tp,s.thfilter1,tp,LOCATION_DECK,0,1,1,nil,tp,true,true)
-	if #g>0 and Duel.SearchAndCheck(g,tp) then
+	if #g>0 and Duel.SearchAndCheck(g) then
 		Duel.ShuffleHand(tp)
 		local g2=Duel.Select(HINTMSG_ATOHAND,false,tp,aux.Necro(s.thfilter2),tp,LOCATION_DECK|LOCATION_GRAVE,0,1,1,nil,g:GetFirst())
 		if #g2>0 then
 			Duel.BreakEffect()
-			Duel.Search(g2,tp)
+			Duel.Search(g2)
 		end
 	end
 end

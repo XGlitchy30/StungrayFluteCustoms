@@ -91,7 +91,7 @@ function s.operation(e,tp,eg,ep,ev,re,r,rp)
 	Duel.Hint(HINT_SELECTMSG,tp,HINTMSG_ATOHAND)
 	local tg=Duel.SelectMatchingCard(tp,aux.Necro(s.filter2),tp,LOCATION_GRAVE,0,1,1,nil)
 	if #tg>0 then
-		Duel.Search(tg,tp)
+		Duel.Search(tg)
 	end
 end
 

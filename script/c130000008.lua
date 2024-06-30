@@ -42,7 +42,7 @@ function s.activate(e,tp,eg,ep,ev,re,r,rp)
 	if tc:IsRelateToChain() then
 		local codes={tc:GetCode()}
 		local g=Duel.Select(HINTMSG_ATOHAND,false,tp,s.thfilter,tp,LOCATION_DECK,0,1,1,tc,codes)
-		if #g>0 and Duel.SearchAndCheck(g,tp) then
+		if #g>0 and Duel.SearchAndCheck(g) then
 			Duel.BreakEffect()
 			Duel.Recover(tp,500,REASON_EFFECT)
 		end
