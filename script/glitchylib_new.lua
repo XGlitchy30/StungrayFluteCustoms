@@ -9,6 +9,7 @@ CATEGORIES_TOKEN 			= 	CATEGORY_SPECIAL_SUMMON|CATEGORY_TOKEN
 --Custom Effects
 EFFECT_CANNOT_MODIFY_ATTACK		= 	2001	--Players affected by this effect cannot change ATK of the specified cards. Needed for implementation of "Hidden Monastery of Necrovalley".
 EFFECT_CANNOT_MODIFY_DEFENSE	=	2002	--Players affected by this effect cannot change DEF of the specified cards. Needed for implementation of "Hidden Monastery of Necrovalley"
+EFFECT_SUMMONABLE_BY_OPPONENT	=	2003	--The card has an effect that allows the opponent to Normal Summon it (see Moblins' Packmate)
 
 --Custom Cards associated with custom effects
 
@@ -18,7 +19,8 @@ It is the banishment analogue of the CARD_CLOCK_LIZARD effect, which handles Sum
 CARD_MX_MUSIC							=	130000022	
 
 --While this effect is applied to a card, that card will only be affected by the effect of EFFECT_NECRO_VALLEY that prevents the change of Type/Attribute											
-CARD_HIDDEN_MONASTERY_OF_NECROVALLEY	=	130000000	
+CARD_HIDDEN_MONASTERY_OF_NECROVALLEY	=	130000000
+
 --Custom Archetypes
 
 --Official Cards/Custom Cards
@@ -45,6 +47,7 @@ STRING_SHUFFLE_INTO_DECK_REDIRECT	=	3301
 STRING_CANNOT_BE_DESTROYED								=	3008
 STRING_CANNOT_BE_DESTROYED_OR_TARGETED_BY_EFFECTS		=	3009
 STRING_CANNOT_BE_DESTROYED_OR_TARGETED_BY_EFFECTS_OPPO	=	3067
+STRING_CANNOT_BE_DESTROYED_AT_ALL						=	4000
 
 ----Hint messages
 HINTMSG_ATTACHTO					=	aux.Stringid(130000015,2)
@@ -348,9 +351,6 @@ function Duel.NegateInGY(tc,e,reset)
 	tc:RegisterEffect(e2)
 	return e1,e2
 end
-function Duel.PositionChange(c)
-	return Duel.ChangePosition(c,POS_FACEUP_DEFENSE,POS_FACEDOWN_DEFENSE,POS_FACEUP_ATTACK,POS_FACEUP_ATTACK)
-end
 function Duel.Search(g,p,r)
 	if type(g)=="Card" then g=Group.FromCards(g) end
 	if not r then r=REASON_EFFECT end
@@ -451,6 +451,74 @@ function Auxiliary.AfterShuffle(g)
 			Duel.ShuffleDeck(p)
 		end
 	end
+end
+
+--Card Action Filters
+function Auxiliary.ActivateFilter(f)
+	return	function(c,e,tp)
+				return (not f or f(c,e,tp)) and c:GetActivateEffect():IsActivatable(tp,true,true)
+			end
+end
+function Auxiliary.AttachFilter(f)
+	return	function(c,e,...)
+				return (not f or f(c,e,...)) and not c:IsType(TYPE_TOKEN) and not c:IsImmuneToEffect(e)
+			end
+end
+function Auxiliary.AttachFilter2(f)
+	return	function(c,...)
+				return (not f or f(c,e,...)) and c:IsType(TYPE_XYZ)
+			end
+end
+function Auxiliary.BanishFilter(f,cost)
+	return	function(c,...)
+				return (not f or f(c,...)) and (not cost and c:IsAbleToRemove() or cost and c:IsAbleToRemoveAsCost())
+			end
+end
+function Auxiliary.ControlFilter(f)
+	return	function(c,...)
+				return (not f or f(c,...)) and c:IsControlerCanBeChanged()
+			end
+end
+function Auxiliary.DestroyFilter(f)
+	return	function(c,e,...)
+				return (not f or f(c,e,...)) and (c:IsOnField() or c:IsDestructable(e))
+			end
+end
+function Auxiliary.DiscardFilter(f,cost)
+	local r = cost and REASON_EFFECT or REASON_COST
+	return	function(c)
+				return (not f or f(c)) and c:IsDiscardable(r)
+			end
+end
+function Auxiliary.SearchFilter(f)
+	return	function(c,...)
+				return (not f or f(c,...)) and c:IsAbleToHand()
+			end
+end
+function Auxiliary.ToDeckFilter(f,cost,loc)
+	if not cost then
+		return	function(c,...)
+			return (not f or f(c,...)) and c:IsAbleToDeck()
+		end
+	else
+		local check=Card.IsAbleToDeckOrExtraAsCost
+		if loc then
+			if loc==LOCATION_DECK then
+				check=Card.IsAbleToDeckAsCost
+			elseif loc==LOCATION_EXTRA then
+				check=Card.IsAbleToExtraAsCost
+			end
+		end
+		return	function(c,...)
+					return (not f or f(c,...)) and check(c)
+				end
+	end
+end
+function Auxiliary.ToGraveFilter(f,cost)
+	local ableto=cost and Card.IsAbleToGraveAsCost or Card.IsAbleToGrave
+	return	function(c,...)
+				return (not f or f(c,...)) and ableto(c)
+			end
 end
 
 --Battle Phase
@@ -904,12 +972,6 @@ function Auxiliary.Facedown(f)
 				return (not f or f(c,...)) and c:IsFacedown()
 			end
 end
--- function Auxiliary.FaceupFilter(f,...)
-	-- local ext_params={...}
-	-- return	function(target)
-				-- return target:IsFaceup() and f(target,table.unpack(ext_params))
-			-- end
--- end
 function Auxiliary.ArchetypeFilter(set,f,...)
 	local ext_params={...}
 	return	function(target)
@@ -1336,7 +1398,7 @@ end
 function Effect.OPT(e,ct)
 	if not ct then ct=1 end
 	if type(ct)=="boolean" then
-		return e:SetCountLimit(1,EFFECT_COUNT_CODE_SINGLE)
+		return e:SetCountLimit(1,0,EFFECT_COUNT_CODE_SINGLE)
 	else
 		return e:SetCountLimit(ct)
 	end
@@ -1356,12 +1418,13 @@ function Effect.HOPT(e,oath,ct)
 	aux.HOPTTracker[c]=aux.HOPTTracker[c]+1
 	local flag=0
 	if oath then
-		flag=flag|EFFECT_COUNT_CODE_OATH
+		oath=type(oath)=="number" and oath or EFFECT_COUNT_CODE_OATH
+		flag=flag|oath
 	end
 	if flag==0 then
 		return e:SetCountLimit(ct,{cid,aux.HOPTTracker[c]})
 	else
-		return e:SetCountLimit(ct,{cid,aux.HOPTTracker[c],flag})
+		return e:SetCountLimit(ct,{cid,aux.HOPTTracker[c]},flag)
 	end
 end
 function Effect.SHOPT(e,oath)
@@ -1374,13 +1437,14 @@ function Effect.SHOPT(e,oath)
 	
 	local flag=0
 	if oath then
-		flag=flag|EFFECT_COUNT_CODE_OATH
+		oath=type(oath)=="number" and oath or EFFECT_COUNT_CODE_OATH
+		flag=flag|oath
 	end
 	
 	if flag==0 then
 		return e:SetCountLimit(ct,{cid,aux.HOPTTracker[c]})
 	else
-		return e:SetCountLimit(ct,{cid,aux.HOPTTracker[c],flag})
+		return e:SetCountLimit(ct,{cid,aux.HOPTTracker[c]},flag)
 	end
 end
 
@@ -1419,6 +1483,9 @@ function Duel.GetNextPhaseCount(ph,p)
 end
 
 --PositionChange
+function Duel.PositionChange(c)
+	return Duel.ChangePosition(c,POS_FACEUP_DEFENSE,POS_FACEDOWN_DEFENSE,POS_FACEUP_ATTACK,POS_FACEUP_ATTACK)
+end
 function Duel.Flip(c,pos)
 	if not c or (pos&POS_FACEUP==0 and pos&POS_FACEDOWN==0) then return 0 end
 	if type(c)=="Card" then
@@ -1649,7 +1716,6 @@ function Effect.EvaluateInteger(e,...)
 end
 
 --Stat Modifiers
-Auxiliary.ScriptSingleAsEquip = false
 
 function Card.HasATK(c)
 	return c:IsMonster()
@@ -1669,368 +1735,6 @@ function Card.IsCanChangeStats(c,atk,def)
 	return c:IsFaceup() and (c:HasATK() or c:HasDEF())
 end
 
-function Card.UpdateATK(c,atk,reset,rc,range,cond,prop,desc)
-	local typ = (aux.ScriptSingleAsEquip==true) and EFFECT_TYPE_EQUIP or EFFECT_TYPE_SINGLE
-	if not reset and not range then
-		range = c:GetOriginalType()&TYPE_FIELD>0 and LOCATION_FZONE or c:GetOriginalType()&TYPE_ST>0 and LOCATION_SZONE or LOCATION_MZONE
-	end
-	
-	local donotdisable=false
-	local rc = rc and rc or c
-    local rct=1
-    if type(reset)=="table" then
-        rct=reset[2]
-        reset=reset[1]
-    end
-	
-	if type(rc)=="table" then
-        donotdisable=rc[2]
-        rc=rc[1]
-    end
-	
-	if not prop then prop=0 end
-	
-	local att=c:GetAttack()
-	local e=Effect.CreateEffect(rc)
-	e:SetType(typ)
-	if range and not aux.ScriptSingleAsEquip then
-		prop=prop|EFFECT_FLAG_SINGLE_RANGE
-		e:SetRange(range)
-	end
-	e:SetCode(EFFECT_UPDATE_ATTACK)
-	e:SetValue(atk)
-	if cond then
-		e:SetCondition(cond)
-	end
-	
-	if reset then
-		if type(reset)~="number" then reset=0 end
-		if rc==c and not donotdisable then
-			reset = reset|RESET_DISABLE
-			prop=prop|EFFECT_FLAG_COPY_INHERIT
-		else
-			prop=prop|EFFECT_FLAG_CANNOT_DISABLE
-		end
-		e:SetReset(RESET_EVENT|RESETS_STANDARD|reset,rct)
-	end
-	
-	if prop~=0 then
-		e:SetProperty(prop)
-	end
-	
-	local reg=c:RegisterEffect(e)
-	
-	if reset then
-		return e,c:GetAttack()-att,reg
-	else
-		return e,reg
-	end
-end
-function Card.UpdateDEF(c,def,reset,rc,range,cond,prop,desc)
-	local typ = (aux.ScriptSingleAsEquip==true) and EFFECT_TYPE_EQUIP or EFFECT_TYPE_SINGLE
-	if not reset and not range then
-		range = c:GetOriginalType()&TYPE_FIELD>0 and LOCATION_FZONE or c:GetOriginalType()&TYPE_ST>0 and LOCATION_SZONE or LOCATION_MZONE
-	end
-	local rc = rc and rc or c
-    local rct=1
-    if type(reset)=="table" then
-        rct=reset[2]
-        reset=reset[1]
-    end
-	if not prop then prop=0 end
-	
-	local df=c:GetDefense()
-	local e=Effect.CreateEffect(rc)
-	e:SetType(typ)
-	if range and not aux.ScriptSingleAsEquip then
-		prop=prop|EFFECT_FLAG_SINGLE_RANGE
-		e:SetRange(range)
-	end
-	e:SetCode(EFFECT_UPDATE_DEFENSE)
-	e:SetValue(def)
-	if cond then
-		e:SetCondition(cond)
-	end
-	if reset then
-		if type(reset)~="number" then reset=0 end
-		if rc==c and not donotdisable then
-			reset = reset|RESET_DISABLE
-			prop=prop|EFFECT_FLAG_COPY_INHERIT
-		else
-			prop=prop|EFFECT_FLAG_CANNOT_DISABLE
-		end
-		e:SetReset(RESET_EVENT|RESETS_STANDARD|reset,rct)
-	end
-	
-	if prop~=0 then
-		e:SetProperty(prop)
-	end
-	
-	c:RegisterEffect(e)
-	if reset then
-		return e,c:GetDefense()-df
-	else
-		return e
-	end
-end
-function Card.UpdateATKDEF(c,atk,def,reset,rc,range,cond,prop,desc)
-	local typ = (aux.ScriptSingleAsEquip==true) and EFFECT_TYPE_EQUIP or EFFECT_TYPE_SINGLE
-	if not reset and not range then
-		range = c:GetOriginalType()&TYPE_FIELD>0 and LOCATION_FZONE or c:GetOriginalType()&TYPE_ST>0 and LOCATION_SZONE or LOCATION_MZONE
-	end
-	
-	local donotdisable=false
-    local rct=1
-    if type(reset)=="table" then
-        rct=reset[2]
-        reset=reset[1]
-    end
-	
-	if type(rc)=="table" then
-        donotdisable=rc[2]
-        rc=rc[1]
-    end
-	local rc = rc and rc or c
-	
-	if not atk then
-		atk=def
-	elseif not def then
-		def=atk
-	end
-	
-	if not prop then prop=0 end
-	
-	local oatk,odef=c:GetAttack(),c:GetDefense()
-	local e=Effect.CreateEffect(rc)
-	e:SetType(typ)
-	
-	if range and not aux.ScriptSingleAsEquip then
-		prop=prop|EFFECT_FLAG_SINGLE_RANGE
-		e:SetRange(range)
-	end
-	
-	e:SetCode(EFFECT_UPDATE_ATTACK)
-	e:SetValue(atk)
-	
-	if cond then
-		e:SetCondition(cond)
-	end
-	
-	if reset then
-		if type(reset)~="number" then reset=0 end
-		if rc==c and not donotdisable then
-			reset = reset|RESET_DISABLE
-			prop=prop|EFFECT_FLAG_COPY_INHERIT
-		else
-			prop=prop|EFFECT_FLAG_CANNOT_DISABLE
-		end
-		e:SetReset(RESET_EVENT|RESETS_STANDARD|reset,rct)
-	end
-	
-	if prop~=0 then
-		e:SetProperty(prop)
-	end
-	
-	c:RegisterEffect(e)
-	
-	local e1x=e:Clone()
-	e1x:SetCode(EFFECT_UPDATE_DEFENSE)
-	e1x:SetValue(def)
-	
-	c:RegisterEffect(e1x)
-	
-	if not reset then
-		return e,e1x
-	else
-		return e,e1x,c:GetAttack()-oatk,c:GetDefense()-odef
-	end
-end
-function Card.ChangeATK(c,atk,reset,rc,range,cond,prop,desc)
-	local typ = (aux.ScriptSingleAsEquip==true) and EFFECT_TYPE_EQUIP or EFFECT_TYPE_SINGLE
-	if not reset and not range then
-		range = c:GetOriginalType()&TYPE_FIELD>0 and LOCATION_FZONE or c:GetOriginalType()&TYPE_ST>0 and LOCATION_SZONE or LOCATION_MZONE
-	end
-	
-	local donotdisable=false
-    local rct=1
-    if type(reset)=="table" then
-        rct=reset[2]
-        reset=reset[1]
-    end
-	
-	if type(rc)=="table" then
-        donotdisable=rc[2]
-        rc=rc[1]
-    end
-	local rc = rc and rc or c
-	
-	if not prop then prop=0 end
-	
-	local oatk=c:GetAttack()
-	local e=Effect.CreateEffect(rc)
-	e:SetType(typ)
-	
-	if range and not aux.ScriptSingleAsEquip then
-		prop=prop|EFFECT_FLAG_SINGLE_RANGE
-		e:SetRange(range)
-	end
-	
-	e:SetCode(EFFECT_SET_ATTACK_FINAL)
-	e:SetValue(atk)
-	if cond then
-		e:SetCondition(cond)
-	end
-	if reset then
-		if type(reset)~="number" then reset=0 end
-		if rc==c and not donotdisable then
-			reset = reset|RESET_DISABLE
-			prop=prop|EFFECT_FLAG_COPY_INHERIT
-		else
-			prop=prop|EFFECT_FLAG_CANNOT_DISABLE
-		end
-		e:SetReset(RESET_EVENT|RESETS_STANDARD|reset,rct)
-	end
-	
-	if prop~=0 then
-		e:SetProperty(prop)
-	end
-	c:RegisterEffect(e)
-	if not reset then
-		return e
-	else
-		local natk=c:GetAttack()
-		return e,oatk,natk,natk-oatk
-	end
-end
-function Card.ChangeDEF(c,def,reset,rc,range,cond,prop,desc)
-	local typ = (aux.ScriptSingleAsEquip==true) and EFFECT_TYPE_EQUIP or EFFECT_TYPE_SINGLE
-	if not reset and not range then
-		range = c:GetOriginalType()&TYPE_FIELD>0 and LOCATION_FZONE or c:GetOriginalType()&TYPE_ST>0 and LOCATION_SZONE or LOCATION_MZONE
-	end
-	
-	local donotdisable=false
-    local rct=1
-    if type(reset)=="table" then
-        rct=reset[2]
-        reset=reset[1]
-    end
-	
-	if type(rc)=="table" then
-        donotdisable=rc[2]
-        rc=rc[1]
-    end
-	local rc = rc and rc or c
-	
-	if not prop then prop=0 end
-	
-	local odef=c:GetDefense()
-	local e=Effect.CreateEffect(rc)
-	e:SetType(typ)
-	
-	if range and not aux.ScriptSingleAsEquip then
-		prop=prop|EFFECT_FLAG_SINGLE_RANGE
-		e:SetRange(range)
-	end
-	
-	e:SetCode(EFFECT_SET_DEFENSE_FINAL)
-	e:SetValue(def)
-	if cond then
-		e:SetCondition(cond)
-	end
-	if reset then
-		if type(reset)~="number" then reset=0 end
-		if rc==c and not donotdisable then
-			reset = reset|RESET_DISABLE
-			prop=prop|EFFECT_FLAG_COPY_INHERIT
-		else
-			prop=prop|EFFECT_FLAG_CANNOT_DISABLE
-		end
-		e:SetReset(RESET_EVENT|RESETS_STANDARD|reset,rct)
-	end
-	
-	if prop~=0 then
-		e:SetProperty(prop)
-	end
-	
-	c:RegisterEffect(e)
-	if not reset then
-		return e
-	else
-		local ndef=c:GetDefense()
-		return e,odef,ndef,ndef-odef
-	end
-end
-function Card.ChangeATKDEF(c,atk,def,reset,rc,range,cond,prop,desc)
-	local typ = (aux.ScriptSingleAsEquip==true) and EFFECT_TYPE_EQUIP or EFFECT_TYPE_SINGLE
-	if not reset and not range then
-		range = c:GetOriginalType()&TYPE_FIELD>0 and LOCATION_FZONE or c:GetOriginalType()&TYPE_ST>0 and LOCATION_SZONE or LOCATION_MZONE
-	end
-	
-	local donotdisable=false
-    local rct=1
-    if type(reset)=="table" then
-        rct=reset[2]
-        reset=reset[1]
-    end
-	
-	if type(rc)=="table" then
-        donotdisable=rc[2]
-        rc=rc[1]
-    end
-	local rc = rc and rc or c
-	
-	if not prop then prop=0 end
-	
-	if not atk then
-		atk=def
-	elseif not def then
-		def=atk
-	end
-	
-	local oatk=c:GetAttack()
-	local odef=c:GetDefense()
-	local e=Effect.CreateEffect(rc)
-	e:SetType(typ)
-	
-	if range and not aux.ScriptSingleAsEquip then
-		prop=prop|EFFECT_FLAG_SINGLE_RANGE
-		e:SetRange(range)
-	end
-	
-	e:SetCode(EFFECT_SET_ATTACK_FINAL)
-	e:SetValue(atk)
-	if cond then
-		e:SetCondition(cond)
-	end
-	
-	if reset then
-		if type(reset)~="number" then reset=0 end
-		if rc==c and not donotdisable then
-			reset = reset|RESET_DISABLE
-			prop=prop|EFFECT_FLAG_COPY_INHERIT
-		else
-			prop=prop|EFFECT_FLAG_CANNOT_DISABLE
-		end
-		e:SetReset(RESET_EVENT|RESETS_STANDARD|reset,rct)
-	end
-	
-	if prop~=0 then
-		e:SetProperty(prop)
-	end
-	c:RegisterEffect(e)
-	
-	local e1x=e:Clone()
-	e1x:SetCode(EFFECT_SET_DEFENSE_FINAL)
-	e1x:SetValue(def)
-	c:RegisterEffect(e1x)
-	if not reset then
-		return e,e1x
-	else
-		local natk,ndef=c:GetAttack(),c:GetDefense()
-		return e,e1x,oatk,natk,odef,ndef,natk-oatk,ndef-odef
-	end
-end
-
 --Target function
 function aux.DummyTarget(e,tp,eg,ep,ev,re,r,rp,chk)
 	if chk==0 then return true end
@@ -2040,3 +1744,5 @@ end
 --LOAD OTHER LIBRARIES
 Duel.LoadScript("glitchylib_cond.lua")		--CONDITIONS
 Duel.LoadScript("glitchylib_cost.lua")		--COSTS
+Duel.LoadScript("glitchylib_single.lua")	--SINGLE-TYPE EFFECTS TEMPLATES
+Duel.LoadScript("glitchylib_activated.lua")	--ACTIVATED EFFECTS TEMPLATES
