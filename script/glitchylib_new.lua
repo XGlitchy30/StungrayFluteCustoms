@@ -23,6 +23,7 @@ CARD_HIDDEN_MONASTERY_OF_NECROVALLEY	=	130000000
 
 --Custom Archetypes
 SET_MOBLINS					=	0x300
+SET_WICCINK					=	0x301
 
 --Official Cards/Custom Cards
 CARD_AMPLIFIER				=	303660
@@ -37,6 +38,9 @@ CARD_ADIRAS_WILL			=	130000021
 CARD_NUMBERS_REVOLUTION		=	130000015
 CARD_REGRESSED_RITUAL_ART	=	130000003
 
+--Custom Tokens
+TOKEN_WICCINK				=	130000050
+
 --Custom Counters
 
 --Desc
@@ -45,10 +49,17 @@ STRING_BANISH_REDIRECT				=	3300
 STRING_CHANGE_POSITION				=	aux.Stringid(130000010,2)
 STRING_SHUFFLE_INTO_DECK_REDIRECT	=	3301
 
+STRING_AVOID_BATTLE_DAMAGE								=	3210
+STRING_CANNOT_ATTACK									=	3206
 STRING_CANNOT_BE_DESTROYED								=	3008
+STRING_CANNOT_BE_DESTROYED_BY_BATTLE					=	3000
+STRING_CANNOT_BE_DESTROYED_BY_EFFECTS					=	3001
 STRING_CANNOT_BE_DESTROYED_OR_TARGETED_BY_EFFECTS		=	3009
 STRING_CANNOT_BE_DESTROYED_OR_TARGETED_BY_EFFECTS_OPPO	=	3067
 STRING_CANNOT_BE_DESTROYED_AT_ALL						=	4000
+STRING_CANNOT_BE_TRIBUTED								=	3303
+
+STRING_ASK_POSITION										=	5000
 
 ----Hint messages
 HINTMSG_ATTACHTO					=	aux.Stringid(130000015,2)
@@ -88,6 +99,13 @@ EXTRA_MONSTER_ZONE=0x60
 RELEVANT_TIMINGS = TIMINGS_CHECK_MONSTER|TIMING_MAIN_END|TIMING_END_PHASE
 RELEVANT_BATTLE_TIMINGS = TIMING_BATTLE_PHASE|TIMING_BATTLE_END|TIMING_ATTACK|TIMING_BATTLE_START|TIMING_BATTLE_STEP_END
 
+--Operation Info Special Values
+OPINFO_FLAG_HALVE	= 0x1
+OPINFO_FLAG_DOUBLE 	= 0x2
+OPINFO_FLAG_UNKNOWN = 0x4
+OPINFO_FLAG_HIGHER 	= 0x8
+OPINFO_FLAG_LOWER 	= 0x10
+OPINFO_FLAG_FUNCTION= 0x20
 
 --win
 WIN_REASON_CUSTOM = 0xff
@@ -233,10 +251,11 @@ function Duel.Banish(g,pos,r)
 	return Duel.Remove(g,pos,r)
 end
 
-function Duel.EquipAndRegisterLimit(p,be_equip,equip_to,...)
+--For cards that equip other cards to themselves ONLY
+function Duel.EquipAndRegisterLimit(e,p,be_equip,equip_to,...)
 	local res=Duel.Equip(p,be_equip,equip_to,...)
 	if res and equip_to:GetEquipGroup():IsContains(be_equip) then
-		local e1=Effect.CreateEffect(equip_to)
+		local e1=Effect.CreateEffect(e:GetHandler())
 		e1:SetType(EFFECT_TYPE_SINGLE)
 		e1:SetProperty(EFFECT_FLAG_OWNER_RELATE)
 		e1:SetCode(EFFECT_EQUIP_LIMIT)
@@ -246,8 +265,28 @@ function Duel.EquipAndRegisterLimit(p,be_equip,equip_to,...)
 					end
 				   )
 		be_equip:RegisterEffect(e1)
+		return true
 	end
-	return res and equip_to:GetEquipGroup():IsContains(be_equip)
+	return false
+end
+--For effects that equip a card to another card
+function Duel.EquipToOtherCardAndRegisterLimit(e,p,be_equip,equip_to,...)
+	local res=Duel.Equip(p,be_equip,equip_to,...)
+	if res and equip_to:GetEquipGroup():IsContains(be_equip) then
+		local e1=Effect.CreateEffect(e:GetHandler())
+		e1:SetType(EFFECT_TYPE_SINGLE)
+		e1:SetProperty(EFFECT_FLAG_CANNOT_DISABLE)
+		e1:SetCode(EFFECT_EQUIP_LIMIT)
+		e1:SetLabelObject(equip_to)
+		e1:SetReset(RESET_EVENT|RESETS_STANDARD)
+		e1:SetValue(function(e,c)
+						return e:GetLabelObject()==c
+					end
+				   )
+		be_equip:RegisterEffect(e1)
+		return true
+	end
+	return false
 end
 function Duel.EquipAndRegisterCustomLimit(f,p,be_equip,equip_to,...)
 	local res=Duel.Equip(p,be_equip,equip_to,...)
@@ -407,15 +446,32 @@ function Duel.Bounce(g)
 	return ct,#cg,cg
 end
 
-function Duel.ShuffleIntoDeck(g,p,loc)
+function Duel.SendtoGraveAndCheck(g,p,r)
+	if type(g)=="Card" then g=Group.FromCards(g) end
+	r = r or REASON_EFFECT
+	local ct=Duel.SendtoGrave(g,r)
+	if ct<=0 then return false end
+	local cg=g:Filter(aux.PLChk,nil,p,LOCATION_GRAVE)
+	return #cg>0
+end
+
+function Duel.ShuffleIntoDeck(g,p,loc,seq,r,f)
 	if not loc then loc=LOCATION_DECK|LOCATION_EXTRA end
-	local ct=Duel.SendtoDeck(g,p,SEQ_DECKSHUFFLE,REASON_EFFECT)
+	if not seq then seq=SEQ_DECKSHUFFLE end
+	if not r then r=REASON_EFFECT end
+	local ct=Duel.SendtoDeck(g,p,seq,r)
 	if ct>0 then
-		aux.AfterShuffle(g)
-		if type(g)=="Card" and aux.PLChk(g,p,loc) then
+		if seq==SEQ_DECKSHUFFLE then
+			aux.AfterShuffle(g)
+		end
+		if type(g)=="Card" and aux.PLChk(g,p,loc) and (not f or f(g)) then
 			return 1
 		elseif type(g)=="Group" then
-			return g:FilterCount(aux.PLChk,nil,p,loc)
+			local sg=g:Filter(aux.PLChk,nil,p,loc)
+			if f then
+				sg=sg:Filter(f,nil,sg)
+			end
+			return #sg
 		end
 	end
 	return 0
@@ -1455,6 +1511,20 @@ function Duel.SetCardOperationInfo(g,cat)
 	local ct = type(g)=="Card" and 1 or #g
 	return Duel.SetOperationInfo(0,cat,g,ct,tc:GetControler(),tc:GetLocation())
 end
+function Duel.SetConditionalOperationInfo(f,ch,cat,g,ct,p,val,...)
+	if f then
+		Duel.SetOperationInfo(ch,cat,g,ct,p,val)
+	else
+		Duel.SetPossibleOperationInfo(ch,cat,g,ct,p,val,...)
+	end
+end
+function Duel.SetConditionalCustomOperationInfo(f,ch,cat,g,ct,p,val,...)
+	if f then
+		Duel.SetCustomOperationInfo(ch,cat,g,ct,p,val,...)
+	else
+		Duel.SetPossibleCustomOperationInfo(ch,cat,g,ct,p,val,...)
+	end
+end
 
 --Phases
 function Duel.IsDrawPhase(tp)
@@ -1476,7 +1546,14 @@ function Duel.IsEndPhase(tp)
 end
 
 function Duel.GetNextPhaseCount(ph,p)
-	if Duel.GetCurrentPhase()==ph and (not p or Duel.GetTurnPlayer()==tp) then
+	if Duel.GetCurrentPhase()==ph and (not p or Duel.GetTurnPlayer()==p) then
+		return 2
+	else
+		return 1
+	end
+end
+function Duel.GetNextMainPhaseCount(p)
+	if Duel.IsMainPhase() and (not p or Duel.GetTurnPlayer()==tp) then
 		return 2
 	else
 		return 1
@@ -1722,18 +1799,18 @@ function Card.HasATK(c)
 	return c:IsMonster()
 end
 function Card.IsCanChangeATK(c,atk)
-	return c:IsFaceup() and c:HasATK()
+	return c:IsFaceup() and c:HasATK() and (not atk or not c:IsAttack(atk))
 end
 
 function Card.HasDEF(c)
 	return c:IsMonster() and not c:IsOriginalType(TYPE_LINK) and not c:IsMaximumMode()
 end
 function Card.IsCanChangeDEF(c,def)
-	return c:IsFaceup() and c:HasDEF()
+	return c:IsFaceup() and c:HasDEF() and (not def or not c:IsDefense(def))
 end
 
 function Card.IsCanChangeStats(c,atk,def)
-	return c:IsFaceup() and (c:HasATK() or c:HasDEF())
+	return c:IsCanChangeATK(atk) or c:IsCanChangeDEF(def)
 end
 
 --Target function

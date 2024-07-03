@@ -392,11 +392,9 @@ function Card.CannotBeDestroyed(c,val,cond,reset,rc,range,prop,desc)
 	
 	if reset then
 		if type(reset)~="number" then reset=0 end
-		prop=prop|EFFECT_FLAG_CANNOT_DISABLE
+		prop=prop|EFFECT_FLAG_CANNOT_DISABLE|EFFECT_FLAG_CLIENT_HINT
 		e:SetReset(RESET_EVENT|RESETS_STANDARD|reset,rct)
-		
 		desc=desc or STRING_CANNOT_BE_DESTROYED_AT_ALL
-		prop=prop|EFFECT_FLAG_CLIENT_HINT
 	end
 	
 	if prop~=0 then
@@ -440,17 +438,66 @@ function Card.CannotBeDestroyedByBattle(c,val,cond,reset,rc,range,prop,desc)
 	
 	if reset then
 		if type(reset)~="number" then reset=0 end
-		prop=prop|EFFECT_FLAG_CANNOT_DISABLE
+		prop=prop|EFFECT_FLAG_CANNOT_DISABLE|EFFECT_FLAG_CLIENT_HINT
 		e:SetReset(RESET_EVENT|RESETS_STANDARD|reset,rct)
+		desc=desc or STRING_CANNOT_BE_DESTROYED_BY_BATTLE
 	end
 	
 	if prop~=0 then
 		e:SetProperty(prop)
 	end
+	if desc then
+		e:SetDescription(desc)
+	end
 	
 	c:RegisterEffect(e)
 	
 	return e
+end
+
+--Add Tribute protection
+function Card.CannotBeTributed(c,val,cond,reset,rc,range,prop,desc)
+	local typ = EFFECT_TYPE_SINGLE
+	rc = rc or c
+    local rct=1
+    if type(reset)=="table" then
+        rct=reset[2]
+        reset=reset[1]
+    end
+	
+	prop = prop or 0
+	val = val or 1
+	
+	local e1=Effect.CreateEffect(c)
+	e1:SetType(typ)
+	if range then
+		prop=prop|EFFECT_FLAG_SINGLE_RANGE
+		e1:SetRange(range)
+	end
+	e1:SetCode(EFFECT_UNRELEASABLE_SUM)
+	e1:SetValue(val)
+	if cond then
+		e1:SetCondition(cond)
+	end
+	if reset then
+		if type(reset)~="number" then reset=0 end
+		prop=prop|EFFECT_FLAG_CANNOT_DISABLE|EFFECT_FLAG_CLIENT_HINT
+		e1:SetReset(RESET_EVENT|RESETS_STANDARD|reset,rct)
+		desc=desc or STRING_CANNOT_BE_TRIBUTED
+	end
+	if prop~=0 then
+		e1:SetProperty(prop)
+	end
+	if desc then
+		e1:SetDescription(desc)
+	end
+	c:RegisterEffect(e1)
+	
+	local e2=e1:Clone()
+	e2:SetCode(EFFECT_UNRELEASABLE_NONSUM)
+	c:RegisterEffect(e2)
+	
+	return e1,e2
 end
 
 --Protections: Immunity
