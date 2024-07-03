@@ -57,7 +57,7 @@ end
 
 --E2
 function s.cfilter(c)
-	return c:IsFaceup() and c:IsType(TYPES_TOKEN)
+	return c:IsFaceup() and c:IsType(TYPE_TOKEN)
 end
 function s.spcon(e,tp,eg,ep,ev,re,r,rp)
 	return not Duel.IsExists(false,s.cfilter,tp,LOCATION_ONFIELD,0,1,nil)

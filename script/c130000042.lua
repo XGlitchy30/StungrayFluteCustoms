@@ -127,7 +127,7 @@ end
 --E3
 function s.repfilter(c)
 	return c:IsFaceup() and c:IsSetCard(SET_WICCINK) and c:IsOnField() and not c:IsReason(REASON_REPLACE)
-		and c:IsReason(REASON_BATTLE|REASON_EFFECT) and not c:HasFlagEffect(id)
+		and c:IsReason(REASON_EFFECT) and not c:HasFlagEffect(id+100)
 end
 function s.desfilter(c)
 	return c:IsFaceupEx() and c:IsSpell() and c:IsSetCard(SET_WICCINK) and c:IsAbleToDeck() and aux.nvfilter(c)
@@ -141,7 +141,7 @@ function s.reptg(e,tp,eg,ep,ev,re,r,rp,chk)
 		local g=e:GetLabelObject()
 		g:Clear()
 		for tc in tg:Iter() do
-			tc:RegisterFlagEffect(id,RESET_EVENT|(RESETS_STANDARD&~RESET_TURN_SET)|RESET_CHAIN,0,1)
+			tc:RegisterFlagEffect(id+100,RESET_EVENT|(RESETS_STANDARD&~RESET_TURN_SET)|RESET_CHAIN,0,1)
 			g:AddCard(tc)
 		end
 		return true
