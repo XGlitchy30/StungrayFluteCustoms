@@ -31,6 +31,7 @@ CARD_DHERO_DRILLDARK		=	91691605
 CARD_FIREWING_PEGASUS		=	27054370
 CARD_GAIA_THE_FIERCE_KNIGHT	=	6368038
 CARD_KAISER_DRAGON			=	94566432
+CARD_MIRACLE_STONE			=	31461282
 CARD_ZOMBIE_WORLD			=	4064256
 
 CARD_ADIRA_APOTHEOSIZED		=   130000020
@@ -1253,14 +1254,15 @@ end
 
 --Zones
 function Card.GetZone(c,tp)
-	local rzone
+	local rzone=0
+	local seq=c:GetSequence()
 	if c:IsLocation(LOCATION_MZONE) then
-		rzone = c:IsControler(tp) and (1 <<c:GetSequence()) or (1 << (16+c:GetSequence()))
+		rzone = c:IsControler(tp) and (1<<seq) or (1 << (16+seq))
 		if c:IsSequence(5,6) then
-			rzone = rzone | (c:IsControler(tp) and (1 << (16 + 11 - c:GetSequence())) or (1 << (11 - c:GetSequence())))
+			rzone = rzone | (c:IsControler(tp) and (1 << (16+11-seq)) or (1 << (11-seq)))
 		end
 	elseif c:IsLocation(LOCATION_SZONE) then
-		rzone = c:IsControler(tp) and (1 << (8+c:GetSequence())) or (1 << (24+c:GetSequence()))
+		rzone = c:IsControler(tp) and (1 << (8+seq)) or (1 << (24+seq))
 	end
 	
 	return rzone
