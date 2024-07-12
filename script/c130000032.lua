@@ -67,6 +67,10 @@ end
 s.listed_series={SET_SHADDOLL}
 s.material_setcode=SET_SHADDOLL
 
+function s.matfilter(c,lc,sumtype,tp)
+	return c:IsAttribute(ATTRIBUTE_DARK,lc,sumtype,tp) or c:IsHasEffect(4904633)
+end
+
 --E1
 function s.thfilter(c)
 	return c:IsSetCard(SET_SHADDOLL) and c:IsSpellTrap() and c:IsAbleToHand()
