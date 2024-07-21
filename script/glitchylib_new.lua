@@ -1826,4 +1826,4 @@ Duel.LoadScript("glitchylib_cond.lua")		--CONDITIONS
 Duel.LoadScript("glitchylib_cost.lua")		--COSTS
 Duel.LoadScript("glitchylib_single.lua")	--SINGLE-TYPE EFFECTS TEMPLATES
 Duel.LoadScript("glitchylib_activated.lua")	--ACTIVATED EFFECTS TEMPLATES
-Duel.LoadScript("glitchylib_regeff.lua")	--MODIFICATIONS TO EFFECT REGISTRATION PROCEDURE
+--Duel.LoadScript("glitchylib_regeff.lua")	--MODIFICATIONS TO EFFECT REGISTRATION PROCEDURE
