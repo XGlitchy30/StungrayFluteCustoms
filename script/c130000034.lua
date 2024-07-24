@@ -5,7 +5,7 @@ Scripted by: XGlitchy30
 ]]
 
 local s,id=GetID()
-Duel.LoadScript("glitchylib.lua")
+Duel.LoadScript("glitchylib_new.lua")
 function s.initial_effect(c)
 	c:EnableReviveLimit()
 	--2 Dragon monsters, including a "Hieratic" monster
