@@ -661,12 +661,12 @@ function Card.HasOriginalLevel(c)
 	return not c:IsOriginalType(TYPE_XYZ+TYPE_LINK)
 end
 
-function Card.IsOriginalType(c,typ)
-	return c:GetOriginalType()&typ>0
-end
-function Card.IsOriginalRace(c,rc)
-	return c:GetOriginalRace()&rc>0
-end
+-- function Card.IsOriginalType(c,typ)
+	-- return c:GetOriginalType()&typ>0
+-- end
+-- function Card.IsOriginalRace(c,rc)
+	-- return c:GetOriginalRace()&rc>0
+-- end
 
 function Card.HasRank(c)
 	return c:IsType(TYPE_XYZ) or c:IsOriginalType(TYPE_XYZ) or c:IsHasEffect(EFFECT_ORIGINAL_LEVEL_RANK_DUALITY)
@@ -682,9 +682,6 @@ function Card.GetRating(c)
 	end
 	if c:IsOriginalType(TYPE_LINK) then
 		list[3]=c:GetLink()
-	end
-	if c:IsOriginalType(TYPE_TIMELEAP) then
-		list[4]=c:GetFuture()
 	end
 	return list
 end
@@ -731,10 +728,8 @@ function Card.IsRating(c,rtyp,...)
 	local lv=rtyp&RATING_LEVEL>0
 	local rk=rtyp&RATING_RANK>0
 	local link=rtyp&RATING_LINK>0
-	local fut=rtyp&RATING_FUTURE>0
 	for i,n in ipairs(x) do
-		if (lv and c:HasLevel() and c:IsLevel(n)) or (rk and c:HasRank() and c:IsRank(n)) or (link and c:IsOriginalType(TYPE_LINK) and c:IsLink(n))
-			or (fut and c:IsOriginalType(TYPE_TIMELEAP) and c:IsFuture(n)) then
+		if (lv and c:HasLevel() and c:IsLevel(n)) or (rk and c:HasRank() and c:IsRank(n)) or (link and c:IsOriginalType(TYPE_LINK) and c:IsLink(n)) then
 			return true
 		end
 	end
@@ -745,10 +740,8 @@ function Card.IsRatingAbove(c,rtyp,...)
 	local lv=rtyp&RATING_LEVEL>0
 	local rk=rtyp&RATING_RANK>0
 	local link=rtyp&RATING_LINK>0
-	local fut=rtyp&RATING_FUTURE>0
 	for i,n in ipairs(x) do
-		if (lv and c:HasLevel() and c:IsLevelAbove(n)) or (rk and c:HasRank() and c:IsRankAbove(n)) or (link and c:IsOriginalType(TYPE_LINK) and c:IsLinkAbove(n))
-			or (fut and c:IsOriginalType(TYPE_TIMELEAP) and c:IsFutureAbove(n)) then
+		if (lv and c:HasLevel() and c:IsLevelAbove(n)) or (rk and c:HasRank() and c:IsRankAbove(n)) or (link and c:IsOriginalType(TYPE_LINK) and c:IsLinkAbove(n)) then
 			return true
 		end
 	end
@@ -758,10 +751,8 @@ function Card.IsRatingBelow(c,rtyp,...)
 	local lv=rtyp&RATING_LEVEL>0
 	local rk=rtyp&RATING_RANK>0
 	local link=rtyp&RATING_LINK>0
-	local fut=rtyp&RATING_FUTURE>0
 	for i,n in ipairs(x) do
-		if (lv and c:HasLevel() and c:IsLevelBelow(n)) or (rk and c:HasRank() and c:IsRankBelow(n)) or (link and c:IsOriginalType(TYPE_LINK) and c:IsLinkBelow(n))
-			or (fut and c:IsOriginalType(TYPE_TIMELEAP) and c:IsFutureBelow(n)) then
+		if (lv and c:HasLevel() and c:IsLevelBelow(n)) or (rk and c:HasRank() and c:IsRankBelow(n)) or (link and c:IsOriginalType(TYPE_LINK) and c:IsLinkBelow(n)) then
 			return true
 		end
 	end
@@ -847,9 +838,9 @@ function Effect.UpdateDefenseClone(e,c,notreg)
 end
 
 --codes
-function Card.IsOriginalCode(c,code)
-	return c:GetOriginalCode()==code
-end
+-- function Card.IsOriginalCode(c,code)
+	-- return c:GetOriginalCode()==code
+-- end
 
 --Columns
 function Card.GlitchyGetColumnGroup(c,left,right,without_center)
@@ -1826,4 +1817,4 @@ Duel.LoadScript("glitchylib_cond.lua")		--CONDITIONS
 Duel.LoadScript("glitchylib_cost.lua")		--COSTS
 Duel.LoadScript("glitchylib_single.lua")	--SINGLE-TYPE EFFECTS TEMPLATES
 Duel.LoadScript("glitchylib_activated.lua")	--ACTIVATED EFFECTS TEMPLATES
-Duel.LoadScript("glitchylib_regeff.lua")	--MODIFICATIONS TO EFFECT REGISTRATION PROCEDURE
+--Duel.LoadScript("glitchylib_regeff.lua")	--MODIFICATIONS TO EFFECT REGISTRATION PROCEDURE
