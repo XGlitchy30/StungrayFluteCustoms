@@ -30,3 +30,29 @@ function Glitchy.SearchOperation(f,loc,min,max,exc)
 				end
 			end
 end
+
+--Special Summon self template: Special Summon "this card"
+--[[Parameters
+1) redirect = Redirect the card to the specified location when it leaves the field
+]]
+function Glitchy.SpecialSummonSelfTarget()
+	return	function(e,tp,eg,ep,ev,re,r,rp,chk)
+				local c=e:GetHandler()
+				if chk==0 then
+					return Duel.GetMZoneCount(tp)>0 and c:IsCanBeSpecialSummoned(e,0,tp,false,false)
+				end
+				Duel.SetCardOperationInfo(c,CATEGORY_SPECIAL_SUMMON)
+			end
+end
+function Glitchy.SpecialSummonSelfOperation(redirect)
+	return	function(e,tp,eg,ep,ev,re,r,rp)
+				local c=e:GetHandler()
+				if c:IsRelateToChain() then
+					if redirect then
+						Duel.SpecialSummonRedirect(redirect,e,c,0,tp,tp,false,false,POS_FACEUP)
+					else
+						Duel.SpecialSummon(c,0,tp,tp,false,false,POS_FACEUP)
+					end
+				end
+			end
+end

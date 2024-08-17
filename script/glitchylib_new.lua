@@ -149,7 +149,8 @@ if not global_effect_category_table_global_check then
 	global_effect_category_table_global_check=true
 	global_effect_category_table={}
 	global_effect_info_table={}
-	global_possible_info_table={}
+	global_possible_custom_effect_info_table={}
+	global_additional_info_table={}
 end
 function Effect.SetCustomCategory(e,cat,flags)
 	if not cat then cat=0 end
@@ -165,63 +166,6 @@ end
 function Effect.IsHasCustomCategory(e,cat1,cat2)
 	local ocat1,ocat2=e:GetCustomCategory()
 	return (cat1 and ocat1&cat1>0) or (cat2 and ocat2&cat2>0)
-end
-
---New Operation Infos
-if not global_effect_category_table_global_check then
-	--global_effect_category_table_global_check=true
-	--global_effect_category_table={}
-	global_effect_info_table={}
-	--global_possible_custom_effect_info_table={}
-	--global_additional_info_table={}
-	--global_possible_info_table={}
-end
-
-function Auxiliary.ClearCustomOperationInfo(e,tp,eg,ep,ev,re,r,rp)
-	for _,chtab in pairs(global_effect_info_table) do
-		for _,tab in ipairs(chtab) do
-			local dg=tab[2]
-			if dg then
-				dg:DeleteGroup()
-			end
-		end
-	end
-	global_effect_info_table={}
-	e:Reset()
-end
-function Duel.SetCustomOperationInfo(ch,cat,g,ct,p,val,...)
-	local extra={...}
-	local chain = ch==0 and Duel.GetCurrentChain() or ch
-	if g then
-		if type(g)=="Card" then
-			g=Group.FromCards(g)
-		end
-		g:KeepAlive()
-	end
-	if not global_effect_info_table[chain] then
-		global_effect_info_table[chain]={}
-	end
-	local e1=Effect.GlobalEffect()
-	e1:SetType(EFFECT_TYPE_FIELD|EFFECT_TYPE_CONTINUOUS)
-	e1:SetCode(EVENT_CHAIN_END)
-	e1:SetOperation(aux.ClearCustomOperationInfo)
-	Duel.RegisterEffect(e1,0)
-	table.insert(global_effect_info_table[chain],{cat,g,ct,p,val,table.unpack(extra)})
-end
-function Duel.GetCustomOperationInfo(chain,cat)
-	if not global_effect_info_table[chain] then return end
-	if not cat then
-		return global_effect_info_table[chain]
-	else
-		local res={}
-		local global=global_effect_info_table[chain]
-		for _,tab in ipairs(global) do
-			if tab[1]&cat==cat then
-				table.insert(res,tab)
-			end
-		end
-		return res
-	end
 end
 
 --Card Actions
@@ -1499,6 +1443,118 @@ function Effect.SHOPT(e,oath)
 end
 
 --Operation Infos
+
+function Auxiliary.ClearCustomOperationInfo(e,tp,eg,ep,ev,re,r,rp)
+	for _,chtab in pairs(global_effect_info_table) do
+		for _,tab in ipairs(chtab) do
+			local dg=tab[2]
+			if dg then
+				dg:DeleteGroup()
+			end
+		end
+	end
+	global_effect_info_table={}
+	e:Reset()
+end
+function Duel.SetCustomOperationInfo(ch,cat,g,ct,p,val,...)
+	local extra={...}
+	local chain = ch==0 and Duel.GetCurrentChain() or ch
+	if g then
+		if type(g)=="Card" then
+			g=Group.FromCards(g)
+		end
+		g:KeepAlive()
+	end
+	if not global_effect_info_table[chain] then
+		global_effect_info_table[chain]={}
+	end
+	local e1=Effect.GlobalEffect()
+	e1:SetType(EFFECT_TYPE_FIELD|EFFECT_TYPE_CONTINUOUS)
+	e1:SetCode(EVENT_CHAIN_END)
+	e1:SetOperation(aux.ClearCustomOperationInfo)
+	Duel.RegisterEffect(e1,0)
+	table.insert(global_effect_info_table[chain],{cat,g,ct,p,val,table.unpack(extra)})
+end
+function Duel.GetCustomOperationInfo(chain,cat)
+	if not global_effect_info_table[chain] then return end
+	if not cat then
+		return global_effect_info_table[chain]
+	else
+		local res={}
+		local global=global_effect_info_table[chain]
+		for _,tab in ipairs(global) do
+			if tab[1]&cat==cat then
+				table.insert(res,tab)
+			end
+		end
+		return res
+	end
+end
+
+function Auxiliary.ClearPossibleCustomOperationInfo(e,tp,eg,ep,ev,re,r,rp)
+	for _,chtab in pairs(global_possible_custom_effect_info_table) do
+		for _,tab in ipairs(chtab) do
+			local dg=tab[2]
+			if dg then
+				dg:DeleteGroup()
+			end
+		end
+	end
+	global_possible_custom_effect_info_table={}
+	e:Reset()
+end
+function Duel.SetPossibleCustomOperationInfo(ch,cat,g,ct,p,val,...)
+	local extra={...}
+	local chain = ch==0 and Duel.GetCurrentChain() or ch
+	if g then
+		if type(g)=="Card" then
+			g=Group.FromCards(g)
+		end
+		g:KeepAlive()
+	end
+	if not global_possible_custom_effect_info_table[chain] then
+		global_possible_custom_effect_info_table[chain]={}
+	end
+	local e1=Effect.GlobalEffect()
+	e1:SetType(EFFECT_TYPE_FIELD|EFFECT_TYPE_CONTINUOUS)
+	e1:SetCode(EVENT_CHAIN_END)
+	e1:SetOperation(aux.ClearPossibleCustomOperationInfo)
+	Duel.RegisterEffect(e1,0)
+	table.insert(global_possible_custom_effect_info_table[chain],{cat,g,ct,p,val,table.unpack(extra)})
+end
+
+function Auxiliary.ClearAdditionalOperationInfo(e,tp,eg,ep,ev,re,r,rp)
+	for _,chtab in pairs(global_additional_info_table) do
+		for _,tab in ipairs(chtab) do
+			local dg=tab[2]
+			if dg then
+				dg:DeleteGroup()
+			end
+		end
+	end
+	global_additional_info_table={}
+	e:Reset()
+end
+function Duel.SetAdditionalOperationInfo(ch,cat,g,ct,p,val,...)
+	local extra={...}
+	local chain = ch==0 and Duel.GetCurrentChain() or ch
+	if g then
+		if type(g)=="Card" then
+			g=Group.FromCards(g)
+		end
+		g:KeepAlive()
+	end
+	if not global_additional_info_table[chain] then
+		global_additional_info_table[chain]={}
+	end
+	local e1=Effect.GlobalEffect()
+	e1:SetType(EFFECT_TYPE_FIELD|EFFECT_TYPE_CONTINUOUS)
+	e1:SetCode(EVENT_CHAIN_END)
+	e1:SetOperation(aux.ClearAdditionalOperationInfo)
+	Duel.RegisterEffect(e1,0)
+	table.insert(global_additional_info_table[chain],{cat,g,ct,p,val,table.unpack(extra)})
+end
+
 function Duel.SetCardOperationInfo(g,cat)
 	local tc = type(g)=="Card" and g or g:GetFirst()
 	local ct = type(g)=="Card" and 1 or #g
@@ -1786,24 +1842,33 @@ function Effect.EvaluateInteger(e,...)
 	end
 end
 
---Stat Modifiers
+--Stat Modifiers (futureproofing)
 
 function Card.HasATK(c)
 	return c:IsMonster()
 end
-function Card.IsCanChangeATK(c,atk)
+function Card.IsCanUpdateATK(c,atk,e,tp,r,exactly)
+	return c:IsFaceup() and c:HasATK() and (not exactly or atk>=0 or c:IsAttackAbove(-atk))
+end
+function Card.IsCanChangeATK(c,atk,e,tp,r)
 	return c:IsFaceup() and c:HasATK() and (not atk or not c:IsAttack(atk))
 end
 
 function Card.HasDEF(c)
 	return c:IsMonster() and not c:IsOriginalType(TYPE_LINK) and not c:IsMaximumMode()
 end
-function Card.IsCanChangeDEF(c,def)
+function Card.IsCanUpdateDEF(c,def,e,tp,r,exactly)
+	return c:IsFaceup() and c:HasDEF() (not exactly or def>=0 or c:IsDefenseAbove(-def))
+end
+function Card.IsCanChangeDEF(c,def,e,tp,r)
 	return c:IsFaceup() and c:HasDEF() and (not def or not c:IsDefense(def))
 end
 
-function Card.IsCanChangeStats(c,atk,def)
-	return c:IsCanChangeATK(atk) or c:IsCanChangeDEF(def)
+function Card.IsCanChangeStats(c,atk,def,e,tp,r)
+	return c:IsCanChangeATK(atk,e,tp,r) or c:IsCanChangeDEF(def,e,tp,r)
+end
+function Card.IsCanUpdateStats(c,atk,def,e,tp,r,exactly)
+	return c:IsCanUpdateATK(atk,e,tp,r) or c:IsCanUpdateDEF(def,e,tp,r)
 end
 
 --Target function
