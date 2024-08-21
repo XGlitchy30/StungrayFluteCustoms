@@ -45,7 +45,7 @@ end
 
 --E1
 function s.thfilter(c)
-	return c:IsSetCard(SET_MOBLINS) and c:IsFaceupEx() and c:IsAbleToHand()
+	return c:IsMonster() and c:IsSetCard(SET_MOBLINS) and c:IsFaceupEx() and c:IsAbleToHand()
 end
 function s.target(e,tp,eg,ep,ev,re,r,rp,chk,chkc)
 	if chkc then return chkc:IsLocation(LOCATION_MZONE|LOCATION_GRAVE) and chkc:IsControler(tp) and s.thfilter(chkc) end
