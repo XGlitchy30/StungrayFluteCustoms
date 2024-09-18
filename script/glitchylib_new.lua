@@ -1,3 +1,5 @@
+Duel.LoadScript("glitchylib_names.lua")
+
 --Custom Categories
 CATEGORY_ATTACH		=	0x1
 
@@ -10,60 +12,6 @@ CATEGORIES_TOKEN 			= 	CATEGORY_SPECIAL_SUMMON|CATEGORY_TOKEN
 EFFECT_CANNOT_MODIFY_ATTACK		= 	2001	--Players affected by this effect cannot change ATK of the specified cards. Needed for implementation of "Hidden Monastery of Necrovalley".
 EFFECT_CANNOT_MODIFY_DEFENSE	=	2002	--Players affected by this effect cannot change DEF of the specified cards. Needed for implementation of "Hidden Monastery of Necrovalley"
 EFFECT_SUMMONABLE_BY_OPPONENT	=	2003	--The card has an effect that allows the opponent to Normal Summon it (see Moblins' Packmate)
-
---Custom Cards associated with custom effects
-
---[[This effect must be assigned to monsters that cannot be Special Summoned from the banishment due to specific card effects and restrictions.
-Named after "Mx. Music", this effect is necessary to correctly handle interactions with effects that banish a monster and Special Summon the same monster right after.
-It is the banishment analogue of the CARD_CLOCK_LIZARD effect, which handles Summons from the Extra Deck instead (see "Clock Lizard")]]
-CARD_MX_MUSIC							=	130000022	
-
---While this effect is applied to a card, that card will only be affected by the effect of EFFECT_NECRO_VALLEY that prevents the change of Type/Attribute											
-CARD_HIDDEN_MONASTERY_OF_NECROVALLEY	=	130000000
-
---Custom Archetypes
-SET_MOBLINS					=	0x300
-SET_WICCINK					=	0x301
-
---Official Cards/Custom Cards
-CARD_AMPLIFIER				=	303660
-CARD_DHERO_DRILLDARK		=	91691605
-CARD_FIREWING_PEGASUS		=	27054370
-CARD_GAIA_THE_FIERCE_KNIGHT	=	6368038
-CARD_KAISER_DRAGON			=	94566432
-CARD_MIRACLE_STONE			=	31461282
-CARD_ZOMBIE_WORLD			=	4064256
-
-CARD_ADIRA_APOTHEOSIZED		=   130000020
-CARD_ADIRAS_WILL			=	130000021
-CARD_NUMBERS_REVOLUTION		=	130000015
-CARD_REGRESSED_RITUAL_ART	=	130000003
-
---Custom Tokens
-TOKEN_WICCINK				=	130000050
-
---Custom Counters
-
---Desc
-STRING_ADD_TO_HAND					=	1105
-STRING_BANISH_REDIRECT				=	3300
-STRING_CHANGE_POSITION				=	aux.Stringid(130000010,2)
-STRING_SHUFFLE_INTO_DECK_REDIRECT	=	3301
-
-STRING_AVOID_BATTLE_DAMAGE								=	3210
-STRING_CANNOT_ATTACK									=	3206
-STRING_CANNOT_BE_DESTROYED								=	3008
-STRING_CANNOT_BE_DESTROYED_BY_BATTLE					=	3000
-STRING_CANNOT_BE_DESTROYED_BY_EFFECTS					=	3001
-STRING_CANNOT_BE_DESTROYED_OR_TARGETED_BY_EFFECTS		=	3009
-STRING_CANNOT_BE_DESTROYED_OR_TARGETED_BY_EFFECTS_OPPO	=	3067
-STRING_CANNOT_BE_DESTROYED_AT_ALL						=	4000
-STRING_CANNOT_BE_TRIBUTED								=	3303
-
-STRING_ASK_POSITION										=	5000
-
-----Hint messages
-HINTMSG_ATTACHTO					=	aux.Stringid(130000015,2)
 
 --Locations
 
@@ -107,6 +55,7 @@ OPINFO_FLAG_UNKNOWN = 0x4
 OPINFO_FLAG_HIGHER 	= 0x8
 OPINFO_FLAG_LOWER 	= 0x10
 OPINFO_FLAG_FUNCTION= 0x20
+OPINFO_FLAG_SET		= 0x40
 
 --win
 WIN_REASON_CUSTOM = 0xff
@@ -472,8 +421,9 @@ function Auxiliary.AttachFilter2(f)
 			end
 end
 function Auxiliary.BanishFilter(f,cost)
+	local ableto=cost and Card.IsAbleToRemoveAsCost or Card.IsAbleToRemove
 	return	function(c,...)
-				return (not f or f(c,...)) and (not cost and c:IsAbleToRemove() or cost and c:IsAbleToRemoveAsCost())
+				return (not f or f(c,...)) and ableto(c)
 			end
 end
 function Auxiliary.ControlFilter(f)
@@ -751,8 +701,23 @@ function Card.GetResidence(c)
 end
 
 --Chain Info
+function Duel.GetTargetPlayer()
+	return Duel.GetChainInfo(0,CHAININFO_TARGET_PLAYER)
+end
 function Duel.GetTargetParam()
 	return Duel.GetChainInfo(0,CHAININFO_TARGET_PARAM)
+end
+
+function Effect.GetChainLink(e)
+	local max=Duel.GetCurrentChain()
+	if max==0 then return 0 end
+	for i=1,max do
+		local ce=Duel.GetChainInfo(i,CHAININFO_TRIGGERING_EFFECT)
+		if ce==e then
+			return i
+		end
+	end
+	return 0
 end
 
 --Cloned Effects
@@ -830,6 +795,14 @@ function Card.GlitchyGetColumnGroup(c,left,right,without_center)
 	end
 end
 
+--Control
+function Card.CanOnlyControlOne(c,id)
+	return c:SetUniqueOnField(1,0,id)
+end
+function Card.OnlyOneOnField(c,id)
+	return c:SetUniqueOnField(1,1,id)
+end
+
 --Exception
 function Auxiliary.ActivateException(e,chk)
 	local c=e:GetHandler()
@@ -839,9 +812,10 @@ function Auxiliary.ActivateException(e,chk)
 		return nil
 	end
 end
-function Auxiliary.ExceptThis(c)
+function Auxiliary.ExceptThis(c,e)
 	if type(c)=="Effect" then c=c:GetHandler() end
-	if c:IsRelateToChain() then return c else return nil end
+	local ch=type(e)=="Effect" and e:GetChainLink() or 0
+	if c:IsRelateToChain(ch) then return c else return nil end
 end
 
 --Deep Label Objects
@@ -998,6 +972,22 @@ function Auxiliary.STFilter(f,...)
 end
 
 --Flag Effects
+function Card.GetFlagEffectWithSpecificLabel(c,flag,label,reset)
+	flag=flag&0xfffffff
+	local eset={c:IsHasEffect(flag|0x10000000)}
+	for i=#eset,1,-1 do
+		local e=eset[i]
+		local x=e:GetLabel()
+		if x==label then
+			if not reset then
+				return e
+			else
+				e:Reset()
+			end
+		end
+	end
+	return
+end
 function Card.HasFlagEffect(c,id,...)
 	local flags={...}
 	if id then
@@ -1445,15 +1435,15 @@ end
 --Operation Infos
 
 function Auxiliary.ClearCustomOperationInfo(e,tp,eg,ep,ev,re,r,rp)
-	for _,chtab in pairs(global_effect_info_table) do
+	for i,chtab in pairs(global_effect_info_table) do
 		for _,tab in ipairs(chtab) do
 			local dg=tab[2]
 			if dg then
 				dg:DeleteGroup()
 			end
 		end
+		global_effect_info_table[i]=nil
 	end
-	global_effect_info_table={}
 	e:Reset()
 end
 function Duel.SetCustomOperationInfo(ch,cat,g,ct,p,val,...)
@@ -1492,15 +1482,15 @@ function Duel.GetCustomOperationInfo(chain,cat)
 end
 
 function Auxiliary.ClearPossibleCustomOperationInfo(e,tp,eg,ep,ev,re,r,rp)
-	for _,chtab in pairs(global_possible_custom_effect_info_table) do
+	for i,chtab in pairs(global_possible_custom_effect_info_table) do
 		for _,tab in ipairs(chtab) do
 			local dg=tab[2]
 			if dg then
 				dg:DeleteGroup()
 			end
 		end
+		global_possible_custom_effect_info_table[i]=nil
 	end
-	global_possible_custom_effect_info_table={}
 	e:Reset()
 end
 function Duel.SetPossibleCustomOperationInfo(ch,cat,g,ct,p,val,...)
@@ -1524,15 +1514,15 @@ function Duel.SetPossibleCustomOperationInfo(ch,cat,g,ct,p,val,...)
 end
 
 function Auxiliary.ClearAdditionalOperationInfo(e,tp,eg,ep,ev,re,r,rp)
-	for _,chtab in pairs(global_additional_info_table) do
+	for i,chtab in pairs(global_additional_info_table) do
 		for _,tab in ipairs(chtab) do
 			local dg=tab[2]
 			if dg then
 				dg:DeleteGroup()
 			end
 		end
+		global_additional_info_table[i]=nil
 	end
-	global_additional_info_table={}
 	e:Reset()
 end
 function Duel.SetAdditionalOperationInfo(ch,cat,g,ct,p,val,...)
@@ -1573,6 +1563,31 @@ function Duel.SetConditionalCustomOperationInfo(f,ch,cat,g,ct,p,val,...)
 	else
 		Duel.SetPossibleCustomOperationInfo(ch,cat,g,ct,p,val,...)
 	end
+end
+
+--Operation Info templates 
+function Duel.SetCardOperationInfo(g,cat)
+	if aux.GetValueType(g)=="Card" then g=Group.FromCards(g) end
+	return Duel.SetOperationInfo(0,cat,g,#g,g:GetFirst():GetControler(),g:GetFirst():GetLocation())
+end
+
+function Auxiliary.Info(ctg,ct,p,v)
+	return	function(_,e,tp)
+				local p=(p>1) and p or (p==0) and tp or (p==1) and 1-tp 
+				return Duel.SetOperationInfo(0,ctg,nil,ct,p,v)
+			end
+end
+function Auxiliary.DamageInfo(p,v)
+	return Auxiliary.Info(CATEGORY_DAMAGE,0,p,v)
+end
+function Auxiliary.DrawInfo(p,v)
+	return Auxiliary.Info(CATEGORY_DRAW,0,p,v)
+end
+function Auxiliary.MillInfo(p,v)
+	return Auxiliary.Info(CATEGORY_DECKDES,0,p,v)
+end
+function Auxiliary.RecoverInfo(p,v)
+	return Auxiliary.Info(CATEGORY_RECOVER,0,p,v)
 end
 
 --Phases
@@ -1714,6 +1729,10 @@ function Duel.SpecialSummonRedirect(redirect,e,g,sumtype,sump,fieldp,ignore_sumc
 	if not desc then
 		if redirect==LOCATION_REMOVED then
 			desc=STRING_BANISH_REDIRECT
+		elseif redirect==LOCATION_DECK then
+			desc=STRING_TOP_OF_DECK_REDIRECT
+		elseif redirect==SEQ_DECKBOT then
+			desc=STRING_BOTTOM_OF_DECK_REDIRECT
 		elseif redirect==LOCATION_DECKSHF then
 			desc=STRING_SHUFFLE_INTO_DECK_REDIRECT
 		end
@@ -1724,8 +1743,8 @@ function Duel.SpecialSummonRedirect(redirect,e,g,sumtype,sump,fieldp,ignore_sumc
 		local finalzone=zone
 		if type(zone)=="table" then
 			finalzone=zone[fieldp+1]
-			if tc:IsCanBeSpecialSummoned(e,sumtype,sump,ignore_sumcon,ignore_revive_limit,pos,1-fieldp,zone[2-fieldp])
-			and (not tc:IsCanBeSpecialSummoned(e,sumtype,sump,ignore_sumcon,ignore_revive_limit,pos,fieldp,finalzone) or Duel.SelectYesNo(sump,aux.Stringid(61665245,2))) then
+			if dg:IsCanBeSpecialSummoned(e,sumtype,sump,ignore_sumcon,ignore_revive_limit,pos,1-fieldp,zone[2-fieldp])
+			and (not dg:IsCanBeSpecialSummoned(e,sumtype,sump,ignore_sumcon,ignore_revive_limit,pos,fieldp,finalzone) or Duel.SelectYesNo(sump,aux.Stringid(61665245,2))) then
 				fieldp=1-fieldp
 				finalzone=zone[fieldp+1]
 			end
@@ -1786,7 +1805,7 @@ end
 function Auxiliary.Necro(f)
 	return aux.NecroValleyFilter(f)
 end
-function Card.Activation(c,oath)
+function Card.Activation(c,oath,timings,cond,cost,tg,op,stop)
 	local e1=Effect.CreateEffect(c)
 	if c:IsOriginalType(TYPE_PENDULUM) then
 		e1:SetDescription(STRING_ACTIVATE_PENDULUM)
@@ -1796,7 +1815,24 @@ function Card.Activation(c,oath)
 	if oath then
 		e1:HOPT(true)
 	end
-	c:RegisterEffect(e1)
+	if timings then
+		e1:SetRelevantTimings()
+	end
+	if cond then
+		e1:SetCondition(cond)
+	end
+	if cost then
+		e1:SetCost(cost)
+	end
+	if tg then
+		e1:SetTarget(tg)
+	end
+	if op then
+		e1:SetOperation(op)
+	end
+	if not stop then
+		c:RegisterEffect(e1)
+	end
 	return e1
 end
 function Effect.SetFunctions(e,cond,cost,tg,op,val)
@@ -1881,5 +1917,6 @@ end
 Duel.LoadScript("glitchylib_cond.lua")		--CONDITIONS
 Duel.LoadScript("glitchylib_cost.lua")		--COSTS
 Duel.LoadScript("glitchylib_single.lua")	--SINGLE-TYPE EFFECTS TEMPLATES
+Duel.LoadScript("glitchylib_field.lua")		--FIELD-TYPE EFFECTS TEMPLATES
 Duel.LoadScript("glitchylib_activated.lua")	--ACTIVATED EFFECTS TEMPLATES
---Duel.LoadScript("glitchylib_regeff.lua")	--MODIFICATIONS TO EFFECT REGISTRATION PROCEDURE
+Duel.LoadScript("glitchylib_regeff.lua")	--MODIFICATIONS TO EFFECT REGISTRATION PROCEDURE
