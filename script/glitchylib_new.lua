@@ -1852,31 +1852,6 @@ function Effect.SetFunctions(e,cond,cost,tg,op,val)
 		e:SetValue(val)
 	end
 end
---[[Effect.Evaluate
-Get the value of an effect. If the effect has a function as value, it calculates the value of the function
-]]
-function Effect.Evaluate(e,...)
-	local extraargs={...}
-	local val=e:GetValue()
-	if not val then return false end
-	if type(val)=="function" then
-		local results={val(e,table.unpack(extraargs))}
-		return table.unpack(results)
-	else
-		return val
-	end
-end
-function Effect.EvaluateInteger(e,...)
-	local extraargs={...}
-	local val=e:GetValue()
-	if not val then return 0 end
-	if type(val)=="function" then
-		local results={val(e,table.unpack(extraargs))}
-		return table.unpack(results)
-	else
-		return val
-	end
-end
 
 --Stat Modifiers (futureproofing)
 
