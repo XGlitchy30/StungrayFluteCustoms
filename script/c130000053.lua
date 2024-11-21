@@ -16,7 +16,7 @@ function s.initial_effect(c)
 	e1:SetTarget(s.atktg)
 	e1:SetOperation(s.atkop)
 	c:RegisterEffect(e1)
-	--If you started the Duel with 60 cards in your Main Deck: You can draw 2 cards.
+	--If you started the Duel with 60 cards in your Main Deck, and this card already attacked this turn: You can draw 2 cards.
 	local e2=Effect.CreateEffect(c)
 	e2:SetDescription(id,1)
 	e2:SetCategory(CATEGORY_DRAW)
@@ -59,7 +59,7 @@ end
 
 --E2
 function s.drawcon(e,tp,eg,ep,ev,re,r,rp)
-	return Duel.PlayerHasFlagEffect(tp,FLAG_STARTED_WITH_60_CARDS_IN_DECK)
+	return Duel.PlayerHasFlagEffect(tp,FLAG_STARTED_WITH_60_CARDS_IN_DECK) and e:GetHandler():GetAttackedCount()>0
 end
 function s.drawtg(e,tp,eg,ep,ev,re,r,rp,chk)
 	if chk==0 then return Duel.IsPlayerCanDraw(tp,2) end
