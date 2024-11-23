@@ -1567,7 +1567,7 @@ end
 
 --Operation Info templates 
 function Duel.SetCardOperationInfo(g,cat)
-	if aux.GetValueType(g)=="Card" then g=Group.FromCards(g) end
+	if type(g)=="Card" then g=Group.FromCards(g) end
 	return Duel.SetOperationInfo(0,cat,g,#g,g:GetFirst():GetControler(),g:GetFirst():GetLocation())
 end
 
