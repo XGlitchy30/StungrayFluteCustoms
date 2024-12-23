@@ -1,6 +1,3 @@
-Glitchy=Glitchy or {}
-xgl=Glitchy
-
 --Target check constants
 TGCHECK_IT 					= 0
 TGCHECK_THAT_TARGET			= 1

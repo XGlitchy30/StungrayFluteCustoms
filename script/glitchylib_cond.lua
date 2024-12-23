@@ -1,43 +1,31 @@
 --When this card is X Summoned
-function Auxiliary.RitualSummonedCond(e)
+function Glitchy.RitualSummonedCond(e)
 	return e:GetHandler():IsSummonType(SUMMON_TYPE_RITUAL)
 end
-function Auxiliary.FusionSummonedCond(e)
+function Glitchy.FusionSummonedCond(e)
 	return e:GetHandler():IsSummonType(SUMMON_TYPE_FUSION)
 end
-function Auxiliary.SynchroSummonedCond(e)
+function Glitchy.SynchroSummonedCond(e)
 	return e:GetHandler():IsSummonType(SUMMON_TYPE_SYNCHRO)
 end
-function Auxiliary.XyzSummonedCond(e)
+function Glitchy.XyzSummonedCond(e)
 	return e:GetHandler():IsSummonType(SUMMON_TYPE_XYZ)
 end
-function Auxiliary.PendulumSummonedCond(e)
+function Glitchy.PendulumSummonedCond(e)
 	return e:GetHandler():IsSummonType(SUMMON_TYPE_PENDULUM)
 end
-function Auxiliary.LinkSummonedCond(e)
+function Glitchy.LinkSummonedCond(e)
 	return e:GetHandler():IsSummonType(SUMMON_TYPE_LINK)
 end
-function Auxiliary.PandemoniumSummonedCond(e)
-	return e:GetHandler():IsSummonType(SUMMON_TYPE_PANDEMONIUM)
-end
-function Auxiliary.BigbangSummonedCond(e)
-	return e:GetHandler():IsSummonType(SUMMON_TYPE_BIGBANG)
-end
-function Auxiliary.TimeleapSummonedCond(e)
-	return e:GetHandler():IsSummonType(SUMMON_TYPE_TIMELEAP)
-end
-function Auxiliary.DriveSummonedCond(e)
-	return e:GetHandler():IsSummonType(SUMMON_TYPE_DRIVE)
-end
-function Auxiliary.ProcSummonedCond(e)
+function Glitchy.ProcSummonedCond(e)
 	return e:GetHandler():IsSummonType(SUMMON_TYPE_SPECIAL+1)
 end
 
 --Equip
-function Auxiliary.IsEquippedCond(e)
+function Glitchy.IsEquippedCond(e)
 	return e:GetHandler():GetEquipTarget()
 end
-function Auxiliary.IsEquippedToCond(f)
+function Glitchy.IsEquippedToCond(f)
 	return	function(e,tp)
 				if not tp then tp=e:GetHandlerPlayer() end
 				local ec=e:GetHandler():GetEquipTarget()
@@ -46,49 +34,49 @@ function Auxiliary.IsEquippedToCond(f)
 end
 
 --Turn/Phase Conditions
-function Auxiliary.DrawPhaseCond(tp)
+function Glitchy.DrawPhaseCond(tp)
 	return	function(e,p)
 				local tp = (tp==0) and p or (tp==1) and 1-p or nil
 				return Duel.IsDrawPhase(tp)
 			end
 end
-function Auxiliary.StandbyPhaseCond(tp)
+function Glitchy.StandbyPhaseCond(tp)
 	return	function(e,p)
 				local tp = (tp==0) and p or (tp==1) and 1-p or nil
 				return Duel.IsStandbyPhase(tp)
 			end
 end
-function Auxiliary.MainPhaseCond(tp,ct)
+function Glitchy.MainPhaseCond(tp,ct)
 	return	function(e,p)
 				local tp = (tp==0) and p or (tp==1) and 1-p or nil
 				return Duel.IsMainPhase(tp,ct)
 			end
 end
-function Auxiliary.BattlePhaseCond(tp)
+function Glitchy.BattlePhaseCond(tp)
 	return	function(e,p)
 				local tp = (tp==0) and p or (tp==1) and 1-p or nil
 				return Duel.IsBattlePhase(tp)
 			end
 end
-function Auxiliary.MainOrBattlePhaseCond(tp,ct)
+function Glitchy.MainOrBattlePhaseCond(tp,ct)
 	return	function(e,p)
 				local tp = (tp==0) and p or (tp==1) and 1-p or nil
 				return Duel.IsMainPhase(tp,ct) or Duel.IsBattlePhase(tp)
 			end
 end
-function Auxiliary.EndPhaseCond(tp)
+function Glitchy.EndPhaseCond(tp)
 	return	function(e,p)
 				local tp = (tp==0) and p or (tp==1) and 1-p or nil
 				return Duel.IsEndPhase(tp)
 			end
 end
-function Auxiliary.ExceptOnDamageStep()
-	return Auxiliary.ExceptOnDamageCalc()
+function Glitchy.ExceptOnDamageStep()
+	return Glitchy.ExceptOnDamageCalc()
 end
-function Auxiliary.ExceptOnDamageCalc()
+function Glitchy.ExceptOnDamageCalc()
 	return Duel.GetCurrentPhase()~=PHASE_DAMAGE or not Duel.IsDamageCalculated()
 end
-function Auxiliary.TurnPlayerCond(tp)
+function Glitchy.TurnPlayerCond(tp)
 	return	function(e,p)
 				if not p then p=e:GetHandlerPlayer() end
 				local tp = (not tp or tp==0) and p or 1-p
@@ -98,12 +86,12 @@ end
 
 --Type-Related
 ----XYZ
-function Auxiliary.HasXyzMaterialCond(e)
+function Glitchy.HasXyzMaterialCond(e)
 	return e:GetHandler():GetOverlayCount()>0
 end
 
 ----LINK
-function Auxiliary.ThisCardPointsToCond(f,min)
+function Glitchy.ThisCardPointsToCond(f,min)
 	if not f then f=aux.TRUE end
 	return	function(e)
 				local tp=e:GetHandlerPlayer()

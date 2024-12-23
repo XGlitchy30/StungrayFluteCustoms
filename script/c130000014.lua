@@ -38,7 +38,7 @@ end
 
 --E1
 function s.condition(e,tp,eg,ep,ev,re,r,rp)
-	return Duel.IsBattlePhase() and aux.ExceptOnDamageCalc() and (Duel.GetCurrentPhase()~=PHASE_DAMAGE or e:GetHandler():HasFlagEffect(id))
+	return Duel.IsBattlePhase() and xgl.ExceptOnDamageCalc() and (Duel.GetCurrentPhase()~=PHASE_DAMAGE or e:GetHandler():HasFlagEffect(id))
 end
 function s.thfilter(c)
 	return c:IsLevelAbove(5) and c:IsRace(RACE_WARRIOR) and c:IsAbleToHand()

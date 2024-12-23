@@ -21,7 +21,7 @@ function s.initial_effect(c)
 	e1:SetProperty(EFFECT_FLAG_DELAY)
 	e1:SetCode(EVENT_SPSUMMON_SUCCESS)
 	e1:HOPT()
-	e1:SetFunctions(aux.FusionSummonedCond,aux.LabelCost,s.atktg,s.atkop)
+	e1:SetFunctions(xgl.FusionSummonedCond,xgl.LabelCost,s.atktg,s.atkop)
 	c:RegisterEffect(e1)
 	--[[When this card is sent to the GY: You can target 1 "Fire Formation" Spell/Trap you control; send it to the GY, and if you do, draw 1 card.]]
 	local e2=Effect.CreateEffect(c)

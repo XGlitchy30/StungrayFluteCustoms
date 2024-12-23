@@ -26,7 +26,7 @@ function s.initial_effect(c)
 	e2:SetRelevantTimings()
 	e2:SetFunctions(
 		s.thcon,
-		aux.DiscardCost(nil,1),
+		xgl.DiscardCost(nil,1),
 		s.thtg,
 		s.thop
 	)

@@ -1,3 +1,6 @@
+Glitchy=Glitchy or {}
+xgl=Glitchy
+
 Duel.LoadScript("glitchylib_names.lua")
 
 --Custom Categories

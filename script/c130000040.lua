@@ -15,7 +15,7 @@ function s.initial_effect(c)
 	e1:SetCode(EVENT_FREE_CHAIN)
 	e1:HOPT(true)
 	e1:SetRelevantBattleTimings()
-	e1:SetFunctions(aux.ExceptOnDamageCalc,aux.LabelCost,s.target,s.activate)
+	e1:SetFunctions(xgl.ExceptOnDamageCalc,xgl.LabelCost,s.target,s.activate)
 	c:RegisterEffect(e1)
 end
 s.listed_series={SET_MOBLINS}

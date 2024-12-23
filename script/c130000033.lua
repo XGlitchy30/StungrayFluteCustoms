@@ -18,7 +18,7 @@ function s.initial_effect(c)
 	e1:SetType(EFFECT_TYPE_SINGLE|EFFECT_TYPE_TRIGGER_O)
 	e1:SetProperty(EFFECT_FLAG_CARD_TARGET)
 	e1:SetCode(EVENT_SPSUMMON_SUCCESS)
-	e1:SetFunctions(aux.LinkSummonedCond,nil,s.atktg,s.atkop)
+	e1:SetFunctions(xgl.LinkSummonedCond,nil,s.atktg,s.atkop)
 	c:RegisterEffect(e1)
 	--[[You can banish 1 "Code Talker" Link Monster from your field or GY, then target 1 card your opponent controls; destroy it.]]
 	local e2=Effect.CreateEffect(c)

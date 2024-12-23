@@ -1,34 +1,25 @@
 --Shows a description string to the opponent when the effect is activated. Useful for cards with multiple effects that can be activated in the same conditions
-function Auxiliary.InfoCost(e,tp,eg,ep,ev,re,r,rp,chk)
+function Glitchy.InfoCost(e,tp,eg,ep,ev,re,r,rp,chk)
 	if chk==0 then return true end
 	Duel.Hint(HINT_OPSELECTED,1-tp,e:GetDescription())
 end
 
 --Shadow cost that sets the label of the effect to 1. Useful for effects whose resolution depends on the cost
-function Auxiliary.LabelCost(e,tp,eg,ep,ev,re,r,rp,chk)
+function Glitchy.LabelCost(e,tp,eg,ep,ev,re,r,rp,chk)
 	e:SetLabel(1)
 	if chk==0 then return true end
 end
 
---[[Costs that make you pay LP
-val = Amount of LP to pay]]
-function Auxiliary.PayLPCost(val)
-	return	function(e,tp,eg,ep,ev,re,r,rp,chk)
-				if chk==0 then return Duel.CheckLPCost(tp,val) end
-				Duel.PayLPCost(tp,val)
-			end
-end
-
 --COSTS THAT INVOLVE THE ACTIVATOR OF THE EFFECT ITSELF
-function Auxiliary.BanishFacedownSelfCost(e,tp,eg,ep,ev,re,r,rp,chk)
+function Glitchy.BanishFacedownSelfCost(e,tp,eg,ep,ev,re,r,rp,chk)
 	if chk==0 then return e:GetHandler():IsAbleToRemoveAsCost(POS_FACEDOWN) end
 	Duel.Remove(e:GetHandler(),POS_FACEDOWN,REASON_COST)
 end
-function Auxiliary.DiscardSelfCost(e,tp,eg,ep,ev,re,r,rp,chk)
+function Glitchy.DiscardSelfCost(e,tp,eg,ep,ev,re,r,rp,chk)
 	if chk==0 then return e:GetHandler():IsDiscardable() end
 	Duel.SendtoGrave(e:GetHandler(),REASON_COST+REASON_DISCARD)
 end
-function Auxiliary.DetachSelfCost(min,max)
+function Glitchy.DetachSelfCost(min,max)
 	if not min then min=1 end
 	if not max or max<min then max=min end
 	
@@ -69,7 +60,7 @@ end
 ► reset: If not defined, the cost simply requires the activator to be revealed to the opponent momentarily. Otherwise, the cost will require the activator to be kept revealed as long as the EFFECT_PUBLIC effect does not expire: this parameter sets the condition for the aforementioned effect's expiration.
 ► rct: If reset is defined by passing a RESET_PHASE constant, you can specify the exact phase of the Duel when the expiration takes place (2nd, 3rd, next, ...)
 ]]
-function Auxiliary.RevealSelfCost(reset,rct)
+function Glitchy.RevealSelfCost(reset,rct)
 	if not rct then rct=1 end
 	
 	if not reset then
@@ -92,7 +83,7 @@ function Auxiliary.RevealSelfCost(reset,rct)
 	end
 end
 
-function Auxiliary.RemoveCounterSelfCost(ctype,min,max)
+function Glitchy.RemoveCounterSelfCost(ctype,min,max)
 	if not min then min=1 end
 	if not max or max<min then max=min end
 	
@@ -125,22 +116,22 @@ function Auxiliary.RemoveCounterSelfCost(ctype,min,max)
 				end
 	end
 end
-function Auxiliary.ToDeckSelfCost(e,tp,eg,ep,ev,re,r,rp,chk)
+function Glitchy.ToDeckSelfCost(e,tp,eg,ep,ev,re,r,rp,chk)
 	local c=e:GetHandler()
 	if chk==0 then return c:IsAbleToDeckAsCost() end
 	Duel.SendtoDeck(c,nil,SEQ_DECKSHUFFLE,REASON_COST)
 end
-function Auxiliary.ToExtraSelfCost(e,tp,eg,ep,ev,re,r,rp,chk)
+function Glitchy.ToExtraSelfCost(e,tp,eg,ep,ev,re,r,rp,chk)
 	local c=e:GetHandler()
 	if chk==0 then return c:IsAbleToExtraAsCost() end
 	Duel.SendtoDeck(c,nil,SEQ_DECKSHUFFLE,REASON_COST)
 end
-function Auxiliary.ToGraveSelfCost(e,tp,eg,ep,ev,re,r,rp,chk)
+function Glitchy.ToGraveSelfCost(e,tp,eg,ep,ev,re,r,rp,chk)
 	local c=e:GetHandler()
 	if chk==0 then return c:IsAbleToGraveAsCost() end
 	Duel.SendtoGrave(c,REASON_COST)
 end
-function Auxiliary.TributeSelfCost(e,tp,eg,ep,ev,re,r,rp,chk)
+function Glitchy.TributeSelfCost(e,tp,eg,ep,ev,re,r,rp,chk)
 	local c=e:GetHandler()
 	if chk==0 then return c:IsReleasable() end
 	Duel.Release(c,REASON_COST)
@@ -149,7 +140,7 @@ end
 --COST THAT INVOLVE MOVING CARDS
 
 --Costs that discard a card(s) (min to max)
-function Auxiliary.DiscardCost(f,min,max,exc)
+function Glitchy.DiscardCost(f,min,max,exc)
 	f=aux.DiscardFilter(f,true)
 	min=min or 1
 	max=max or min
@@ -161,7 +152,7 @@ function Auxiliary.DiscardCost(f,min,max,exc)
 end
 
 --Costs that send a card(s) (min to max) from a location(s) to the GY
-function Auxiliary.ToGraveCost(f,loc1,loc2,min,max,exc)
+function Glitchy.ToGraveCost(f,loc1,loc2,min,max,exc)
 	f=aux.ToGraveFilter(f,true)
 	loc1=loc1 or LOCATION_ONFIELD
 	loc2=loc2 or 0
