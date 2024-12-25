@@ -6,8 +6,8 @@ Duel.LoadScript("glitchylib_names.lua")
 --Custom Categories
 CATEGORY_ATTACH		=	0x1
 
-CATEGORIES_SEARCH = CATEGORY_SEARCH|CATEGORY_TOHAND
-CATEGORIES_ATKDEF = CATEGORY_ATKCHANGE|CATEGORY_DEFCHANGE
+CATEGORIES_SEARCH 			= 	CATEGORY_SEARCH|CATEGORY_TOHAND
+CATEGORIES_ATKDEF 			= 	CATEGORY_ATKCHANGE|CATEGORY_DEFCHANGE
 CATEGORIES_FUSION_SUMMON 	= 	CATEGORY_SPECIAL_SUMMON|CATEGORY_FUSION_SUMMON
 CATEGORIES_TOKEN 			= 	CATEGORY_SPECIAL_SUMMON|CATEGORY_TOKEN
 
@@ -69,8 +69,9 @@ TYPE_ST			= TYPE_SPELL|TYPE_TRAP
 
 RACES_BEASTS = RACE_BEAST|RACE_BEASTWARRIOR|RACE_WINGEDBEAST
 
-LOCATION_ALL = LOCATION_DECK|LOCATION_HAND|LOCATION_MZONE|LOCATION_SZONE|LOCATION_GRAVE|LOCATION_REMOVED|LOCATION_EXTRA
-LOCATION_GB  = LOCATION_GRAVE|LOCATION_REMOVED
+LOCATION_ALL 		= LOCATION_DECK|LOCATION_HAND|LOCATION_MZONE|LOCATION_SZONE|LOCATION_GRAVE|LOCATION_REMOVED|LOCATION_EXTRA
+LOCATION_GB  		= LOCATION_GRAVE|LOCATION_REMOVED
+LOCATIONS_PRIVATE 	= LOCATION_HAND|LOCATION_DECK
 
 LINK_MARKER_ALL = 0x1ef
 
@@ -278,13 +279,13 @@ function Duel.NegateInGY(tc,e,reset)
 	e1:SetType(EFFECT_TYPE_SINGLE)
 	e1:SetProperty(EFFECT_FLAG_CANNOT_DISABLE)
 	e1:SetCode(EFFECT_DISABLE)
-	e1:SetReset(RESET_EVENT+RESETS_STANDARD_EXC_GRAVE+reset)
+	e1:SetReset(RESET_EVENT|RESETS_STANDARD_EXC_GRAVE|reset)
 	tc:RegisterEffect(e1)
 	local e2=Effect.CreateEffect(e:GetHandler())
 	e2:SetType(EFFECT_TYPE_SINGLE)
 	e2:SetProperty(EFFECT_FLAG_CANNOT_DISABLE)
 	e2:SetCode(EFFECT_DISABLE_EFFECT)
-	e2:SetReset(RESET_EVENT+RESETS_STANDARD_EXC_GRAVE+reset)
+	e2:SetReset(RESET_EVENT|RESETS_STANDARD_EXC_GRAVE|reset)
 	tc:RegisterEffect(e2)
 	return e1,e2
 end
@@ -408,49 +409,54 @@ function Auxiliary.AfterShuffle(g)
 end
 
 --Card Action Filters
-function Auxiliary.ActivateFilter(f)
+function Glitchy.ActivateFilter(f)
 	return	function(c,e,tp)
 				return (not f or f(c,e,tp)) and c:GetActivateEffect():IsActivatable(tp,true,true)
 			end
 end
-function Auxiliary.AttachFilter(f)
+function Glitchy.AttachFilter(f)
 	return	function(c,e,...)
 				return (not f or f(c,e,...)) and not c:IsType(TYPE_TOKEN) and not c:IsImmuneToEffect(e)
 			end
 end
-function Auxiliary.AttachFilter2(f)
+function Glitchy.AttachFilter2(f)
 	return	function(c,...)
 				return (not f or f(c,e,...)) and c:IsType(TYPE_XYZ)
 			end
 end
-function Auxiliary.BanishFilter(f,cost)
+function Glitchy.BanishFilter(f,cost)
 	local ableto=cost and Card.IsAbleToRemoveAsCost or Card.IsAbleToRemove
 	return	function(c,...)
 				return (not f or f(c,...)) and ableto(c)
 			end
 end
-function Auxiliary.ControlFilter(f)
+function Glitchy.ControlFilter(f)
 	return	function(c,...)
 				return (not f or f(c,...)) and c:IsControlerCanBeChanged()
 			end
 end
-function Auxiliary.DestroyFilter(f)
+function Glitchy.DestroyFilter(f)
 	return	function(c,e,...)
 				return (not f or f(c,e,...)) and (c:IsOnField() or c:IsDestructable(e))
 			end
 end
-function Auxiliary.DiscardFilter(f,cost)
+function Glitchy.DiscardFilter(f,cost)
 	local r = cost and REASON_EFFECT or REASON_COST
 	return	function(c)
 				return (not f or f(c)) and c:IsDiscardable(r)
 			end
 end
-function Auxiliary.SearchFilter(f)
+function Glitchy.RevealFilter(f)
+	return	function(c,...)
+				return not c:IsPublic() and (not f or f(c,...))
+			end
+end
+function Glitchy.SearchFilter(f)
 	return	function(c,...)
 				return (not f or f(c,...)) and c:IsAbleToHand()
 			end
 end
-function Auxiliary.ToDeckFilter(f,cost,loc)
+function Glitchy.ToDeckFilter(f,cost,loc)
 	if not cost then
 		return	function(c,...)
 			return (not f or f(c,...)) and c:IsAbleToDeck()
@@ -469,7 +475,7 @@ function Auxiliary.ToDeckFilter(f,cost,loc)
 				end
 	end
 end
-function Auxiliary.ToGraveFilter(f,cost)
+function Glitchy.ToGraveFilter(f,cost)
 	local ableto=cost and Card.IsAbleToGraveAsCost or Card.IsAbleToGrave
 	return	function(c,...)
 				return (not f or f(c,...)) and ableto(c)
@@ -484,7 +490,7 @@ end
 
 --Card Filters
 function Card.IsFaceupEx(c)
-	return c:IsFaceup() or c:IsLocation(LOCATION_HAND|LOCATION_GRAVE|LOCATION_DECK)
+	return c:IsLocation(LOCATION_HAND|LOCATION_GRAVE|LOCATION_DECK) or c:IsFaceup()
 end
 
 function Card.IsMonster(c,typ)
@@ -910,11 +916,11 @@ function Duel.IsPlayerCanExcavateAndSpecialSummon(tp)
 end
 
 --Filters
-function Auxiliary.Filter(f,...)
+function Glitchy.Filter(f,...)
 	local ext_params={...}
 	return aux.FilterBoolFunction(f,table.unpack(ext_params))
 end
-function Auxiliary.BuildFilter(f,...)
+function Glitchy.BuildFilter(f,...)
 	local ext_params={...}
 	return	function(c)
 				for _,func in ipairs(ext_params) do
@@ -948,7 +954,7 @@ function Auxiliary.ArchetypeFilter(set,f,...)
 				return target:IsSetCard(set) and (not f or f(target,table.unpack(ext_params)))
 			end
 end
-function Auxiliary.MonsterFilter(typ,f,...)
+function Glitchy.MonsterFilter(typ,f,...)
 	local ext_params={...}
 	if type(typ)=="function" then
 		if type(f)~="nil" then
@@ -961,13 +967,13 @@ function Auxiliary.MonsterFilter(typ,f,...)
 				return target:IsMonster(typ) and (not f or f(target,table.unpack(ext_params)))
 			end
 end
-function Auxiliary.RaceFilter(race,f,...)
+function Glitchy.RaceFilter(race,f,...)
 	local ext_params={...}
 	return	function(target)
 				return target:IsRace(race) and (not f or f(target,table.unpack(ext_params)))
 			end
 end
-function Auxiliary.STFilter(f,...)
+function Glitchy.STFilter(f,...)
 	local ext_params={...}
 	return	function(target)
 				return target:IsST() and (not f or f(target,table.unpack(ext_params)))
@@ -991,6 +997,23 @@ function Card.GetFlagEffectWithSpecificLabel(c,flag,label,reset)
 	end
 	return
 end
+function Duel.GetFlagEffectWithSpecificLabel(p,flag,label,reset)
+	flag=flag&0xfffffff
+	local eset={Duel.IsPlayerAffectedByEffect(p,flag|0x10000000)}
+	for i=#eset,1,-1 do
+		local e=eset[i]
+		local x=e:GetLabel()
+		if x==label then
+			if not reset then
+				return e
+			else
+				e:Reset()
+			end
+		end
+	end
+	return
+end
+
 function Card.HasFlagEffect(c,id,...)
 	local flags={...}
 	if id then
@@ -1074,6 +1097,37 @@ function Auxiliary.GainEffectType(c,oc,reset)
 		e:SetReset(RESET_EVENT|RESETS_STANDARD|reset)
 		c:RegisterEffect(e,true)
 	end
+end
+
+--Grant Effect
+function Glitchy.RegisterGrantEffect(c,range,s,o,tg,...)
+	local effs={...}
+	if #effs==0 then return end
+	local returns={}
+	for _,e in ipairs(effs) do
+		local e1=Effect.CreateEffect(c)
+		e1:SetType(EFFECT_TYPE_FIELD|EFFECT_TYPE_GRANT)
+		e1:SetRange(range)
+		e1:SetTargetRange(s,o)
+		e1:SetTarget(tg)
+		e1:SetLabelObject(e)
+		c:RegisterEffect(e1)
+		table.insert(returns,e1)
+	end
+	return table.unpack(returns)
+end
+function Glitchy.RegisterEquipGrantEffect(c,...)
+	local e1=Effect.CreateEffect(c)
+	e1:SetType(EFFECT_TYPE_EQUIP)
+	e1:SetCode(EFFECT_ADD_TYPE)
+	e1:SetValue(TYPE_EFFECT)
+	c:RegisterEffect(e1)
+	local e2=Effect.CreateEffect(c)
+	e2:SetType(EFFECT_TYPE_EQUIP)
+	e2:SetCode(EFFECT_REMOVE_TYPE)
+	e2:SetValue(TYPE_NORMAL)
+	c:RegisterEffect(e2)
+	return xgl.RegisterGrantEffect(c,LOCATION_SZONE,LOCATION_MZONE,LOCATION_MZONE,function(_e,_c) return _c==_e:GetHandler():GetEquipTarget() end,...)
 end
 
 --Hint timing
@@ -1429,10 +1483,36 @@ function Effect.SHOPT(e,oath)
 	end
 	
 	if flag==0 then
-		return e:SetCountLimit(ct,{cid,aux.HOPTTracker[c]})
+		return e:SetCountLimit(1,{cid,aux.HOPTTracker[c]})
 	else
-		return e:SetCountLimit(ct,{cid,aux.HOPTTracker[c]},flag)
+		return e:SetCountLimit(1,{cid,aux.HOPTTracker[c]},flag)
 	end
+end
+
+--Operated Groups
+function Glitchy.BecauseOfThisEffect(e)
+	return	function(c)
+				return c:IsReason(REASON_EFFECT) and not c:IsReason(REASON_REDIRECT) and c:GetReasonEffect()==e
+			end
+end
+function Duel.GetGroupOperatedByThisEffect(e,exc)
+	return Duel.GetOperatedGroup():Filter(xgl.BecauseOfThisEffect(e),exc)
+end
+function Glitchy.BecauseOfThisCost(e)
+	return	function(c)
+				return c:IsReason(REASON_COST) and not c:IsReason(REASON_REDIRECT) and c:GetReasonEffect()==e
+			end
+end
+function Duel.GetGroupOperatedByThisCost(e,exc)
+	return Duel.GetOperatedGroup():Filter(xgl.BecauseOfThisCost(e),exc)
+end
+function Glitchy.BecauseOfThisRule(e)
+	return	function(c)
+				return c:IsReason(REASON_RULE) and not c:IsReason(REASON_REDIRECT) and c:GetReasonEffect()==e
+			end
+end
+function Duel.GetGroupOperatedByThisRule(e,exc)
+	return Duel.GetOperatedGroup():Filter(xgl.BecauseOfThisRule(e),exc)
 end
 
 --Operation Infos
@@ -1855,6 +1935,14 @@ function Effect.SetFunctions(e,cond,cost,tg,op,val)
 		e:SetValue(val)
 	end
 end
+function Duel.Highlight(g)
+	if #g>0 then
+		Duel.HintSelection(g)
+		return true
+	else
+		return false
+	end
+end
 
 --Stat Modifiers (futureproofing)
 
@@ -1885,9 +1973,48 @@ function Card.IsCanUpdateStats(c,atk,def,e,tp,r,exactly)
 	return c:IsCanUpdateATK(atk,e,tp,r) or c:IsCanUpdateDEF(def,e,tp,r)
 end
 
+--Tables
+function Glitchy.FindInTable(tab,...)
+	local extras={...}
+	if #extras==0 then return false end
+	
+	for _,param in ipairs(extras) do
+		for _,elem in ipairs(tab) do
+			if elem==param then
+				return true
+			end
+		end
+	end
+	
+	return false
+end
+function Glitchy.ClearTable(tab)
+	local size=#tab
+	if size>0 then
+		for k=1,size do
+			table.remove(tab)
+		end
+	end
+end
+function Glitchy.ClearTableRecursive(tab)
+	for k,v in pairs(tab) do
+		if type(v)=="table" then
+			xgl.ClearTableRecursive(v)
+		end
+		tab[k]=nil
+	end
+end
+
 --Target function
 function aux.DummyTarget(e,tp,eg,ep,ev,re,r,rp,chk)
 	if chk==0 then return true end
+end
+
+--Xyz Materials
+function Card.IsAbleToDetachAsCost(c,e,tp)
+	if not c:IsLocation(LOCATION_OVERLAY) then return false end
+	local xyz=c:GetOverlayTarget()
+	return xyz and xyz:IsType(TYPE_XYZ) --futureproofing
 end
 
 

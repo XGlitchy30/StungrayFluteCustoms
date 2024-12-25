@@ -128,7 +128,7 @@ function Card.RegisterEffect(c,eff,...)
 		end
 	end
 	
-	local res=_RegisterEffect(c,e,...)
+	local res=_RegisterEffect(c,eff,...)
 	
 	return res
 end
