@@ -456,6 +456,11 @@ function Glitchy.SearchFilter(f)
 				return (not f or f(c,...)) and c:IsAbleToHand()
 			end
 end
+function Glitchy.SSetFilter(f)
+	return	function(c,...)
+				return (not f or f(c,...)) and c:IsSSetable()
+			end
+end
 function Glitchy.ToDeckFilter(f,cost,loc)
 	if not cost then
 		return	function(c,...)
@@ -661,6 +666,33 @@ function Card.IsRatingBelow(c,rtyp,...)
 	end
 end
 
+function Card.GetTotalStats(c)
+	return c:GetAttack()+c:GetDefense()
+end
+function Card.GetMinStat(c)
+	return math.min(c:GetAttack(),c:GetDefense())
+end
+function Card.GetMaxStat(c)
+	return math.max(c:GetAttack(),c:GetDefense())
+end
+function Card.GetMinBaseStat(c)
+	return math.min(c:GetBaseAttack(),c:GetBaseDefense())
+end
+function Card.GetMaxBaseStat(c)
+	return math.max(c:GetBaseAttack(),c:GetBaseDefense())
+end
+function Card.IsStats(c,atk,def)
+	return (not atk or c:IsAttack(atk)) and (not def or c:IsDefense(def))
+end
+function Card.GetStats(c)
+	return c:GetAttack(),c:GetDefense()
+end
+function Card.IsBaseStats(c,atk,def)
+	return (not atk or c:GetBaseAttack()==atk) and (not def or c:GetBaseDefense()==def)
+end
+function Card.IsTextStats(c,atk,def)
+	return (not atk or c:GetTextAttack()==atk) and (not def or c:GetTextDefense()==def)
+end
 function Card.IsStat(c,rtyp,...)
 	local x={...}
 	local atk=rtyp&STAT_ATTACK>0
@@ -812,6 +844,55 @@ function Card.OnlyOneOnField(c,id)
 	return c:SetUniqueOnField(1,1,id)
 end
 
+--Delayed Operation
+function Glitchy.DelayedOperation(card_or_group,phase,flag,e,tp,oper,cond,reset,reset_count,hint,effect_desc)
+	local g
+	if card_or_group then
+		g=(type(card_or_group)=="Group" and card_or_group or Group.FromCards(card_or_group))
+	end
+	reset=reset or (RESET_PHASE|phase)
+	reset_count=reset_count or 1
+	local fid=e:GetFieldID()
+	local function agfilter(c,lbl) return flag and c:GetFlagEffectLabel(flag)==lbl end
+	local function get_affected_group(e)
+		if not e:GetLabelObject() then return end
+		return e:GetLabelObject():Filter(agfilter,nil,e:GetLabel())
+	end
+
+	--Apply operation
+	local c=e:GetHandler()
+	local e1=Effect.CreateEffect(c)
+	if effect_desc then e1:SetDescription(effect_desc) end
+	e1:SetType(EFFECT_TYPE_FIELD+EFFECT_TYPE_CONTINUOUS)
+	e1:SetProperty(EFFECT_FLAG_IGNORE_IMMUNE)
+	e1:SetCode(EVENT_PHASE|phase)
+	e1:SetReset(reset,reset_count)
+	e1:SetCountLimit(1)
+	e1:SetLabel(fid)
+	if g then
+		e1:SetLabelObject(g)
+	end
+	e1:SetCondition(function(e,...)
+		return not cond or cond(get_affected_group(e),e,...)
+	end)
+	e1:SetOperation(function(e,...)
+		if oper then oper(get_affected_group(e),e,...) end
+	end)
+	Duel.RegisterEffect(e1,tp)
+
+	--Flag cards
+	if g and #g>0 and flag then
+		local flagprop=hint and EFFECT_FLAG_CLIENT_HINT or 0
+		local function flagcond() return not e1:IsDeleted() end
+		for tc in g:Iter() do
+			tc:RegisterFlagEffect(flag,RESET_EVENT+RESETS_STANDARD,flagprop,1,fid,hint):SetCondition(flagcond)
+		end
+		g:KeepAlive()
+	end
+
+	return e1
+end
+
 --Exception
 function Auxiliary.ActivateException(e,chk)
 	local c=e:GetHandler()
@@ -890,13 +971,15 @@ function Auxiliary.Option(id,tp,desc,...)
 	return sel
 end
 
-function Duel.RegisterHint(p,flag,reset,rct,id,desc)
-	if not reset then reset=PHASE_END end
-	if not rct then rct=1 end
-	return Duel.RegisterFlagEffect(p,flag,RESET_PHASE+reset,EFFECT_FLAG_CLIENT_HINT,rct,0,aux.Stringid(id,desc))
-end
-
 --Equip
+function Card.IsAppropriateEquipSpell(c,ec,tp)
+	return c:IsSpell(TYPE_EQUIP) and c:CheckEquipTarget(ec) and c:CheckUniqueOnField(tp,LOCATION_SZONE) and not c:IsForbidden()
+end
+function Card.IsCanBeEquippedWith(c,ec,e,p,r,ignore_faceup)
+	r = r or REASON_EFFECT
+	return (ignore_faceup or c:IsFaceup()) and (not ec or (not ec:IsForbidden() and ec:CheckUniqueOnField(p,LOCATION_SZONE)))
+	--futureproofing (more checks could be added in the future)
+end
 function Card.IsEquippedWith(c,eq)
 	local g=c:GetEquipGroup()
 	if not g or #g==0 then return false end
@@ -906,6 +989,29 @@ function Card.IsEquippedWith(c,eq)
 		return g:IsExists(aux.FaceupFilter(Card.IsCode,eq),1,nil)
 	elseif type(eq)=="function" then
 		return g:IsExists(eq,1,nil,c)
+	end
+	return false
+end
+function Glitchy.EquipToOtherCardAndRegisterLimit(e,p,be_equip,equip_to,...)
+	local res=Duel.Equip(p,be_equip,equip_to,...)
+	if res and equip_to:GetEquipGroup():IsContains(be_equip) then
+		if e:GetHandler()==be_equip then
+			local x={...}
+			local flag=(#x>0 and type(x[#x])=="number") and x[#x] or be_equip:GetOriginalCode()
+			be_equip:RegisterFlagEffect(flag,RESET_EVENT|RESETS_STANDARD,EFFECT_FLAG_CLIENT_HINT,1,0,STRING_EQUIPPED_BY_OWN_EFFECT)
+		end
+		local e1=Effect.CreateEffect(e:GetHandler())
+		e1:SetType(EFFECT_TYPE_SINGLE)
+		e1:SetProperty(EFFECT_FLAG_CANNOT_DISABLE)
+		e1:SetCode(EFFECT_EQUIP_LIMIT)
+		e1:SetLabelObject(equip_to)
+		e1:SetReset(RESET_EVENT|RESETS_STANDARD)
+		e1:SetValue(function(e,c)
+						return e:GetLabelObject()==c
+					end
+				   )
+		be_equip:RegisterEffect(e1)
+		return true
 	end
 	return false
 end
@@ -948,7 +1054,7 @@ function Auxiliary.Facedown(f)
 				return (not f or f(c,...)) and c:IsFacedown()
 			end
 end
-function Auxiliary.ArchetypeFilter(set,f,...)
+function Glitchy.ArchetypeFilter(set,f,...)
 	local ext_params={...}
 	return	function(target)
 				return target:IsSetCard(set) and (not f or f(target,table.unpack(ext_params)))
@@ -1674,33 +1780,41 @@ function Auxiliary.RecoverInfo(p,v)
 end
 
 --Phases
-function Duel.IsDrawPhase(tp)
+function Glitchy.IsDrawPhase(tp)
 	return (not tp or Duel.GetTurnPlayer()==tp) and Duel.GetCurrentPhase()==PHASE_DRAW
 end
-function Duel.IsStandbyPhase(tp)
+function Glitchy.IsStandbyPhase(tp)
 	return (not tp or Duel.GetTurnPlayer()==tp) and Duel.GetCurrentPhase()==PHASE_STANDBY
 end
-function Duel.IsMainPhase(tp,ct)
+function Glitchy.IsMainPhase(tp,ct)
 	return (not tp or Duel.GetTurnPlayer()==tp)
 		and (not ct and (Duel.GetCurrentPhase()==PHASE_MAIN1 or Duel.GetCurrentPhase()==PHASE_MAIN2) or ct==1 and Duel.GetCurrentPhase()==PHASE_MAIN1 or ct==2 and Duel.GetCurrentPhase()==PHASE_MAIN2)
 end
-function Duel.IsBattlePhase(tp)
+function Glitchy.IsBattlePhase(tp)
 	local ph=Duel.GetCurrentPhase()
 	return (not tp or Duel.GetTurnPlayer()==tp) and ph>=PHASE_BATTLE_START and ph<=PHASE_BATTLE
 end
-function Duel.IsEndPhase(tp)
+function Glitchy.IsEndPhase(tp)
 	return (not tp or Duel.GetTurnPlayer()==tp) and Duel.GetCurrentPhase()==PHASE_END
 end
 
 function Duel.GetNextPhaseCount(ph,p)
-	if Duel.GetCurrentPhase()==ph and (not p or Duel.GetTurnPlayer()==p) then
+	if not ph and not p then return 1 end
+	if (not ph or Duel.GetCurrentPhase()==ph) and (not p or Duel.GetTurnPlayer()==p) then
 		return 2
 	else
 		return 1
 	end
 end
 function Duel.GetNextMainPhaseCount(p)
-	if Duel.IsMainPhase() and (not p or Duel.GetTurnPlayer()==tp) then
+	if Duel.IsMainPhase() and (not p or Duel.GetTurnPlayer()==p) then
+		return 2
+	else
+		return 1
+	end
+end
+function Duel.GetNextBattlePhaseCount(p)
+	if Duel.IsBattlePhase() and (not p or Duel.GetTurnPlayer()==p) then
 		return 2
 	else
 		return 1

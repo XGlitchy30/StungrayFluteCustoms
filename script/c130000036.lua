@@ -28,7 +28,7 @@ function s.initial_effect(c)
 	e2:SetCode(EVENT_SUMMON_SUCCESS)
 	e2:SetFunctions(
 		nil,
-		xgl.ToGraveCost(aux.ArchetypeFilter(SET_MOBLINS),LOCATION_MZONE,0,1,1,true),
+		xgl.ToGraveCost(xgl.ArchetypeFilter(SET_MOBLINS),LOCATION_MZONE,0,1,1,true),
 		nil,
 		s.operation
 	)

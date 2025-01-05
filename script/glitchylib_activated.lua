@@ -77,6 +77,10 @@ function Glitchy.SearchOperation(f,loc,min,max,exc)
 				end
 			end
 end
+function Effect.SetSearchFunctions(e,f,loc,min,max,exc)
+	e:SetTarget(xgl.SearchTarget(f,loc,min,exc))
+	e:SetOperation(xgl.SearchOperation(f,loc,min,max,exc))
+end
 
 --Special Summon effect template
 function Glitchy.SpecialSummonFilter(f,sumtype,sump,recp,ignore_sumcon,ignore_revlim,pos)
@@ -397,6 +401,113 @@ function Glitchy.SendtoOperation(destination,tgcheck,f,loc1,loc2,min,max,exc,...
 					end
 				end
 	end
+end
+
+function Effect.SetSendtoFunctions(e,destination,tgcheck,f,loc1,loc2,min,max,exc,...)
+	e:SetTarget(xgl.SendtoTarget(destination,tgcheck,f,loc1,loc2,min,max,exc,...))
+	e:SetOperation(xgl.SendtoOperation(destination,tgcheck,f,loc1,loc2,min,max,exc,...))
+end
+
+--Template for effects that Set (min to max) Spells/Traps (that match the filter f, excluding exc) from locations (loc1,loc2)
+function Glitchy.SSetTarget(tgchk,f,loc1,loc2,min,max,exc)
+	loc1=loc1 or 0
+	loc2=loc2 or 0
+	min=min or 1
+	max=max or min
+	local locs=loc1|loc2
+	f=xgl.SSetFilter(f)
+	if not tgchk then
+		return	function(e,tp,eg,ep,ev,re,r,rp,chk)
+					local exc=exc and e:GetHandler() or nil
+					if chk==0 then
+						return Duel.IsExists(false,f,tp,loc1,loc2,min,exc,e,tp)
+					end
+					if locs==LOCATION_GRAVE then
+						local players=(loc1*loc2~=0) and PLAYER_ALL or loc1>0 and tp or 1-tp
+						Duel.SetOperationInfo(0,CATEGORY_LEAVE_GRAVE,nil,min,players,0)
+					end
+				end
+	
+	else
+		return	function(e,tp,eg,ep,ev,re,r,rp,chk,chkc)
+					local exc=exc and e:GetHandler() or nil
+					if chkc then
+						return xgl.CreateChkc(chkc,e,tp,loc1,loc2,exc,f,e,tp)
+					end
+					if chk==0 then
+						return Duel.IsExists(true,f,tp,loc1,loc2,min,exc,e,tp)
+					end
+					local g=Duel.Select(HINTMSG_SET,true,tp,f,tp,loc1,loc2,min,max,exc,e,tp)
+					local tg=g:Filter(Card.IsLocation,nil,LOCATION_GRAVE)
+					if #tg>0 then
+						Duel.SetOperationInfo(0,CATEGORY_LEAVE_GRAVE,g,#g,0,0)
+					elseif locs==LOCATION_GRAVE then
+						local players=(loc1*loc2~=0) and PLAYER_ALL or loc1>0 and tp or 1-tp
+						Duel.SetOperationInfo(0,CATEGORY_LEAVE_GRAVE,nil,min,players,0)
+					end
+				end
+	end
+end
+
+function Glitchy.SSetOperation(setmod,tgcheck,f,loc1,loc2,min,max,exc)
+	if not loc1 and not loc2 then Debug.Message("Undefined locations when calling Glitchy.SSetOperation") return end
+	loc1=loc1 or 0
+	loc2=loc2 or 0
+	local setfunc,setparams=nil,{}
+	if type(f)=="number" then
+		tgcheck,f,loc1,loc2,min,max,exc = setmod,tgcheck,f,loc1,loc2,min,max
+		setmod=nil
+	else
+		if type(setmod)=="table" then
+			setfunc=setmod[1]
+			if #setmod>=2 then
+				for i=2,#setmod do
+					table.insert(setparams,setmod[i])
+				end
+			end
+		else
+			setfunc=setmod
+		end
+	end
+	f=xgl.SSetFilter(f)
+	if not tgcheck then
+		min=min or 1
+		max=max or min
+		local locs=loc1|loc2
+		
+		if locs&LOCATION_GRAVE>0 then
+			f=aux.Necro(f)
+		end
+		
+		return	function(e,tp,eg,ep,ev,re,r,rp)
+					local exc=exc and e:GetHandler() or nil
+					local g=Duel.Select(HINTMSG_SET,false,tp,f,tp,loc1,loc2,min,max,exc,e,tp)
+					if #g>=min then
+						if not setmod then
+							Duel.SSet(tp,g)
+						else
+							setmod(tp,g,e,table.unpack(setparams))
+						end
+					end
+				end
+					
+	else
+		return	function(e,tp,eg,ep,ev,re,r,rp)
+					local og=Duel.GetTargetCards()
+					local res,g=xgl.CheckTargetsAtResolution(tgcheck,loc1,loc2,tp,og,f,e,tp)
+					if res then
+						if not setmod then
+							Duel.SSet(tp,g)
+						else
+							setmod(tp,g,e,table.unpack(setparams))
+						end
+					end
+				end
+	end
+end
+function Effect.SetSSetFunctions(e,setmod,tgcheck,f,loc1,loc2,min,max,exc)
+	e:SetTarget(xgl.SSetTarget(tgcheck,f,loc1,loc2,min,max,exc))
+	e:SetOperation(xgl.SSetOperation(setmod,tgcheck,f,loc1,loc2,min,max,exc))
 end
 
 --Special Summon self template: Special Summon "this card"
