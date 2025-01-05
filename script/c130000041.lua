@@ -15,7 +15,7 @@ function s.initial_effect(c)
 	e1:SetType(EFFECT_TYPE_SINGLE|EFFECT_TYPE_TRIGGER_O)
 	e1:SetProperty(EFFECT_FLAG_DELAY)
 	e1:SetCode(EVENT_DESTROYED)
-	e1:SetFunctions(s.spcon,aux.ToDeckSelfCost,s.sptg,s.spop)
+	e1:SetFunctions(s.spcon,xgl.ToDeckSelfCost,s.sptg,s.spop)
 	c:RegisterEffect(e1)
 end
 s.listed_series={SET_MOBLINS}

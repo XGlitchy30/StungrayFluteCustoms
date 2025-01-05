@@ -18,7 +18,7 @@ function s.initial_effect(c)
 	e1:SetCode(EVENT_PHASE|PHASE_BATTLE_START)
 	e1:SetRange(LOCATION_HAND)
 	e1:OPT()
-	e1:SetFunctions(nil,aux.RevealSelfCost(),s.sumtg,s.sumop)
+	e1:SetFunctions(nil,xgl.RevealSelfCost(),s.sumtg,s.sumop)
 	c:RegisterEffect(e1)
 	--[[If this card is Normal Summoned: You can send 1 other "Moblins" monster you control to the GY; this card cannot be destroyed this turn.]]
 	local e2=Effect.CreateEffect(c)
@@ -28,7 +28,7 @@ function s.initial_effect(c)
 	e2:SetCode(EVENT_SUMMON_SUCCESS)
 	e2:SetFunctions(
 		nil,
-		aux.ToGraveCost(aux.ArchetypeFilter(SET_MOBLINS),LOCATION_MZONE,0,1,1,true),
+		xgl.ToGraveCost(xgl.ArchetypeFilter(SET_MOBLINS),LOCATION_MZONE,0,1,1,true),
 		nil,
 		s.operation
 	)

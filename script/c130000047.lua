@@ -13,7 +13,7 @@ function s.initial_effect(c)
 	e1:SetCategory(CATEGORIES_TOKEN)
 	e1:SetType(EFFECT_TYPE_ACTIVATE)
 	e1:SetCode(EVENT_FREE_CHAIN)
-	e1:SetFunctions(nil,aux.DiscardCost(nil,1,1,true),s.target,s.activate)
+	e1:SetFunctions(nil,xgl.DiscardCost(nil,1,1,true),s.target,s.activate)
 	c:RegisterEffect(e1)
 	--[[During your opponent's End Phase: You can banish this card from your GY; destroy 1 "Wiccink Token" you control,
 	and if you do, Special Summon 1 "Wiccink" monster from your Deck or Extra Deck, ignoring its Summoning conditions]]
@@ -24,7 +24,7 @@ function s.initial_effect(c)
 	e2:SetCode(EVENT_PHASE|PHASE_END)
 	e2:SetRange(LOCATION_GRAVE)
 	e2:HOPT()
-	e2:SetFunctions(aux.TurnPlayerCond(1),aux.bfgcost,s.sptg,s.spop)
+	e2:SetFunctions(xgl.TurnPlayerCond(1),aux.bfgcost,s.sptg,s.spop)
 	c:RegisterEffect(e2)
 end
 s.listed_names={TOKEN_WICCINK}
