@@ -28,7 +28,7 @@ function s.target(e,tp,eg,ep,ev,re,r,rp,chk)
 	Duel.SetPossibleOperationInfo(0,CATEGORY_DRAW,nil,0,tp,1)
 end
 function s.activate(e,tp,eg,ep,ev,re,r,rp)
-	if Duel.GetDeckCount(tp)>=2 then
+	if Duel.GetDeckCount(tp)>0 then
 		Duel.ConfirmDecktop(tp,2)
 		Duel.BreakEffect()
 		Duel.SortDecktop(tp,tp,2)
