@@ -80,6 +80,59 @@ MAX_RATING = 14
 RESET_TURN_SELF = RESET_SELF_TURN
 RESET_TURN_OPPO = RESET_OPPO_TURN
 
+--Attach as material
+function Card.IsCanBeAttachedTo(c,xyzc,e,p,r)
+	p = p or e:GetHandlerPlayer()
+	r = r or REASON_EFFECT
+	return not c:IsOriginalType(TYPE_TOKEN) and (c:IsOnField() or not c:IsForbidden()) and (xyzc:GetControler()==c:GetControler() or c:IsAbleToChangeControler()) --futureproofing
+end
+function Duel.Attach(c,xyz,transfer,e,r,rp)
+	r = r or REASON_EFFECT
+	rp = rp or e:GetHandlerPlayer()
+	if type(c)=="Card" then
+		if not c:IsCanBeAttachedTo(xyz,e,rp,r) or (e and r&REASON_EFFECT>0 and c:IsImmuneToEffect(e)) then
+			return false
+		end
+		local og=c:GetOverlayGroup()
+		if #og>0 then
+			if transfer then
+				Duel.Overlay(xyz,og)
+			else
+				Duel.SendtoGrave(og,REASON_RULE)
+			end
+		end
+		Duel.Overlay(xyz,Group.FromCards(c))
+		return xyz:GetOverlayGroup():IsContains(c)
+			
+	elseif type(c)=="Group" then
+		for tc in aux.Next(c) do
+			local og=tc:GetOverlayGroup()
+			if tc:IsCanBeAttachedTo(xyz,e,rp,r) and not (e and r&REASON_EFFECT>0 and tc:IsImmuneToEffect(e)) then
+				if #og>0 then
+					if transfer then
+						Duel.Overlay(xyz,og)
+					else
+						Duel.SendtoGrave(og,REASON_RULE)
+					end
+				end
+			end
+		end
+		Duel.Overlay(xyz,c)
+		return c:FilterCount(function (card,group) return group:IsContains(card) end, nil, xyz:GetOverlayGroup())
+	end
+end
+
+--Banish
+function Card.IsAbleToRemoveFacedown(c,tp,r)
+	if not r then r=REASON_EFFECT end
+	return c:IsAbleToRemove(tp,POS_FACEDOWN,r)
+end
+function Card.IsAbleToRemoveTemp(c,tp,r)
+	if not r then r=REASON_EFFECT end
+	local pos = c:GetPosition()&POS_FACEDOWN>0 and POS_FACEDOWN or POS_FACEUP
+	return c:IsAbleToRemove(tp,pos,r|REASON_TEMPORARY)
+end
+
 --Chain Relation
 local _IsRelateToChain, _GetTargetCards = Card.IsRelateToChain, Duel.GetTargetCards
 
@@ -122,26 +175,6 @@ function Effect.IsHasCustomCategory(e,cat1,cat2)
 end
 
 --Card Actions
-function Duel.Attach(c,xyz)
-	if type(c)=="Card" then
-		local og=c:GetOverlayGroup()
-		if og:GetCount()>0 then
-			Duel.SendtoGrave(og,REASON_RULE)
-		end
-		Duel.Overlay(xyz,Group.FromCards(c))
-		return xyz:GetOverlayGroup():IsContains(c)
-			
-	elseif type(c)=="Group" then
-		for tc in aux.Next(c) do
-			local og=tc:GetOverlayGroup()
-			if og:GetCount()>0 then
-				Duel.SendtoGrave(og,REASON_RULE)
-			end
-		end
-		Duel.Overlay(xyz,c)
-		return c:FilterCount(function (card,group) return group:IsContains(card) end, nil, xyz:GetOverlayGroup())
-	end
-end
 
 function Duel.Banish(g,pos,r)
 	if not pos then pos=POS_FACEUP end
@@ -353,11 +386,11 @@ function Duel.SendtoGraveAndCheck(g,p,r)
 	return #cg>0
 end
 
-function Duel.ShuffleIntoDeck(g,p,loc,seq,r,f)
+function Duel.ShuffleIntoDeck(g,p,loc,seq,r,f,rp)
 	if not loc then loc=LOCATION_DECK|LOCATION_EXTRA end
 	if not seq then seq=SEQ_DECKSHUFFLE end
 	if not r then r=REASON_EFFECT end
-	local ct=Duel.SendtoDeck(g,p,seq,r)
+	local ct=Duel.SendtoDeck(g,p,seq,r,rp)
 	if ct>0 then
 		if seq==SEQ_DECKSHUFFLE then
 			aux.AfterShuffle(g)
@@ -525,6 +558,9 @@ end
 
 function Card.IsAttributeRace(c,attr,race)
 	return c:IsAttribute(attr) and c:IsRace(race)
+end
+function Card.IsOriginalAttributeRace(c,attr,race)
+	return c:IsOriginalAttribute(attr) and c:IsOriginalRace(race)
 end
 
 function Card.IsAppropriateEquipSpell(c,ec,tp)
@@ -858,12 +894,13 @@ function Glitchy.DelayedOperation(card_or_group,phase,flag,e,tp,oper,cond,reset,
 		if not e:GetLabelObject() then return end
 		return e:GetLabelObject():Filter(agfilter,nil,e:GetLabel())
 	end
+	local turncount=Duel.GetTurnCount()
 
 	--Apply operation
 	local c=e:GetHandler()
 	local e1=Effect.CreateEffect(c)
 	if effect_desc then e1:SetDescription(effect_desc) end
-	e1:SetType(EFFECT_TYPE_FIELD+EFFECT_TYPE_CONTINUOUS)
+	e1:SetType(EFFECT_TYPE_FIELD|EFFECT_TYPE_CONTINUOUS)
 	e1:SetProperty(EFFECT_FLAG_IGNORE_IMMUNE)
 	e1:SetCode(EVENT_PHASE|phase)
 	e1:SetReset(reset,reset_count)
@@ -872,11 +909,24 @@ function Glitchy.DelayedOperation(card_or_group,phase,flag,e,tp,oper,cond,reset,
 	if g then
 		e1:SetLabelObject(g)
 	end
-	e1:SetCondition(function(e,...)
-		return not cond or cond(get_affected_group(e),e,...)
-	end)
-	e1:SetOperation(function(e,...)
-		if oper then oper(get_affected_group(e),e,...) end
+	if card_or_group then
+		e1:SetCondition(function(e,tp,eg,ep,ev,re,r,rp)
+			local g=get_affected_group(e)
+			if #g==0 then
+				e:Reset()
+				return false
+			end
+			return not cond or cond(g,e,tp,eg,ep,ev,re,r,rp,turncount)
+		end)
+	else
+		e1:SetCondition(function(e,tp,eg,ep,ev,re,r,rp)
+			local g=get_affected_group(e)
+			return not cond or cond(g,e,tp,eg,ep,ev,re,r,rp,turncount)
+		end)
+	end
+	e1:SetOperation(function(e,tp,eg,ep,ev,re,r,rp)
+		local g=get_affected_group(e)
+		if oper then oper(g,e,tp,eg,ep,ev,re,r,rp,turncount) end
 	end)
 	Duel.RegisterEffect(e1,tp)
 
@@ -885,7 +935,7 @@ function Glitchy.DelayedOperation(card_or_group,phase,flag,e,tp,oper,cond,reset,
 		local flagprop=hint and EFFECT_FLAG_CLIENT_HINT or 0
 		local function flagcond() return not e1:IsDeleted() end
 		for tc in g:Iter() do
-			tc:RegisterFlagEffect(flag,RESET_EVENT+RESETS_STANDARD,flagprop,1,fid,hint):SetCondition(flagcond)
+			tc:RegisterFlagEffect(flag,RESET_EVENT|RESETS_STANDARD|reset,flagprop,reset_count,fid,hint):SetCondition(flagcond)
 		end
 		g:KeepAlive()
 	end
@@ -1246,6 +1296,16 @@ function Effect.SetRelevantBattleTimings(e,extra_timings)
 	return e:SetHintTiming(extra_timings,RELEVANT_BATTLE_TIMINGS|extra_timings)
 end
 
+--Iterators
+--iterator for getting playerid of current turn player and the other player
+function Auxiliary.TurnPlayers()
+	local i=0
+	return	function()
+				i=i+1
+				if i==1 then return Duel.GetTurnPlayer() end
+				if i==2 then return 1-Duel.GetTurnPlayer() end
+			end
+end
 
 --Labels
 function Effect.SetLabelPair(e,l1,l2)
@@ -1259,11 +1319,31 @@ function Effect.SetLabelPair(e,l1,l2)
 		e:SetLabel(o1,l2)
 	end
 end
+function Effect.SetSpecificLabel(e,l,pos)
+	if not pos then pos=1 end
+	local tab={e:GetLabel()}
+	if pos==0 or #tab<pos then
+		if pos~=0 then
+			for i=1,pos-#tab-1 do
+				table.insert(tab,0)
+			end
+		end
+		table.insert(tab,l)
+	else
+		tab[pos]=l
+	end
+	e:SetLabel(table.unpack(tab))
+end
 function Effect.GetSpecificLabel(e,pos)
 	if not pos then pos=1 end
 	local tab={e:GetLabel()}
 	if #tab<pos then return end
 	return tab[pos]
+end
+function Effect.GetLabelCount(e)
+	local tab={e:GetLabel()}
+	if not tab then return 0 end
+	return #tab
 end
 
 --Link Markers
@@ -1363,6 +1443,60 @@ function Card.GetPreviousZone(c,tp)
 	return rzone
 end
 
+--Returns all zones from the column with sequence (seq) from the player's own POV.
+--If (loc) is specified, only zones from that location(s) will be returned (only LOCATION_MZONE and/or LOCATION_SZONE are valid values)
+--If (seq) is taken from the opponent's POV, (isOpponentSeq) shall be set to true
+--The player's zones are described by the first 8 hex digits (from the right), while the opponent's zones are described by the remaining 8 digits
+function Duel.GetFullColumnZoneFromSequence(seq,loc,isOpponentSeq)
+	local zones=0
+	if not loc then
+		loc=LOCATION_ONFIELD
+	else
+		if loc&LOCATION_ONFIELD==0 then
+			return 0
+		end
+	end
+	
+	if isOpponentSeq then
+		seq=seq<=4 and 4-seq or seq==5 and 6 or 5
+	end
+	
+	if seq<=4 then
+		if loc&LOCATION_MZONE~=0 then
+			zones = zones|(1<<seq)|(1<<(16+(4-seq)))
+			if seq==1 then
+				zones = zones|((1<<5)|(1<<(16+6)))
+			end
+			if seq==3 then
+				zones = zones|((1<<6)|(1<<(16+5)))
+			end
+		end
+		if loc&LOCATION_SZONE~=0 then
+			zones = zones|(1<<seq+8)|(1<<(16+8+(4-seq)))
+		end
+	
+	elseif seq==5 then
+		if loc&LOCATION_MZONE~=0 then
+			zones = zones|((1 << 1) | (1 << (16 + 3))) | ((1<<5) | (1<<(16+6)))
+		end
+		if loc&LOCATION_SZONE~=0 then
+			zones = zones|((1 << (8 + 1)) | (1 << (16 + 8 + 3)))
+		end
+	
+	elseif seq==6 then
+		if loc&LOCATION_MZONE~=0 then
+			zones = zones|((1 << 3) | (1 << (16 + 1))) | ((1<<6) | (1<<(16+5)))
+		end
+		if loc&LOCATION_SZONE~=0 then
+			zones = zones|((1 << (8 + 3)) | (1 << (16 + 8 + 1)))
+		end
+	end
+	
+	--Debug.Message(zones)
+	return zones
+end
+
+--Behaves like the previous function, but it excludes the zone of the (seqloc) location from the player's own POV
 function Duel.GetColumnZoneFromSequence(seq,seqloc,loc)
 	local zones=0
 	if not seqloc then
@@ -1465,10 +1599,18 @@ end
 
 --Location Groups
 function Duel.GetHand(p)
-	return Duel.GetFieldGroup(p,LOCATION_HAND,0)
+	if not p then
+		return Duel.GetFieldGroup(0,LOCATION_HAND,LOCATION_HAND)
+	else
+		return Duel.GetFieldGroup(p,LOCATION_HAND,0)
+	end
 end
 function Duel.GetHandCount(p)
-	return Duel.GetFieldGroupCount(p,LOCATION_HAND,0)
+	if not p then
+		return Duel.GetFieldGroupCount(0,LOCATION_HAND,LOCATION_HAND)
+	else
+		return Duel.GetFieldGroupCount(p,LOCATION_HAND,0)
+	end
 end
 function Duel.GetDeck(p)
 	return Duel.GetFieldGroup(p,LOCATION_DECK,0)
@@ -1477,10 +1619,32 @@ function Duel.GetDeckCount(p)
 	return Duel.GetFieldGroupCount(p,LOCATION_DECK,0)
 end
 function Duel.GetGY(p)
-	return Duel.GetFieldGroup(p,LOCATION_GY,0)
+	if not p then
+		return Duel.GetFieldGroup(0,LOCATION_GRAVE,LOCATION_GRAVE)
+	else
+		return Duel.GetFieldGroup(p,LOCATION_GRAVE,0)
+	end
 end
 function Duel.GetGYCount(p)
-	return Duel.GetFieldGroupCount(p,LOCATION_GY,0)
+	if not p then
+		return Duel.GetFieldGroupCount(0,LOCATION_GRAVE,LOCATION_GRAVE)
+	else
+		return Duel.GetFieldGroupCount(LOCATION_GRAVE)
+	end
+end
+function Duel.GetBanishment(p)
+	if not p then
+		return Duel.GetFieldGroup(0,LOCATION_REMOVED,LOCATION_REMOVED)
+	else
+		return Duel.GetFieldGroup(p,LOCATION_REMOVED,0)
+	end
+end
+function Duel.GetBanishmentCount(p)
+	if not p then
+		return Duel.GetFieldGroupCount(0,LOCATION_REMOVED,LOCATION_REMOVED)
+	else
+		return Duel.GetFieldGroupCount(p,LOCATION_REMOVED,0)
+	end
 end
 function Duel.GetExtraDeck(p)
 	return Duel.GetFieldGroup(p,LOCATION_EXTRA,0)
@@ -1488,8 +1652,12 @@ end
 function Duel.GetExtraDeckCount(p)
 	return Duel.GetFieldGroupCount(p,LOCATION_EXTRA,0)
 end
-function Duel.GetPendulums(p)
-	return Duel.GetFieldGroup(p,LOCATION_PZONE,0)
+function Duel.GetPendulums(p,c)
+	if c then
+		return Duel.GetFieldGroup(p,LOCATION_PZONE,0):Filter(aux.TRUE,c):GetFirst()
+	else
+		return Duel.GetFieldGroup(p,LOCATION_PZONE,0)
+	end
 end
 function Duel.GetPendulumsCount(p)
 	return Duel.GetFieldGroupCount(p,LOCATION_PZONE,0)
@@ -2085,6 +2253,147 @@ function Card.IsCanChangeStats(c,atk,def,e,tp,r)
 end
 function Card.IsCanUpdateStats(c,atk,def,e,tp,r,exactly)
 	return c:IsCanUpdateATK(atk,e,tp,r) or c:IsCanUpdateDEF(def,e,tp,r)
+end
+
+--Subgroup Selection
+
+--[[Differently from the regular SelectUnselectLoop, now rescon can also be used to define a razor filter that will restrict which members of (mg) can be added to the current subgroup]]
+function Glitchy.SelectUnselectLoop(c,sg,mg,e,tp,minc,maxc,rescon)
+	local res=not rescon
+	if #sg>=maxc then return false end
+	local mg2=mg:Clone()
+	sg:AddCard(c)
+	local razor
+	if rescon then
+		local stop
+		res,stop,razor=rescon(sg,e,tp,mg2,c)
+		if stop then
+			sg:RemoveCard(c)
+			return false
+		end
+	end
+	
+	if razor then
+		if type(razor)=="table" then
+			local razorfunc=razor[1]
+			table.remove(razor,1)
+			mg2:Match(razorfunc,nil,table.unpack(razor))
+		else
+			mg2:Match(razor,nil)
+		end
+	end
+	
+	if #sg<minc then
+		res=mg2:IsExists(Glitchy.SelectUnselectLoop,1,sg,sg,mg2,e,tp,minc,maxc,rescon)
+	elseif #sg<maxc and not res then
+		res=mg2:IsExists(Glitchy.SelectUnselectLoop,1,sg,sg,mg2,e,tp,minc,maxc,rescon)
+	end
+	sg:RemoveCard(c)
+	return res
+end
+
+--[[Function to check the existence and to select subgroups of (g) that satisfy a certain (rescon)
+Hybrid method for selecting and unselecting cards from a group (g).
+The method dynamically switches between two selection approaches depending on the group size:
+- The regular Auxiliary.SelectUnselectGroup is used for small groups (when the group size is below a threshold).
+- The Glitchy implementation is used for large groups (when the group size exceeds the threshold).
+
+**Parameters:**
+  g (Group): The group of cards from which a selection is being made.
+  e (Effect): The effect triggering the selection.
+  tp (Player): The player whose cards are being selected.
+  minc (integer): The minimum number of cards required in the selected group.
+  maxc (integer): The maximum number of cards allowed in the selected group.
+  rescon (function): A function that checks the validity of a subgroup based on the current selection.
+  chk (integer): A flag used for the check phase (0 or 1).
+  seltp (integer): Selecting player.
+  hintmsg (integer): The message type for hinting.
+  finishcon (function): A function to check if the current group is finishable.
+  breakcon (function): A function that checks whether the loop should break.
+  cancelable (boolean): Whether the selection can be canceled.
+
+**Return:**
+  The selected group (Group) of cards that satisfies the conditions defined by `minc`, `maxc`, and `rescon` (if chk==1), or whether a valid subgroup exists (if chk==0)
+
+**Steps
+1) (g) is cloned into (eg)
+2) The first member (c0) of (eg) is passed to rescon, and the latter is evaluated (sg is the current subgroup being built and checked, while mg is the group of available members that can still be added to the current subgroup)
+3) Regardless of the result, another member is taken from (eg) and is evaluated. This process repeats until the subgroup reaches the minimum size AND satisfies rescon. If the subgroup reaches the maximum size and it still does NOT satisfy rescon, then the member (c0) is removed from (eg) and the process starts again from STEP 2 with the next member of (eg): note that the previous (c0) will not be able to be added to any subgroup from that point onwards
+4) If rescon returns a second false, the subgroup creation abrupts immediately and the check is failed. (c0) is removed from (eg) and the process starts again from STEP 2 with the next member of (eg): note that the previous (c0) will not be able to be added to any subgroup from that point onwards.
+
+The rescon function is expected to return three possible outputs:
+1) Boolean: The first return value indicates whether the current subgroup (sg) is valid or not.
+2) Boolean: The second return value is a flag (stop) that determines if the subgroup selection process should be halted immediately. If stop is true, the current selection process is stopped, and the function backtracks.
+3) Optional Value (razor): The third return value is an optional value, which can either be a function, a table, or nil. If provided, it allows for additional modifications or pruning of the group. Specifically:
+	- A function (razorfunc): This function can be used to prune the remaining candidates for selection based on some criteria. It applies a filtering function to mg2 (the candidate group) to narrow down the possible selections further.
+	- A table (razor): If a table is returned, the first element is expected to be the pruning function, while the remaining ones are the parameters required by such function
+	- nil: If razor is nil, no further pruning or filtering is applied.
+]]
+local function ApplyDelta(group,delta)
+    for card in aux.Next(delta.added) do group:AddCard(card) end
+    for card in aux.Next(delta.removed) do group:RemoveCard(card) end --for futureproofing
+end
+function Glitchy.SelectUnselectGroup(g,e,tp,minc,maxc,rescon,chk,seltp,hintmsg,finishcon,breakcon,cancelable)
+	local LARGE_GROUP_SIZE = 16
+	
+	--Use regular auxiliary for small groups
+	if #g<LARGE_GROUP_SIZE then
+		return aux.SelectUnselectGroup(g,e,tp,minc,maxc,rescon,chk,seltp,hintmsg,finishcon,breakcon,cancelable)
+	end
+	
+	local minc=minc or 1
+	local maxc=maxc or #g
+	if chk==0 then
+		if #g<minc then return false end
+		local eg=g:Clone()
+		for c in g:Iter() do
+			if Glitchy.SelectUnselectLoop(c,Group.CreateGroup(),eg,e,tp,minc,maxc,rescon) then return true end
+			eg:RemoveCard(c)
+		end
+		return false
+	end
+	local hintmsg=hintmsg or 0
+	local sg=Group.CreateGroup()
+	local history={}
+	local deltas={}
+	local g2=g:Clone()
+	while true do
+		local finishable = #sg>=minc and (not finishcon or finishcon(sg,e,tp,g2))
+		local mg=g2:Filter(Glitchy.SelectUnselectLoop,sg,sg,g2,e,tp,minc,maxc,rescon)
+		if (breakcon and breakcon(sg,e,tp,mg)) or #mg<=0 or #sg>=maxc then break end
+		Duel.Hint(HINT_SELECTMSG,seltp,hintmsg)
+		local tc=mg:SelectUnselect(sg,seltp,finishable,finishable or (cancelable and #sg==0),minc,maxc)
+		if not tc then break end
+		if sg:IsContains(tc) then
+			while true do
+				local tc2=table.remove(history)
+				sg:RemoveCard(tc2)
+				local lastDelta = table.remove(deltas)
+				ApplyDelta(g2, { added = lastDelta.removed, removed = lastDelta.added })
+				if tc2==tc then
+					break
+				end
+			end
+		else
+			local delta = { added = Group.CreateGroup(), removed = Group.CreateGroup() }	--delta.added just for futureproofing
+            table.insert(deltas, delta)
+
+            sg:AddCard(tc)
+			table.insert(history,tc)
+			local _,_,razor=rescon(sg,e,tp,mg,tc)
+			if razor then
+				if type(razor)=="table" then
+					local razorfunc=razor[1]
+					table.remove(razor,1)
+					g2:Match(razorfunc,nil,table.unpack(razor))
+				else
+					g2:Match(razor,nil)
+				end
+				delta.removed = g:Filter(function(card) return not g2:IsContains(card) end, nil)
+			end
+		end
+	end
+	return sg
 end
 
 --Tables

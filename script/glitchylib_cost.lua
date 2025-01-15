@@ -248,7 +248,7 @@ function Glitchy.SSRestrictionCost(f,oath,reset,id,cf,desc,...)
 		local donotcount_function = type(cf)=="function" and cf or f
 		if type(cf)=="number" then
 			local new_donotcount_function = function(c,...)
-				return not c:IsSummonLocation(cf) or donotcount_function(c,...)
+				return not c:IsSummonLocation(cf) or (donotcount_function and donotcount_function(c,...))
 			end
 			Duel.AddCustomActivityCounter(id,ACTIVITY_SPSUMMON,new_donotcount_function)
 		else
@@ -273,12 +273,12 @@ function Glitchy.SSRestrictionCost(f,oath,reset,id,cf,desc,...)
 				e1:SetTargetRange(1,0)
 				if type(cf)~="number" then
 					e1:SetTarget(	function(eff,c,sump,sumtype,sumpos,targetp,se)
-										return not f(c,eff,sump,sumtype,sumpos,targetp,se) and (not other or se~=e)
+										return (not f or not f(c,eff,sump,sumtype,sumpos,targetp,se)) and (not other or se~=e)
 									end
 								)
 				else
 					e1:SetTarget(	function(eff,c,sump,sumtype,sumpos,targetp,se)
-										return not f(c,eff,sump,sumtype,sumpos,targetp,se) and c:IsLocation(cf) and (not other or se~=e)
+										return (not f or not f(c,eff,sump,sumtype,sumpos,targetp,se)) and c:IsLocation(cf) and (not other or se~=e)
 									end
 								)
 				end
