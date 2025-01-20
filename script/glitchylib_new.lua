@@ -46,6 +46,7 @@ EXTRA_MONSTER_ZONE=0x60
 -- RESETS_STANDARD_UNION 			= RESETS_STANDARD&(~(RESET_TOFIELD|RESET_LEAVE))
 -- RESETS_STANDARD_TOFIELD 		= RESETS_STANDARD&(~(RESET_TOFIELD))
 -- RESETS_STANDARD_EXC_GRAVE 		= RESETS_STANDARD&~(RESET_LEAVE|RESET_TOGRAVE)
+RESETS_STANDARD_FACEDOWN 		= RESETS_STANDARD&(~(RESET_TURN_SET))
 
 --timings
 RELEVANT_TIMINGS = TIMINGS_CHECK_MONSTER|TIMING_MAIN_END|TIMING_END_PHASE
@@ -82,13 +83,13 @@ RESET_TURN_OPPO = RESET_OPPO_TURN
 
 --Attach as material
 function Card.IsCanBeAttachedTo(c,xyzc,e,p,r)
-	p = p or e:GetHandlerPlayer()
+	p = p or (e and e:GetHandlerPlayer()) or xyzc:GetControler()
 	r = r or REASON_EFFECT
 	return not c:IsOriginalType(TYPE_TOKEN) and (c:IsOnField() or not c:IsForbidden()) and (xyzc:GetControler()==c:GetControler() or c:IsAbleToChangeControler()) --futureproofing
 end
 function Duel.Attach(c,xyz,transfer,e,r,rp)
 	r = r or REASON_EFFECT
-	rp = rp or e:GetHandlerPlayer()
+	rp = rp or (e and e:GetHandlerPlayer()) or xyz:GetControler()
 	if type(c)=="Card" then
 		if not c:IsCanBeAttachedTo(xyz,e,rp,r) or (e and r&REASON_EFFECT>0 and c:IsImmuneToEffect(e)) then
 			return false
@@ -1104,6 +1105,12 @@ function Auxiliary.Facedown(f)
 				return (not f or f(c,...)) and c:IsFacedown()
 			end
 end
+function Auxiliary.FaceupExFilter(f,...)
+	local ext_params={...}
+	return	function(target)
+				return target:IsFaceupEx() and f(target,table.unpack(ext_params))
+			end
+end
 function Glitchy.ArchetypeFilter(set,f,...)
 	local ext_params={...}
 	return	function(target)
@@ -1398,6 +1405,8 @@ function Card.NotInExtraOrFaceup(c)
 	return not c:IsLocation(LOCATION_EXTRA) or c:IsFaceup()
 end
 
+
+--Sumtypes
 function Card.IsFusionSummoned(c)
 	return c:IsSummonType(SUMMON_TYPE_FUSION)
 end
@@ -1418,6 +1427,22 @@ function Card.IsLinkSummoned(c)
 end
 function Card.IsSelfSummoned(c)
 	return c:IsSummonType(SUMMON_TYPE_SPECIAL+1)
+end
+
+function Card.GetMechanicSummonType(c)
+	local ctypes={
+		[TYPE_FUSION]=SUMMON_TYPE_FUSION;
+		[TYPE_RITUAL]=SUMMON_TYPE_RITUAL;
+		[TYPE_SYNCHRO]=SUMMON_TYPE_SYNCHRO;
+		[TYPE_XYZ]=SUMMON_TYPE_XYZ;
+		[TYPE_LINK]=SUMMON_TYPE_LINK;
+	}
+	for typ,sumtyp in pairs(ctypes) do
+		if c:IsType(typ) then
+			return sumtyp
+		end
+	end
+	return 0
 end
 
 --Zones
@@ -2165,7 +2190,7 @@ function Duel.Group(f,tp,loc1,loc2,exc,...)
 	return g
 end
 function Duel.HintMessage(tp,msg)
-	return Duel.Hint(HINT_SELECTMSG,tp,msg)
+	Duel.Hint(HINT_SELECTMSG,tp,msg)
 end
 function Auxiliary.Necro(f)
 	return aux.NecroValleyFilter(f)
@@ -2438,6 +2463,64 @@ function Card.IsAbleToDetachAsCost(c,e,tp)
 	if not c:IsLocation(LOCATION_OVERLAY) then return false end
 	local xyz=c:GetOverlayTarget()
 	return xyz and xyz:IsType(TYPE_XYZ) --futureproofing
+end
+function Card.HasCardAttached(c,ac)
+	if not c:IsType(TYPE_XYZ) then return false end
+	if not ac then
+		return c:GetOverlayCount()>0
+	else
+		return c:GetOverlayGroup():IsContains(ac)
+	end
+end
+function Card.IsAttachedTo(c,xyzc)
+	return c:IsLocation(LOCATION_OVERLAY) and xyzc:HasCardAttached(c)
+end
+function Group.CheckRemoveOverlayCard(g,tp,ct,r)
+	return g:IsExists(Card.CheckRemoveOverlayCard,1,nil,tp,ct,r)
+end
+function Group.RemoveOverlayCard(g,tp,min,max,r)
+	local res=0
+	Duel.HintMessage(tp,HINTMSG_REMOVEXYZ)
+	local tg=g:FilterSelect(tp,Card.CheckRemoveOverlayCard,1,1,nil,tp,min,r)
+	if #tg>0 then
+		res=tg:GetFirst():RemoveOverlayCard(tp,min,max,r)
+	end
+	return res
+end
+function Duel.GetXyzMaterialGroup(tp,s,o,xyzf,matf,...)
+	xyzf=xyzf and xyzf or aux.TRUE
+	matf=matf and matf or aux.TRUE
+	local sloc=s==1 and LOCATION_MZONE or 0
+	local oloc=o==1 and LOCATION_MZONE or 0
+	local g=Group.CreateGroup()
+	local xyzg=Duel.Group(xyzf,tp,sloc,oloc,nil,...):Filter(Card.IsType,nil,TYPE_XYZ)
+	if #xyzg>0 then
+		for xyz in aux.Next(xyzg) do
+			local matg=xyz:GetOverlayGroup():Filter(matf,nil,...)
+			if #matg>0 then
+				g:Merge(matg)
+			end
+		end
+	end
+	return g
+end
+function Duel.GetXyzMaterialGroupCount(tp,s,o,xyzf,matf,...)
+	local g=Duel.GetXyzMaterialGroup(tp,s,o,xyzf,matf,...)
+	return #g
+end
+function Group.GetXyzMaterialGroup(xyzg,matf,...)
+	matf=matf and matf or aux.TRUE
+	xyzg=xyzg:Filter(Card.IsType,nil,TYPE_XYZ)
+	local g=Group.CreateGroup()
+	if #xyzg>0 then
+		for xyz in aux.Next(xyzg) do
+			local matg=xyz:GetOverlayGroup():Filter(matf,nil,...)
+			if #matg>0 then
+				g:Merge(matg)
+			end
+		end
+	end
+	return g
 end
 
 
