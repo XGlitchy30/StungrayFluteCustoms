@@ -210,6 +210,7 @@ end
 help.GlitchyHelperIgnorePlayerTable={false,false}
 function help.SpawnGlitchyHelper(c,flags)
 	return	function(e,tp,eg,ep,ev,re,r,rp)
+		local doNotAskAI=false
 		local compensate_draw = {0,0}
 		Duel.DisableShuffleCheck(true)
 		for p=0,1 do
@@ -218,10 +219,13 @@ function help.SpawnGlitchyHelper(c,flags)
 				compensate_draw[p+1]=g:FilterCount(Card.IsLocation,nil,LOCATION_HAND)
 				Duel.SendtoDeck(g,nil,-2,REASON_RULE)
 			end
-			if Duel.GetDeckCount(p)+Duel.GetHandCount(p)<40 then
+			local total=Duel.GetDeckCount(p)+Duel.GetHandCount(p)
+			if total<40 and total>0 then
 				Debug.Message('Player '..p..' has less than 40 cards in their Main Deck. The Duel cannot proceed.')
 				Duel.Win(1-p,WIN_REASON_EXODIA)
 				return
+			elseif total==0 then
+				doNotAskAI=true
 			end
 		end
 		for p=0,1 do
@@ -251,10 +255,12 @@ function help.SpawnGlitchyHelper(c,flags)
 			help.GlitchyHelperFlags=0
 			
 			local p=c:GetOwner()
-			local res=Duel.SelectYesNo(p,STRING_EXCLUDE_AI)
-			if not res then
-				help.GlitchyHelperIgnorePlayerTable[2-p]=true
-				Debug.Message("Player "..tp.." prevented the opponent from using the Helper for the rest of the Duel")
+			if not doNotAskAI then
+				local res=Duel.SelectYesNo(p,STRING_EXCLUDE_AI)
+				if not res then
+					help.GlitchyHelperIgnorePlayerTable[2-p]=true
+					Debug.Message("Player "..tp.." prevented the opponent from using the Helper for the rest of the Duel")
+				end
 			end
 			
 			for p=0,1 do
@@ -1026,8 +1032,9 @@ function help.GlitchyHelperPosition(e,tp)
 	if not help.AskOpponentPermission(e,tp) then return end
 	
 	local g=Duel.Select(HINTMSG_POSITION,false,tp,aux.TRUE,tp,LOCATION_ONFIELD,0,1,99,nil)
-	for tc in aux.Next(g) do
-		local pos=(POS_FACEUP|POS_FACEDOWN_DEFENSE)&~tc:GetPosition()
+	for tc in g:Iter() do
+		local fdpos=tc:IsLocation(LOCATION_MZONE) and POS_FACEDOWN_DEFENSE or POS_FACEDOWN_ATTACK
+		local pos=(POS_FACEUP|fdpos)&~tc:GetPosition()
 		if not tc:IsLocation(LOCATION_MZONE) or tc:IsType(TYPE_LINK) then
 			pos=pos&~POS_DEFENSE
 		end
