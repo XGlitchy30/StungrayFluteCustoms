@@ -76,6 +76,7 @@ local STRING_HINT_GAMBLE					= aux.Stringid(TOKEN_GLITCHY_HELPER+3,2)
 local STRING_INFO_COUNTER					= aux.Stringid(TOKEN_GLITCHY_HELPER+3,3)
 local STRING_HOW_MANY_COUNTERS				= aux.Stringid(TOKEN_GLITCHY_HELPER+3,4)
 local STRING_REVEAL_ONLY					= aux.Stringid(TOKEN_GLITCHY_HELPER+3,5)
+local STRING_CONFIRM_CARDS					= aux.Stringid(TOKEN_GLITCHY_HELPER+3,6)
 
 
 local FLAG_PREVENT_RESET = id+1
@@ -201,7 +202,7 @@ function s.initial_effect(c)
 		local e1=Effect.GlobalEffect()
 		e1:SetType(EFFECT_TYPE_FIELD|EFFECT_TYPE_CONTINUOUS)
 		e1:SetCode(EVENT_PREDRAW)
-		e1:SetCountLimit(1,id|EFFECT_COUNT_CODE_DUEL)
+		e1:SetCountLimit(1,id,EFFECT_COUNT_CODE_DUEL)
 		e1:SetOperation(help.SpawnGlitchyHelper(c,GLITCHY_HELPER_FLAGS_STANDARD))
 		Duel.RegisterEffect(e1,0)
 	end
@@ -210,6 +211,8 @@ end
 help.GlitchyHelperIgnorePlayerTable={false,false}
 function help.SpawnGlitchyHelper(c,flags)
 	return	function(e,tp,eg,ep,ev,re,r,rp)
+		if help.HelperSpawned then return end
+		help.HelperSpawned=true
 		local doNotAskAI=false
 		local compensate_draw = {0,0}
 		Duel.DisableShuffleCheck(true)
@@ -462,11 +465,12 @@ function help.GlitchyHelperManualMovement(e,tp)
 	if askLocations~=2 then
 		Duel.HintMessage(tp,STRING_SELECT_CARDS_TO_MOVE)
 		g=og:Select(tp,1,99,nil)
-		Duel.ConfirmCards(1-tp,g:Filter(function(_c) return not _c:IsOnField() and not _c:IsLocation(LOCATION_OVERLAY) end,nil))
+		local confirm=Duel.SelectYesNo(tp,STRING_CONFIRM_CARDS)
+		if confirm then Duel.ConfirmCards(1-tp,g:Filter(function(_c) return not _c:IsOnField() and not _c:IsLocation(LOCATION_OVERLAY) end,nil)) end
 		if g:IsExists(Card.IsLocation,1,nil,LOCATION_DECK) then
 			mustShuffleDeck=false
 		end
-		if g:IsExists(aux.NOT(Card.IsLocation),1,nil,LOCATION_DECK|LOCATION_EXTRA) or g:GetClassCount(Card.GetLocation)>1 then
+		if confirm and g:IsExists(aux.NOT(Card.IsLocation),1,nil,LOCATION_DECK|LOCATION_EXTRA) or g:GetClassCount(Card.GetLocation)>1 then
 			Duel.HintMessage(1-tp,STRING_CONFIRM_SELECTION)
 			g:Select(1-tp,0,99,nil)
 		end
