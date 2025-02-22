@@ -50,11 +50,13 @@ end
 --E1
 function s.pubcon(e,tp,eg,ep,ev,re,r,rp)
 	local c=e:GetHandler()
-	return c:GetSummonPlayer()==c:GetOwner()
+	local p=c:GetOwner()
+	return c:GetSummonPlayer()==p and not Duel.PlayerHasFlagEffect(p,id)
 end
 function s.pubop(e,tp,eg,ep,ev,re,r,rp)
 	local c=e:GetHandler()
 	local p=c:GetOwner()
+	Duel.RegisterFlagEffect(p,id,0,0,1)
 	local e1=Effect.CreateEffect(c)
 	e1:SetType(EFFECT_TYPE_FIELD)
 	e1:SetCode(EFFECT_PUBLIC)
