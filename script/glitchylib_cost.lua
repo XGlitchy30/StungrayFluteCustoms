@@ -225,6 +225,20 @@ function Glitchy.ToGraveCost(f,loc1,loc2,min,max,exc)
 			end
 end
 
+-----------------------------------------------------------------------
+--LP Payment Costs
+function Glitchy.PayLPCost(lp)
+	if not lp then lp=1000 end
+	return	function(e,tp,eg,ep,ev,re,r,rp,chk)
+				if chk==0 then return Duel.CheckLPCost(tp,lp) end
+				Duel.PayLPCost(tp,lp)
+			end
+end
+function Glitchy.PayHalfLPCost(e,tp,eg,ep,ev,re,r,rp,chk)
+	if chk==0 then return true end
+	Duel.PayLPCost(tp,math.floor(Duel.GetLP(tp)/2))
+end
+
 --RESTRICTIONS
 --[[Scripts the following restriction: "You cannot Special Summon monsters the turn you activate/use this effect, except [f] monsters".
 * f 	= Filter for the monsters that can still be SSed under the restriction

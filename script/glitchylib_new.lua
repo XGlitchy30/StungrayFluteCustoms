@@ -15,6 +15,7 @@ CATEGORIES_TOKEN 			= 	CATEGORY_SPECIAL_SUMMON|CATEGORY_TOKEN
 EFFECT_CANNOT_MODIFY_ATTACK		= 	2001	--Players affected by this effect cannot change ATK of the specified cards. Needed for implementation of "Hidden Monastery of Necrovalley".
 EFFECT_CANNOT_MODIFY_DEFENSE	=	2002	--Players affected by this effect cannot change DEF of the specified cards. Needed for implementation of "Hidden Monastery of Necrovalley"
 EFFECT_SUMMONABLE_BY_OPPONENT	=	2003	--The card has an effect that allows the opponent to Normal Summon it (see Moblins' Packmate)
+EFFECT_CANNOT_EQUIP_XGL			=	2004    --FUTUREPROOFING: Players affected by this effect cannot equip cards (specified by the value function) to the monsters specified by the target function
 
 --Locations
 
@@ -80,6 +81,22 @@ MAX_RATING = 14
 
 RESET_TURN_SELF = RESET_SELF_TURN
 RESET_TURN_OPPO = RESET_OPPO_TURN
+
+--All-purpose
+--[[Effect.Evaluate
+Get the value of an effect. If the effect has a function as value, it calculates the value of the function
+]]
+function Effect.Evaluate(e,...)
+	local extraargs={...}
+	local val=e:GetValue()
+	if not val then return false end
+	if type(val)=="function" then
+		local results={val(e,table.unpack(extraargs))}
+		return table.unpack(results)
+	else
+		return val
+	end
+end
 
 --Attach as material
 function Card.IsCanBeAttachedTo(c,xyzc,e,p,r)
@@ -881,7 +898,7 @@ function Card.OnlyOneOnField(c,id)
 	return c:SetUniqueOnField(1,1,id)
 end
 
---Delayed Operation
+--Delayed Operation (supports card_or_group == nil)
 function Glitchy.DelayedOperation(card_or_group,phase,flag,e,tp,oper,cond,reset,reset_count,hint,effect_desc)
 	local g
 	if card_or_group then
@@ -1031,6 +1048,19 @@ function Card.IsCanBeEquippedWith(c,ec,e,p,r,ignore_faceup)
 	return (ignore_faceup or c:IsFaceup()) and (not ec or (not ec:IsForbidden() and ec:CheckUniqueOnField(p,LOCATION_SZONE)))
 	--futureproofing (more checks could be added in the future)
 end
+function Duel.IsPlayerCanEquipCardTo(tp,be_equip,equip_to,e,checkLocationOnly)
+	local eset={Duel.IsPlayerAffectedByEffect(tp,EFFECT_CANNOT_EQUIP_XGL)}
+	for _,ce in ipairs(eset) do
+		local tg=ce:GetTarget()
+		if not tg or tg(ce,equip_to,e,tp) then
+			local res=ce:Evaluate(be_equip,equip_to,e,tp)
+			if res and (not checkLocationOnly or res==checkLocationOnly) then
+				return false
+			end
+		end
+	end
+	return true
+end
 function Card.IsEquippedWith(c,eq)
 	local g=c:GetEquipGroup()
 	if not g or #g==0 then return false end
@@ -1068,6 +1098,20 @@ function Glitchy.EquipToOtherCardAndRegisterLimit(e,p,be_equip,equip_to,...)
 end
 
 --Excavate
+function Auxiliary.excthfilter(c,tp)
+	if not Duel.IsPlayerCanSendtoHand(tp,c) then return false end
+	local eset={c:IsHasEffect(EFFECT_CANNOT_TO_HAND)}
+	for _,e in ipairs(eset) do
+		if e:GetOwner()~=c then
+			return false
+		end
+	end
+	return true
+end
+function Duel.IsPlayerCanExcavateAndSearch(tp,ct)
+	local g=Duel.GetDecktopGroup(tp,ct)
+	return #g==ct and g:FilterCount(aux.excthfilter,nil,tp)>0
+end
 function Duel.IsPlayerCanExcavateAndSpecialSummon(tp)
 	return Duel.IsPlayerCanSpecialSummon(tp) and not Duel.IsPlayerAffectedByEffect(tp,CARD_EHERO_BLAZEMAN)
 end

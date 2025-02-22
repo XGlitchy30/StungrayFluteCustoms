@@ -290,6 +290,10 @@ function Glitchy.SpecialSummonOperation(spmod,tgcheck,f,loc1,loc2,min,max,exc,su
 				end
 	end
 end
+function Effect.SetSpecialSummonFunctions(e,spmod,tgchk,f,loc1,loc2,min,max,exc,sumtype,IsOpponentSummons,IsOpponentReceives,ignore_sumcon,ignore_revlim,pos)
+	e:SetTarget(xgl.SpecialSummonTarget(tgchk,f,loc1,loc2,min,max,exc,sumtype,IsOpponentSummons,IsOpponentReceives,ignore_sumcon,ignore_revlim,pos))
+	e:SetOperation(xgl.SpecialSummonOperation(spmod,tgchk,f,loc1,loc2,min,max,exc,sumtype,IsOpponentSummons,IsOpponentReceives,ignore_sumcon,ignore_revlim,pos))
+end
 
 --Sendto template: Move a card(s) from a location to another
 Glitchy.SendtoFilters={
@@ -299,18 +303,23 @@ Glitchy.SendtoFilters={
 	[LOCATION_REMOVED]=xgl.BanishFilter;
 }
 Glitchy.SendtoHints={
+	[0]=HINTMSG_DESTROY;
 	[LOCATION_DECK]=HINTMSG_TODECK;
 	[LOCATION_GRAVE]=HINTMSG_TOGRAVE;
 	[LOCATION_HAND]=HINTMSG_RTOHAND;
 	[LOCATION_REMOVED]=HINTMSG_REMOVE;
 }
 Glitchy.SendtoCategories={
+	[0]=CATEGORY_DESTROY;
 	[LOCATION_DECK]=CATEGORY_TODECK;
 	[LOCATION_GRAVE]=CATEGORY_TOGRAVE;
 	[LOCATION_HAND]=CATEGORY_TOHAND;
 	[LOCATION_REMOVED]=CATEGORY_REMOVE;
 }
 Glitchy.SendtoActions={
+	[0]=function(g)
+		Duel.Destroy(g,REASON_EFFECT)
+	end;
 	[LOCATION_DECK]=function(g,e,tp,seq,p)
 		seq=seq and seq or SEQ_DECKSHUFFLE
 		Duel.SendtoDeck(g,p,seq,REASON_EFFECT)
@@ -326,7 +335,7 @@ Glitchy.SendtoActions={
 	end;
 }
 function Glitchy.SendtoAuxiliaryFunction(destination,f,...)
-	local destf=xgl.SendtoFilters[destination](f,false,...)
+	local destf=destination==0 and f or xgl.SendtoFilters[destination](f,false,...)
 	local hint=xgl.SendtoHints[destination]
 	local category=xgl.SendtoCategories[destination]
 	local action=xgl.SendtoActions[destination]
