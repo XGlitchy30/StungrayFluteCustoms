@@ -93,7 +93,7 @@ function s.eqop(e,tp,eg,ep,ev,re,r,rp)
 	if ct<=0 then return end
 	Duel.ConfirmDecktop(tp,ct)
 	local g=Duel.GetDecktopGroup(tp,ct)
-	if #g>0 then
+	if #g==ct then
 		if Duel.GetLocationCount(tp,LOCATION_SZONE)>0 then
 			Duel.Hint(HINT_SELECTMSG,tp,HINTMSG_EQUIP)
 			local eqc=g:FilterSelect(tp,Card.IsAppropriateEquipSpell,1,1,nil,tc,tp):GetFirst()
