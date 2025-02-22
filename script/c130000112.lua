@@ -70,7 +70,7 @@ function s.pubop(e,tp,eg,ep,ev,re,r,rp)
 	Duel.RegisterEffect(e2,p)
 end
 function s.losefilter(c)
-	return c:IsMonster() and not c:IsOriginalType(TYPE_EXTRA)
+	return c:IsMonster() and not c:IsOriginalType(TYPE_EXTRA|TYPE_TOKEN)
 end
 function s.loseop(e,tp,eg,ep,ev,re,r,rp)
 	local g=Duel.Group(s.losefilter,tp,LOCATION_HAND|LOCATION_MZONE,0,nil)

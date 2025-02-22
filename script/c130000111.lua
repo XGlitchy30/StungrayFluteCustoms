@@ -69,7 +69,7 @@ function s.pubop(e,tp,eg,ep,ev,re,r,rp)
 	Duel.RegisterEffect(e2,p)
 end
 function s.losefilter(c)
-	return c:IsMonster() and not c:IsOriginalType(TYPE_EXTRA)
+	return c:IsMonster() and not c:IsOriginalType(TYPE_EXTRA|TYPE_TOKEN)
 end
 function s.loseop(e,tp,eg,ep,ev,re,r,rp)
 	local c=e:GetHandler()
