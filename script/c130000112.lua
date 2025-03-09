@@ -27,7 +27,7 @@ function s.initial_effect(c)
 	e2:SetCategory(CATEGORIES_SEARCH)
 	e2:SetType(EFFECT_TYPE_FIELD|EFFECT_TYPE_TRIGGER_O)
 	e2:SetCode(EVENT_PREDRAW)
-	e2:SetRange(LOCATION_GRAVE)
+	e2:SetRange(LOCATION_MZONE)
 	e2:OPT()
 	e2:SetFunctions(
 		s.spcon,
