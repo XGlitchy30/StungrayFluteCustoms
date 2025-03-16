@@ -17,7 +17,7 @@ function s.initial_effect(c)
 	e1:HOPT()
 	e1:SetFunctions(
 		nil,
-		aux.LabelCost,
+		xgl.LabelCost,
 		s.target,
 		s.operation
 	)
