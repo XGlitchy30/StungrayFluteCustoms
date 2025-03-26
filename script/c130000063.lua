@@ -7,7 +7,7 @@ Scripted by: XGlitchy30
 local s,id,o=GetID()
 Duel.LoadScript("glitchylib_new.lua")
 function s.initial_effect(c)
-	--[[When an opponent's monster declares an attack while your LP are 1000 or less: You can target that monster; its ATK becomes 0 until the end of this turn]]
+	--[[When an opponent's monster declares an attack while your LP are 2000 or less: You can target that monster; its ATK becomes 0 until the end of this turn]]
 	local e1=Effect.CreateEffect(c)
 	e1:SetDescription(id,0)
 	e1:SetCategory(CATEGORY_ATKCHANGE)
@@ -28,7 +28,7 @@ function s.initial_effect(c)
 end
 --E1
 function s.condition(e,tp,eg,ep,ev,re,r,rp)
-	return Duel.GetAttacker():GetControler()==1-tp and Duel.GetLP(tp)<=1000
+	return Duel.GetAttacker():GetControler()==1-tp and Duel.GetLP(tp)<=2000
 end
 function s.target(e,tp,eg,ep,ev,re,r,rp,chk,chkc)
 	local a=Duel.GetAttacker()
