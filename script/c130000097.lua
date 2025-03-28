@@ -85,7 +85,7 @@ function s.gytg(e,tp,eg,ep,ev,re,r,rp,chk,chkc)
 	if chk==0 then
 		return b1 or b2
 	end
-	local opt=aux.Option(tp,id,3,b1,b2)
+	local opt=xgl.Option(tp,id,3,b1,b2)
 	Duel.SetTargetParam(opt)
 	if opt==0 then
 		e:SetCategory(CATEGORY_REMOVE|CATEGORY_TOHAND)

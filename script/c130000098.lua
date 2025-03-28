@@ -58,7 +58,7 @@ function s.target(e,tp,eg,ep,ev,re,r,rp,chk,chkc)
 		Duel.ConfirmCards(1-tp,rg)
 	end
 	if b2 then b2=b2 and rc and s.rvfilter(rc,lp,e,tp) end
-	local opt=aux.Option(tp,id,1,b1,b2)
+	local opt=xgl.Option(tp,id,1,b1,b2)
 	Duel.SetTargetParam(opt)
 	if opt==0 then
 		e:SetCategory(CATEGORY_TODECK)

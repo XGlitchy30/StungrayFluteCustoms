@@ -55,7 +55,7 @@ function s.operation(e,tp,eg,ep,ev,re,r,rp)
 	local b1=Duel.GetMZoneCount(tp)>0 and Duel.IsExists(false,aux.NecroValleyFilter(s.spfilter),tp,LOCATION_HAND|LOCATION_DECK|LOCATION_GRAVE,0,1,nil,e,tp)
 	local b2=Duel.IsExists(false,s.thfilter,tp,LOCATION_DECK,0,1,nil)
 	if not b1 and not b2 then return end
-	local opt=aux.Option(tp,id,2,b1,b2)
+	local opt=xgl.Option(tp,id,2,b1,b2)
 	if opt==0 then
 		Duel.Hint(HINT_SELECTMSG,tp,HINTMSG_SPSUMMON)
 		local g=Duel.SelectMatchingCard(tp,aux.NecroValleyFilter(s.spfilter),tp,LOCATION_HAND|LOCATION_DECK|LOCATION_GRAVE,0,1,1,nil,e,tp)

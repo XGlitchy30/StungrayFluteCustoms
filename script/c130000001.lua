@@ -109,7 +109,7 @@ function s.reop(e,tp,eg,ep,ev,re,r,rp)
 		local b1=c:CheckUniqueOnField(tp,LOCATION_FZONE)
 		local b2=c:CheckUniqueOnField(1-tp,LOCATION_FZONE) and c:IsAbleToChangeControler()
         -- which field?
-        local op=aux.Option(tp,id,3,b1,b2)
+        local op=xgl.Option(tp,id,3,b1,b2)
 		if not op then return end
         local target_p = op==0 and tp or 1-tp
         

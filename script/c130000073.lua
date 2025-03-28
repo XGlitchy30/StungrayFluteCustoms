@@ -64,7 +64,7 @@ function s.descost(e,tp,eg,ep,ev,re,r,rp,chk)
 		e:SetLabel(0)
 	end
 	if chk==0 then return b1 or b2 end
-	local opt=aux.Option(tp,nil,nil,{b1,STRING_DETACH},{b2,STRING_RELEASE})
+	local opt=xgl.Option(tp,nil,nil,{b1,STRING_DETACH},{b2,STRING_RELEASE})
 	Duel.SetTargetParam(opt)
 	if opt==0 then
 		aux.dxmcostgen(1,1,nil)(e,tp,eg,ep,ev,re,r,rp,chk)

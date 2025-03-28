@@ -93,7 +93,7 @@ function s.tg(e,tp,eg,ep,ev,re,r,rp,chk)
 	if rc:IsSpellTrap() and Duel.GetMZoneCount(tp,rc)>0 and Duel.IsExists(false,s.spfilter,tp,LOCATION_GRAVE,0,1,nil,e,tp) then opt=opt|2 end
 	Duel.Release(rc,REASON_COST)
 	if opt==3 then
-		opt=aux.Option(tp,id,2,true,true)+1
+		opt=xgl.Option(tp,id,2,true,true)+1
 	end
 	Duel.SetTargetParam(opt)
 	if opt==1 then

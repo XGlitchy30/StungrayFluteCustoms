@@ -995,7 +995,7 @@ Effect.SetDescription = function(e,id,str)
 	end
 end
 
-function Auxiliary.Option(id,tp,desc,...)
+function Glitchy.Option(id,tp,desc,...)
 	if id<2 then
 		id,tp=tp,id
 	end

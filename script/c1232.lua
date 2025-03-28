@@ -449,7 +449,7 @@ function help.GlitchyHelperManualMovement(e,tp)
 	local nodeckcon=#og>0
 	local deckcon=dct>0
 	
-	local askLocations=aux.Option(tp,nil,nil,
+	local askLocations=xgl.Option(tp,nil,nil,
 		{nodeckcon,STRING_IGNORE_DECK},
 		{deckcon,STRING_INCLUDE_DECK},
 		{deckcon,STRING_TOPDECK_ONLY}
@@ -502,7 +502,7 @@ function help.GlitchyHelperManualMovement(e,tp)
 				end
 			end
 			
-			local opt=aux.Option(tp,nil,nil,
+			local opt=xgl.Option(tp,nil,nil,
 				{true,STRING_DECKTOP},
 				{true,STRING_DECKBOTTOM},
 				{g:IsExists(aux.NOT(aux.PLChk),1,nil,targetp,LOCATION_HAND),1001},
@@ -531,7 +531,7 @@ function help.GlitchyHelperManualMovement(e,tp)
 				if #g2>0 then
 					Duel.SendtoDeck(g,targetp,SEQ_DECKTOP,REASON_RULE)
 				end
-				local opt2=aux.Option(targetp,nil,nil,{true,STRING_DO_NOTHING},{#g>1,STRING_REARRANGE},{true,STRING_SHUFFLE_DECK})
+				local opt2=xgl.Option(targetp,nil,nil,{true,STRING_DO_NOTHING},{#g>1,STRING_REARRANGE},{true,STRING_SHUFFLE_DECK})
 				if opt2==0 then
 					Debug.Message("Player "..tp.." placed "..#g.." card(s) on top of Player "..targetp.."'s Deck")
 				elseif opt2==1 then
@@ -552,7 +552,7 @@ function help.GlitchyHelperManualMovement(e,tp)
 				if #g2>0 then
 					Duel.SendtoDeck(g,targetp,SEQ_DECKBOTTOM,REASON_RULE)
 				end
-				local opt2=aux.Option(targetp,nil,nil,{true,STRING_DO_NOTHING},{#g>1,STRING_REARRANGE})
+				local opt2=xgl.Option(targetp,nil,nil,{true,STRING_DO_NOTHING},{#g>1,STRING_REARRANGE})
 				if opt2==0 then
 					Debug.Message("Player "..tp.." placed "..#g.." card(s) on top of Player "..targetp.."'s Deck")
 				elseif opt2==1 then
@@ -760,7 +760,7 @@ function help.GlitchyHelperNormalSummon(e,tp)
 			e1:Reset()
 		end
 		
-		local opt=aux.Option(tp,nil,nil,
+		local opt=xgl.Option(tp,nil,nil,
 			{nscon0,STRING_REGULAR_SUMMON},
 			{nscon1,STRING_NO_TRIBUTING},
 			{#validTributes>0,STRING_MODIFIED_TRIBUTING}
@@ -890,7 +890,7 @@ function help.GlitchyHelperSpecialSummon(e,tp)
 					and aux.GetMustBeMaterialGroup(tp,Group.CreateGroup(),tp,tc,nil,help.GetMechanicReason(tc)):GetCount()<=0))
 				local spcon2=tc:IsSpecialSummonable() or tc:IsSpecialSummonable(1) or (sumtype~=0 and c:IsSpecialSummonable(sumtype))
 				
-				local opt=aux.Option(tp,nil,nil,
+				local opt=xgl.Option(tp,nil,nil,
 					{spcon0,STRING_REGULAR_SPSUMMON},
 					{spcon1,STRING_SPSUMMON_TO_OPPO},
 					{spcon2,STRING_SPSUMMON_PROC}
@@ -1080,7 +1080,7 @@ function help.GlitchyHelperEquip(e,tp)
 		local nodeckcon=#og>0
 		local deckcon=dct>0
 		
-		local askLocations=aux.Option(tp,nil,nil,
+		local askLocations=xgl.Option(tp,nil,nil,
 			{nodeckcon,STRING_IGNORE_DECK},
 			{deckcon,STRING_INCLUDE_DECK},
 			{deckcon,STRING_TOPDECK_ONLY}
@@ -1204,7 +1204,7 @@ function help.GlitchyHelperDrawOrDiscard(e,tp)
 	
 	local b1=Duel.IsPlayerCanDraw(tp,1)
 	local b2=Duel.GetHand(tp):IsExists(Card.IsDiscardable,1,nil,REASON_RULE)
-	local opt=aux.Option(tp,nil,nil,{b1,1108},{b2,501})
+	local opt=xgl.Option(tp,nil,nil,{b1,1108},{b2,501})
 	
 	if opt==0 then
 		local n=Duel.AnnounceNumberRange(tp,1,Duel.GetDeckCount(tp))
@@ -1228,7 +1228,7 @@ function help.GlitchyHelperGamble(e,tp)
 	Debug.Message("Player "..tp.. " is trying to use the Helper. Reason flag: COIN_OR_DICE")
 	if not help.AskOpponentPermission(e,tp) then return end
 	
-	local opt=aux.Option(tp,nil,nil,{true,STRING_COIN},{true,STRING_DICE})
+	local opt=xgl.Option(tp,nil,nil,{true,STRING_COIN},{true,STRING_DICE})
 	
 	if opt==0 then
 		Duel.HintMessage(tp,STRING_HINT_GAMBLE)

@@ -61,7 +61,7 @@ function s.cost(e,tp,eg,ep,ev,re,r,rp,chk)
 	local b1=xg:IsExists(s.cfilter,1,nil,e,tp)
 	local b2=Duel.CheckReleaseGroupCost(tp,s.cfilter,1,true,nil,nil,e,tp,true)
 	if chk==0 then return b1 or b2 end
-	local opt=aux.Option(tp,nil,nil,{b1,STRING_DETACH},{b2,STRING_RELEASE})
+	local opt=xgl.Option(tp,nil,nil,{b1,STRING_DETACH},{b2,STRING_RELEASE})
 	local typ=0
 	if opt==0 then
 		Duel.HintMessage(tp,HINTMSG_REMOVEXYZ)
