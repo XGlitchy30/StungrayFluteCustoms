@@ -22,7 +22,7 @@ function s.initial_effect(c)
 	e1:SetValue(300)
 	c:RegisterEffect(e1)
 	e1:UpdateDefenseClone(c)
-	--[[Once per turn, if a "B.E.S." monster(s) is sent to your GY, [even during the Damage Step]: You can place 1 counter on this card.]]
+	--[[Once per turn, if a "B.E.S." monster(s) is sent to your GY, even during the Damage Step: You can place 1 counter on this card.]]
 	local e2=Effect.CreateEffect(c)
 	e2:SetDescription(id,0)
 	e2:SetCategory(CATEGORY_COUNTER)
@@ -38,7 +38,7 @@ function s.initial_effect(c)
 		s.ctop
 	)
 	c:RegisterEffect(e2)
-	--[[If a counter(s) would be removed from a "B.E.S." monster by its own effect, you can remove that many counters from this card instead.]]
+	--[[If a counter(s) would be removed from a "B.E.S." monster by its own effect, or to activate its own effect, you can remove that many counters from this card instead.]]
 	local e3=Effect.CreateEffect(c)
 	e3:SetDescription(id,1)
 	e3:SetType(EFFECT_TYPE_FIELD|EFFECT_TYPE_CONTINUOUS)
@@ -83,7 +83,7 @@ end
 --E3
 function s.rcon(e,tp,eg,ep,ev,re,r,rp)
 	local c=e:GetHandler()
-	if c:GetCounter(COUNTER_BES)<ev or r&REASON_EFFECT==0 or not re or not re:IsActiveType(TYPE_MONSTER) or re:GetActivateLocation()~=LOCATION_MZONE then return false end
+	if c:GetCounter(COUNTER_BES)<ev or r&(REASON_EFFECT|REASON_COST)==0 or not re or not re:IsActiveType(TYPE_MONSTER) or re:GetActivateLocation()~=LOCATION_MZONE then return false end
 	local rc=re:GetHandler()
 	return rc:IsFaceup() and rc:IsSetCard(SET_BES)
 end
