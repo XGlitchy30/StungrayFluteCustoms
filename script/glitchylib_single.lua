@@ -90,14 +90,16 @@ function Card.UpdateATK(c,atk,reset,rc,range,cond,prop,desc)
 	if type(rc)=="table" then
         donotdisable=rc[2]
         rc=rc[1]
-    end
+    elseif type(range)=="boolean" then
+		donotdisable=range
+	end
 	
 	if not prop then prop=0 end
 	
 	local att=c:GetAttack()
 	local e=Effect.CreateEffect(rc)
 	e:SetType(typ)
-	if range and not xgl.ScriptSingleAsEquip then
+	if type(range)=="number" and not xgl.ScriptSingleAsEquip then
 		prop=prop|EFFECT_FLAG_SINGLE_RANGE
 		e:SetRange(range)
 	end
@@ -135,18 +137,28 @@ function Card.UpdateDEF(c,def,reset,rc,range,cond,prop,desc)
 	if not reset and not range then
 		range = c:GetOriginalType()&TYPE_FIELD>0 and LOCATION_FZONE or c:GetOriginalType()&TYPE_ST>0 and LOCATION_SZONE or LOCATION_MZONE
 	end
+	
+	local donotdisable=false
 	local rc = rc and rc or c
     local rct=1
     if type(reset)=="table" then
         rct=reset[2]
         reset=reset[1]
     end
+	
+	if type(rc)=="table" then
+        donotdisable=rc[2]
+        rc=rc[1]
+    elseif type(range)=="boolean" then
+		donotdisable=range
+	end
+	
 	if not prop then prop=0 end
 	
 	local df=c:GetDefense()
 	local e=Effect.CreateEffect(rc)
 	e:SetType(typ)
-	if range and not xgl.ScriptSingleAsEquip then
+	if type(range)=="number" and not xgl.ScriptSingleAsEquip then
 		prop=prop|EFFECT_FLAG_SINGLE_RANGE
 		e:SetRange(range)
 	end
@@ -193,7 +205,9 @@ function Card.UpdateATKDEF(c,atk,def,reset,rc,range,cond,prop,desc)
 	if type(rc)=="table" then
         donotdisable=rc[2]
         rc=rc[1]
-    end
+    elseif type(range)=="boolean" then
+		donotdisable=range
+	end
 	local rc = rc and rc or c
 	
 	if not atk then
@@ -208,7 +222,7 @@ function Card.UpdateATKDEF(c,atk,def,reset,rc,range,cond,prop,desc)
 	local e=Effect.CreateEffect(rc)
 	e:SetType(typ)
 	
-	if range and not xgl.ScriptSingleAsEquip then
+	if type(range)=="number" and not xgl.ScriptSingleAsEquip then
 		prop=prop|EFFECT_FLAG_SINGLE_RANGE
 		e:SetRange(range)
 	end
@@ -268,7 +282,9 @@ function Card.ChangeATK(c,atk,reset,rc,range,cond,prop,desc)
 	if type(rc)=="table" then
         donotdisable=rc[2]
         rc=rc[1]
-    end
+    elseif type(range)=="boolean" then
+		donotdisable=range
+	end
 	local rc = rc and rc or c
 	
 	if not prop then prop=0 end
@@ -277,7 +293,7 @@ function Card.ChangeATK(c,atk,reset,rc,range,cond,prop,desc)
 	local e=Effect.CreateEffect(rc)
 	e:SetType(typ)
 	
-	if range and not xgl.ScriptSingleAsEquip then
+	if type(range)=="number" and not xgl.ScriptSingleAsEquip then
 		prop=prop|EFFECT_FLAG_SINGLE_RANGE
 		e:SetRange(range)
 	end
@@ -320,7 +336,9 @@ function Card.ChangeDEF(c,def,reset,rc,range,cond,prop,desc)
     if type(reset)=="table" then
         rct=reset[2]
         reset=reset[1]
-    end
+    elseif type(range)=="boolean" then
+		donotdisable=range
+	end
 	
 	if type(rc)=="table" then
         donotdisable=rc[2]
@@ -334,7 +352,7 @@ function Card.ChangeDEF(c,def,reset,rc,range,cond,prop,desc)
 	local e=Effect.CreateEffect(rc)
 	e:SetType(typ)
 	
-	if range and not xgl.ScriptSingleAsEquip then
+	if type(range)=="number" and not xgl.ScriptSingleAsEquip then
 		prop=prop|EFFECT_FLAG_SINGLE_RANGE
 		e:SetRange(range)
 	end
@@ -378,7 +396,9 @@ function Card.ChangeATKDEF(c,atk,def,reset,rc,range,cond,prop,desc)
     if type(reset)=="table" then
         rct=reset[2]
         reset=reset[1]
-    end
+    elseif type(range)=="boolean" then
+		donotdisable=range
+	end
 	
 	if type(rc)=="table" then
         donotdisable=rc[2]
@@ -399,7 +419,7 @@ function Card.ChangeATKDEF(c,atk,def,reset,rc,range,cond,prop,desc)
 	local e=Effect.CreateEffect(rc)
 	e:SetType(typ)
 	
-	if range and not xgl.ScriptSingleAsEquip then
+	if type(range)=="number" and not xgl.ScriptSingleAsEquip then
 		prop=prop|EFFECT_FLAG_SINGLE_RANGE
 		e:SetRange(range)
 	end
@@ -489,11 +509,11 @@ end
 function Glitchy.UpdateLevel(c,lv,reset,rc,range,cond,prop,desc)
 	local olv=c:GetLevel()
 	local e=xgl.CreateSingleEffect(c,EFFECT_UPDATE_LEVEL,lv,reset,rc,range,cond,prop,desc)
-	c:RegisterEffect(e)
+	local reg=c:RegisterEffect(e)
 	if reset then
-		return e,c:GetLevel()-olv
+		return e,c:GetLevel()-olv,reg
 	else
-		return e
+		return e,reg
 	end
 end
 function Glitchy.ChangeLevel(c,lv,reset,rc,range,cond,prop,desc)

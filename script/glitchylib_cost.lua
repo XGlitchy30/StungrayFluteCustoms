@@ -32,12 +32,14 @@ end
 
 --COSTS THAT INVOLVE THE ACTIVATOR OF THE EFFECT ITSELF
 function Glitchy.BanishFacedownSelfCost(e,tp,eg,ep,ev,re,r,rp,chk)
-	if chk==0 then return e:GetHandler():IsAbleToRemoveAsCost(POS_FACEDOWN) end
-	Duel.Remove(e:GetHandler(),POS_FACEDOWN,REASON_COST)
+	local c=e:GetHandler()
+	if chk==0 then return c:IsAbleToRemoveAsCost(POS_FACEDOWN) end
+	Duel.Remove(c,POS_FACEDOWN,REASON_COST)
 end
 function Glitchy.DiscardSelfCost(e,tp,eg,ep,ev,re,r,rp,chk)
-	if chk==0 then return e:GetHandler():IsDiscardable() end
-	Duel.SendtoGrave(e:GetHandler(),REASON_COST+REASON_DISCARD)
+	local c=e:GetHandler()
+	if chk==0 then return c:IsDiscardable() end
+	Duel.SendtoGrave(c,REASON_COST|REASON_DISCARD)
 end
 function Glitchy.DetachSelfCost(min,max)
 	if not min then min=1 end
@@ -45,8 +47,9 @@ function Glitchy.DetachSelfCost(min,max)
 	
 	if min==max then
 		return	function(e,tp,eg,ep,ev,re,r,rp,chk)
-					if chk==0 then return e:GetHandler():CheckRemoveOverlayCard(tp,min,REASON_COST) end
-					e:GetHandler():RemoveOverlayCard(tp,min,min,REASON_COST)
+					local c=e:GetHandler()
+					if chk==0 then return c:CheckRemoveOverlayCard(tp,min,REASON_COST) end
+					c:RemoveOverlayCard(tp,min,min,REASON_COST)
 				end
 	else
 		return	function(e,tp,eg,ep,ev,re,r,rp,chk)
@@ -150,6 +153,11 @@ function Glitchy.ToGraveSelfCost(e,tp,eg,ep,ev,re,r,rp,chk)
 	local c=e:GetHandler()
 	if chk==0 then return c:IsAbleToGraveAsCost() end
 	Duel.SendtoGrave(c,REASON_COST)
+end
+function Glitchy.ToHandSelfCost(e,tp,eg,ep,ev,re,r,rp,chk)
+	local c=e:GetHandler()
+	if chk==0 then return c:IsAbleToHandAsCost() end
+	Duel.SendtoHand(c,nil,REASON_COST)
 end
 function Glitchy.TributeSelfCost(e,tp,eg,ep,ev,re,r,rp,chk)
 	local c=e:GetHandler()

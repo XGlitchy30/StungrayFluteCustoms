@@ -64,6 +64,17 @@ function Glitchy.CompareLocationGroupCond(res,f,loc,exc)
 			end
 end
 
+--If you control no (f) monsters...
+function Glitchy.ControlNoMonstersCond(f)
+	return	function(e,tp,eg,ep,ev,re,r,rp)
+				local g=Duel.GetFieldGroup(tp,LOCATION_MZONE,0)
+				if f then
+					g:Match(aux.FaceupFilter(f),nil,e,tp)
+				end
+				return g:GetCount()==0
+			end
+end
+
 --When this card is X Summoned
 function Glitchy.RitualSummonedCond(e)
 	return e:GetHandler():IsSummonType(SUMMON_TYPE_RITUAL)

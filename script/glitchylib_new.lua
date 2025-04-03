@@ -16,6 +16,10 @@ EFFECT_CANNOT_MODIFY_ATTACK		= 	2001	--Players affected by this effect cannot ch
 EFFECT_CANNOT_MODIFY_DEFENSE	=	2002	--Players affected by this effect cannot change DEF of the specified cards. Needed for implementation of "Hidden Monastery of Necrovalley"
 EFFECT_SUMMONABLE_BY_OPPONENT	=	2003	--The card has an effect that allows the opponent to Normal Summon it (see Moblins' Packmate)
 EFFECT_CANNOT_EQUIP_XGL			=	2004    --FUTUREPROOFING: Players affected by this effect cannot equip cards (specified by the value function) to the monsters specified by the target function
+EFFECT_BECOME_EXTRA_LINKED		=	2005	--Cards affected by this effect are treated as being Extra Linked (see "Dian Keto the Disco Master"). Requires glitchymods_link to be loaded
+EFFECT_UPDATE_LP				=	2006	--Effect that continuously updates the LP of a players, in a similar vein to a continuous ATK modifier for monsters (see "Dian Keto the Disco Master"). Requires glitchymods_lifepoints to be loaded
+EFFECT_REMEMBER_XYZ_HOLDER		=	2007	--Effect that makes it possible for a card to retain memory of the most recent Xyz Monster that had it as material. Requires glitchymods_xyz to be loaded.
+EFFECT_ASSUME_LOCATION			=	2008	--Cards affected by this effect are treated as if they were in the location specified as this effect's value. Requires glitchylib_redirect to be loaded
 
 --Locations
 
@@ -23,7 +27,6 @@ EFFECT_CANNOT_EQUIP_XGL			=	2004    --FUTUREPROOFING: Players affected by this e
 RATING_LEVEL	 = 	0x1
 RATING_RANK		=	0x2
 RATING_LINK		=	0x4
-RATING_FUTURE	=	0x8
 
 --Stat types
 STAT_ATTACK  = 0x1
@@ -47,7 +50,7 @@ EXTRA_MONSTER_ZONE=0x60
 -- RESETS_STANDARD_UNION 			= RESETS_STANDARD&(~(RESET_TOFIELD|RESET_LEAVE))
 -- RESETS_STANDARD_TOFIELD 		= RESETS_STANDARD&(~(RESET_TOFIELD))
 -- RESETS_STANDARD_EXC_GRAVE 		= RESETS_STANDARD&~(RESET_LEAVE|RESET_TOGRAVE)
-RESETS_STANDARD_FACEDOWN 		= RESETS_STANDARD&(~(RESET_TURN_SET))
+RESETS_STANDARD_FACEDOWN 		= RESETS_STANDARD&~RESET_TURN_SET
 
 --timings
 RELEVANT_TIMINGS = TIMINGS_CHECK_MONSTER|TIMING_MAIN_END|TIMING_END_PHASE
@@ -61,6 +64,7 @@ OPINFO_FLAG_HIGHER 	= 0x8
 OPINFO_FLAG_LOWER 	= 0x10
 OPINFO_FLAG_FUNCTION= 0x20
 OPINFO_FLAG_SET		= 0x40
+OPINFO_FLAG_ORIGINAL= 0x80
 
 --win
 WIN_REASON_CUSTOM = 0xff
@@ -794,6 +798,13 @@ end
 function Card.GetResidence(c)
 	return c:GetControler(),c:GetLocation(),c:GetSequence(),c:GetPosition()
 end
+function Card.GetLocationSimple(c)
+	if c:IsOnField() then
+		return LOCATION_ONFIELD
+	else
+		return c:GetLocation()
+	end
+end
 
 --Chain Info
 function Duel.GetTargetPlayer()
@@ -1149,7 +1160,7 @@ function Auxiliary.Facedown(f)
 				return (not f or f(c,...)) and c:IsFacedown()
 			end
 end
-function Auxiliary.FaceupExFilter(f,...)
+function Glitchy.FaceupExFilter(f,...)
 	local ext_params={...}
 	return	function(target)
 				return target:IsFaceupEx() and f(target,table.unpack(ext_params))
@@ -2058,6 +2069,22 @@ function Duel.GetNextBattlePhaseCount(p)
 	end
 end
 
+--Player Actions
+function Duel.IsPlayerCanDiscardHand(p,ct,r)
+	ct = ct or 1
+	r = r or REASON_EFFECT
+	if r&REASON_COST>0 then
+		return not Duel.IsPlayerAffectedByEffect(p,EFFECT_CANNOT_DISCARD_HAND)
+	else
+		--futureproofing
+		return true
+	end
+end
+function Duel.IsPlayerCanSendtoHandFromLocation(p,loc,c)
+	--futureproof
+	return true
+end
+
 --PositionChange
 function Duel.PositionChange(c)
 	return Duel.ChangePosition(c,POS_FACEUP_DEFENSE,POS_FACEDOWN_DEFENSE,POS_FACEUP_ATTACK,POS_FACEUP_ATTACK)
@@ -2324,147 +2351,6 @@ function Card.IsCanUpdateStats(c,atk,def,e,tp,r,exactly)
 	return c:IsCanUpdateATK(atk,e,tp,r) or c:IsCanUpdateDEF(def,e,tp,r)
 end
 
---Subgroup Selection
-
---[[Differently from the regular SelectUnselectLoop, now rescon can also be used to define a razor filter that will restrict which members of (mg) can be added to the current subgroup]]
-function Glitchy.SelectUnselectLoop(c,sg,mg,e,tp,minc,maxc,rescon)
-	local res=not rescon
-	if #sg>=maxc then return false end
-	local mg2=mg:Clone()
-	sg:AddCard(c)
-	local razor
-	if rescon then
-		local stop
-		res,stop,razor=rescon(sg,e,tp,mg2,c)
-		if stop then
-			sg:RemoveCard(c)
-			return false
-		end
-	end
-	
-	if razor then
-		if type(razor)=="table" then
-			local razorfunc=razor[1]
-			table.remove(razor,1)
-			mg2:Match(razorfunc,nil,table.unpack(razor))
-		else
-			mg2:Match(razor,nil)
-		end
-	end
-	
-	if #sg<minc then
-		res=mg2:IsExists(Glitchy.SelectUnselectLoop,1,sg,sg,mg2,e,tp,minc,maxc,rescon)
-	elseif #sg<maxc and not res then
-		res=mg2:IsExists(Glitchy.SelectUnselectLoop,1,sg,sg,mg2,e,tp,minc,maxc,rescon)
-	end
-	sg:RemoveCard(c)
-	return res
-end
-
---[[Function to check the existence and to select subgroups of (g) that satisfy a certain (rescon)
-Hybrid method for selecting and unselecting cards from a group (g).
-The method dynamically switches between two selection approaches depending on the group size:
-- The regular Auxiliary.SelectUnselectGroup is used for small groups (when the group size is below a threshold).
-- The Glitchy implementation is used for large groups (when the group size exceeds the threshold).
-
-**Parameters:**
-  g (Group): The group of cards from which a selection is being made.
-  e (Effect): The effect triggering the selection.
-  tp (Player): The player whose cards are being selected.
-  minc (integer): The minimum number of cards required in the selected group.
-  maxc (integer): The maximum number of cards allowed in the selected group.
-  rescon (function): A function that checks the validity of a subgroup based on the current selection.
-  chk (integer): A flag used for the check phase (0 or 1).
-  seltp (integer): Selecting player.
-  hintmsg (integer): The message type for hinting.
-  finishcon (function): A function to check if the current group is finishable.
-  breakcon (function): A function that checks whether the loop should break.
-  cancelable (boolean): Whether the selection can be canceled.
-
-**Return:**
-  The selected group (Group) of cards that satisfies the conditions defined by `minc`, `maxc`, and `rescon` (if chk==1), or whether a valid subgroup exists (if chk==0)
-
-**Steps
-1) (g) is cloned into (eg)
-2) The first member (c0) of (eg) is passed to rescon, and the latter is evaluated (sg is the current subgroup being built and checked, while mg is the group of available members that can still be added to the current subgroup)
-3) Regardless of the result, another member is taken from (eg) and is evaluated. This process repeats until the subgroup reaches the minimum size AND satisfies rescon. If the subgroup reaches the maximum size and it still does NOT satisfy rescon, then the member (c0) is removed from (eg) and the process starts again from STEP 2 with the next member of (eg): note that the previous (c0) will not be able to be added to any subgroup from that point onwards
-4) If rescon returns a second false, the subgroup creation abrupts immediately and the check is failed. (c0) is removed from (eg) and the process starts again from STEP 2 with the next member of (eg): note that the previous (c0) will not be able to be added to any subgroup from that point onwards.
-
-The rescon function is expected to return three possible outputs:
-1) Boolean: The first return value indicates whether the current subgroup (sg) is valid or not.
-2) Boolean: The second return value is a flag (stop) that determines if the subgroup selection process should be halted immediately. If stop is true, the current selection process is stopped, and the function backtracks.
-3) Optional Value (razor): The third return value is an optional value, which can either be a function, a table, or nil. If provided, it allows for additional modifications or pruning of the group. Specifically:
-	- A function (razorfunc): This function can be used to prune the remaining candidates for selection based on some criteria. It applies a filtering function to mg2 (the candidate group) to narrow down the possible selections further.
-	- A table (razor): If a table is returned, the first element is expected to be the pruning function, while the remaining ones are the parameters required by such function
-	- nil: If razor is nil, no further pruning or filtering is applied.
-]]
-local function ApplyDelta(group,delta)
-    for card in aux.Next(delta.added) do group:AddCard(card) end
-    for card in aux.Next(delta.removed) do group:RemoveCard(card) end --for futureproofing
-end
-function Glitchy.SelectUnselectGroup(g,e,tp,minc,maxc,rescon,chk,seltp,hintmsg,finishcon,breakcon,cancelable)
-	local LARGE_GROUP_SIZE = 16
-	
-	--Use regular auxiliary for small groups
-	if #g<LARGE_GROUP_SIZE then
-		return aux.SelectUnselectGroup(g,e,tp,minc,maxc,rescon,chk,seltp,hintmsg,finishcon,breakcon,cancelable)
-	end
-	
-	local minc=minc or 1
-	local maxc=maxc or #g
-	if chk==0 then
-		if #g<minc then return false end
-		local eg=g:Clone()
-		for c in g:Iter() do
-			if Glitchy.SelectUnselectLoop(c,Group.CreateGroup(),eg,e,tp,minc,maxc,rescon) then return true end
-			eg:RemoveCard(c)
-		end
-		return false
-	end
-	local hintmsg=hintmsg or 0
-	local sg=Group.CreateGroup()
-	local history={}
-	local deltas={}
-	local g2=g:Clone()
-	while true do
-		local finishable = #sg>=minc and (not finishcon or finishcon(sg,e,tp,g2))
-		local mg=g2:Filter(Glitchy.SelectUnselectLoop,sg,sg,g2,e,tp,minc,maxc,rescon)
-		if (breakcon and breakcon(sg,e,tp,mg)) or #mg<=0 or #sg>=maxc then break end
-		Duel.Hint(HINT_SELECTMSG,seltp,hintmsg)
-		local tc=mg:SelectUnselect(sg,seltp,finishable,finishable or (cancelable and #sg==0),minc,maxc)
-		if not tc then break end
-		if sg:IsContains(tc) then
-			while true do
-				local tc2=table.remove(history)
-				sg:RemoveCard(tc2)
-				local lastDelta = table.remove(deltas)
-				ApplyDelta(g2, { added = lastDelta.removed, removed = lastDelta.added })
-				if tc2==tc then
-					break
-				end
-			end
-		else
-			local delta = { added = Group.CreateGroup(), removed = Group.CreateGroup() }	--delta.added just for futureproofing
-            table.insert(deltas, delta)
-
-            sg:AddCard(tc)
-			table.insert(history,tc)
-			local _,_,razor=rescon(sg,e,tp,mg,tc)
-			if razor then
-				if type(razor)=="table" then
-					local razorfunc=razor[1]
-					table.remove(razor,1)
-					g2:Match(razorfunc,nil,table.unpack(razor))
-				else
-					g2:Match(razor,nil)
-				end
-				delta.removed = g:Filter(function(card) return not g2:IsContains(card) end, nil)
-			end
-		end
-	end
-	return sg
-end
-
 --Tables
 function Glitchy.FindInTable(tab,...)
 	local extras={...}
@@ -2569,6 +2455,7 @@ end
 
 
 --LOAD OTHER LIBRARIES
+Duel.LoadScript("glitchylib_subgroup.lua")	--FUNCTIONS FOR SUBGROUP CHECKING/SELECTION
 Duel.LoadScript("glitchylib_cond.lua")		--CONDITIONS
 Duel.LoadScript("glitchylib_cost.lua")		--COSTS
 Duel.LoadScript("glitchylib_single.lua")	--SINGLE-TYPE EFFECTS TEMPLATES
