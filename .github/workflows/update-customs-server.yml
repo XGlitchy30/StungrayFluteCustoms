@@ -22,14 +22,13 @@ jobs:
 
     # Steps represent a sequence of tasks that will be executed as part of the job
     steps:
-      # Setup environment with secrets
-      - shell: bash
-        env:
-          WEBHOOK_TOKEN: ${{ secrets.WEBHOOK_CUSTOMS_TOKEN }}
-      
       # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
       - uses: actions/checkout@v4
 
       # Runs a single command using the runners shell
       - name: Trigger webhook to prompt the server to update resources
+        shell: bash
+        # Setup environment with secrets
+        env:
+          WEBHOOK_TOKEN: ${{ secrets.WEBHOOK_CUSTOMS_TOKEN }}
         run: curl -X POST http://sff.foxboy.stream:60690/$WEBHOOK_TOKEN
