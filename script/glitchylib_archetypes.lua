@@ -102,7 +102,8 @@ if Demonisu then
 		e2:HOPT()
 		e2:SetFunctions(
 			function(e,tp,eg,ep,ev,re,r,rp)
-				return eg:GetFirst():GetControler()~=tp
+				local d=Duel.GetAttackTarget()
+				return d and d==e:GetHandler() and eg:GetFirst():GetControler()~=tp
 			end,
 			xgl.ToHandSelfCost,
 			target,
