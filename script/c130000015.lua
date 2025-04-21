@@ -31,7 +31,7 @@ function s.initial_effect(c)
 	e2:SetCode(EVENT_CUSTOM+id)
 	e2:SetRange(LOCATION_FZONE)
 	e2:OPT()
-	e2:SetFunctions(nil,aux.PayLPCost(500),s.attg,s.atop)
+	e2:SetFunctions(nil,Cost.PayLP(500),s.attg,s.atop)
 	c:RegisterEffect(e2)
 	if not s.global_check then
 		s.global_check=true

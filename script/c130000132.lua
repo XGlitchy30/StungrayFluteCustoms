@@ -27,7 +27,7 @@ function s.initial_effect(c)
 	e2:OPT()
 	e2:SetFunctions(
 		xgl.ControlNoMonstersCond(),
-		aux.PayLPCost(500),
+		Cost.PayLP(500),
 		s.tktg,
 		s.tkop
 	)

@@ -56,7 +56,7 @@ function s.rlcheck(sg,tp,exg)
 	return Duel.IsExists(true,aux.TRUE,tp,0,LOCATION_MZONE,1,sg)
 end
 function s.descost(e,tp,eg,ep,ev,re,r,rp,chk)
-	local b1=aux.dxmcostgen(1,1,nil)(e,tp,eg,ep,ev,re,r,rp,0)
+	local b1=Cost.Detach(1,1,nil)(e,tp,eg,ep,ev,re,r,rp,0)
 	local b2=Duel.CheckReleaseGroupCost(tp,s.rlfilter,1,true,s.rlcheck,nil)
 	if b2 then
 		e:SetLabel(1)
@@ -67,7 +67,7 @@ function s.descost(e,tp,eg,ep,ev,re,r,rp,chk)
 	local opt=xgl.Option(tp,nil,nil,{b1,STRING_DETACH},{b2,STRING_RELEASE})
 	Duel.SetTargetParam(opt)
 	if opt==0 then
-		aux.dxmcostgen(1,1,nil)(e,tp,eg,ep,ev,re,r,rp,chk)
+		Cost.Detach(1,1,nil)(e,tp,eg,ep,ev,re,r,rp,chk)
 	elseif opt==1 then
 		local g=Duel.SelectReleaseGroupCost(tp,s.rlfilter,1,1,true,s.rlcheck,nil)
 		Duel.Release(g,REASON_COST)

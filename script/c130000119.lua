@@ -19,7 +19,7 @@ function s.initial_effect(c)
     e1:OPT()
     e1:SetFunctions(
 		nil,
-		aux.dxmcostgen(1,1,nil),
+		Cost.Detach(1,1,nil),
 		s.drawtg,
 		s.drawop
 	)

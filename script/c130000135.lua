@@ -29,7 +29,7 @@ function s.initial_effect(c)
 	e2:HOPT()
 	e2:SetFunctions(
 		s.spcon,
-		aux.PayLPCost(500),
+		Cost.PayLP(500),
 		xgl.SpecialSummonSelfTarget(),
 		s.spop
 	)
