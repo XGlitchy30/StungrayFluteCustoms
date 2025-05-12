@@ -9,7 +9,7 @@ Duel.LoadScript("glitchylib_new.lua")
 
 if not Demonisu then
 	Demonisu = {}
-	Duel.LoadScript("glitchylib_archetypes.lua",true)
+	Duel.LoadScript("glitchylib_archetypes.lua",false)
 end
 
 local FLAG_DEMONISU_TARGET			= id
