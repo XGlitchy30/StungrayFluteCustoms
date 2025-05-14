@@ -2,6 +2,32 @@
 
 Duel.LoadScript("glitchylib_new.lua")
 
+--ANCESTAGON
+if Ancestagon then
+	local function tefilter(c,e,tp)
+		return c:IsType(TYPE_PENDULUM) and c:IsSetCard(SET_ANCESTAGON) and c:IsAbleToExtraFaceupAsCost(e,tp)
+	end
+	function Ancestagon.DukeSilveraptorTributeCost(e,tp,eg,ep,ev,re,r,rp,chk)
+		e:SetLabel(1)
+		local c=e:GetHandler()
+		local extraGroup
+		local altcostGroup=Duel.Group(Card.IsHasEffect,tp,LOCATION_MZONE,0,nil,CARD_ANCESTAGON_DUKE_SILVERAPTOR)
+		if #altcostGroup>0 and c:IsLevelAbove(8) and c:IsSetCard(SET_ANCESTAGON) then
+			extraGroup=altcostGroup:GetXyzMaterialGroup(tefilter,e,tp)
+		end
+		if chk==0 then
+			return xgl.CheckReleaseGroupCost(tp,Card.IsSetCard,2,2,extraGroup,false,aux.ReleaseCheckMMZ,nil,SET_ANCESTAGON)
+		end
+		local _,g1,g2=xgl.SelectReleaseGroupCost(tp,Card.IsSetCard,2,2,extraGroup,false,aux.ReleaseCheckMMZ,nil,SET_ANCESTAGON)
+		if #g2>0 then
+			Duel.SendtoExtraP(g2,tp,REASON_COST)
+		end
+		if #g1>0 then
+			Duel.Release(g1,REASON_COST)
+		end
+	end
+end
+
 --DEMONISU
 if Demonisu then
 	function Demonisu.RegisterOnSummonEffect(c,id,tgflag,limflag)
@@ -137,7 +163,7 @@ end
 --NUMBERS
 function Auxiliary.NumberLPCondition(e,p,val,chk)
 	if Duel.GetLP(p)<=val then return true end
-	local eset={Duel.IsPlayerAffectedByEffect(p,CARD_NUMBERS_REVOLUTION)}
+	local eset={Duel.GetPlayerEffect(p,CARD_NUMBERS_REVOLUTION)}
 	for _,ce in ipairs(eset) do
 		local tg=ce:GetTarget()
 		if not tg or tg(ce,e:GetHandler(),p,e,val,chk) then

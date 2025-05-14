@@ -1,3 +1,10 @@
+Glitchy=Glitchy or {}
+xgl=Glitchy
+
+self_reference_effect, last_tp, last_eg, last_ep, last_ev, last_re, last_r, last_rp, last_chk = nil, nil, nil, nil, nil, nil, nil, nil, nil
+
+CHK_ANCESTAGON_PLASMATAIL				=	130000138
+
 --[[Effect.Evaluate
 Get the value of an effect. If the effect has a function as value, it calculates the value of the function
 ]]
@@ -23,6 +30,24 @@ function Effect.EvaluateInteger(e,...)
 		return val
 	end
 end
+function Glitchy.TableRemove(t, fnKeep)
+    local j, n = 1, #t;
+
+    for i=1,n do
+        if (fnKeep(t, i, j)) then
+            -- Move i's kept value to j's position, if it's not already there.
+            if (i ~= j) then
+                t[j] = t[i];
+                t[i] = nil;
+            end
+            j = j + 1; -- Increment position of where we'll place the next kept value.
+        else
+            t[i] = nil;
+        end
+    end
+
+    return t;
+end
 
 --
 local _RegisterEffect = Card.RegisterEffect
@@ -47,39 +72,253 @@ local function IsPassiveEffect(type)
 	return false
 end
 
-function Auxiliary.TableRemove(t, fnKeep)
-    local j, n = 1, #t;
-
-    for i=1,n do
-        if (fnKeep(t, i, j)) then
-            -- Move i's kept value to j's position, if it's not already there.
-            if (i ~= j) then
-                t[j] = t[i];
-                t[i] = nil;
-            end
-            j = j + 1; -- Increment position of where we'll place the next kept value.
-        else
-            t[i] = nil;
-        end
-    end
-
-    return t;
-end
-
 
 function Card.RegisterEffect(c,eff,...)
 	local e=eff
 	if e:IsHasType(EFFECT_TYPE_GRANT) then
 		e=e:GetLabelObject()
 	end
-	local type,prop,code,cond,val=e:GetType(),e:GetProperty(),e:GetCode(),e:GetCondition(),e:GetValue()
+	local typ,prop,code,cond,val=e:GetType(),e:GetProperty(),e:GetCode(),e:GetCondition(),e:GetValue()
 	
-	if IsPassiveEffect(type) and type~=EFFECT_TYPE_SINGLE then
+	local isPassive = IsPassiveEffect(typ)
+	local isHasExceptionType = typ==EFFECT_TYPE_XMATERIAL or typ==EFFECT_TYPE_XMATERIAL|EFFECT_TYPE_FIELD or typ&EFFECT_TYPE_GRANT~=0
 	
-		--[[Fix interaction between continuous original stats modifiers and lingering current+original stats modifiers (both activated and non): for example, if Shrink's effect is applied to a monster and Unstable Evolution is later equipped to that monster, the original ATK of that monster should be determined by the effect of Unstable Evolution. Currently, EDOPro applies the effects in an incorrect order, which means that Unstable Evolution's modifier is overwritten by the one of Shrink, even if the former was applied strictly after the latter. The interaction between Darkworld Shackles and Shrink is also problematic, as the ATK of a monster affected by Shackles is supposed to remain unchanged even after Shrink is applied to it.
-		REMOVE THIS CODE ONLY AFTER THE BUG IS FIXED IN THE CORE]]
+	if isPassive and typ~=EFFECT_TYPE_SINGLE then
+	
+		if IsEffectCode(code,EFFECT_SPSUMMON_PROC) and eff:GetRange()&LOCATION_EXTRA>0 then
+			--[[Implement EFFECT_ALLOW_MR3_SPSUMMON_FROM_ED for inherent SS procedures from the ED]]
+			
+			local op=eff:GetOperation()
+			local new_op = 	function(_e,tp,eg,_ep,ev,re,r,rp,c)
+								if c:IsLocation(LOCATION_EXTRA) then
+									local e1,e2
+									local eset={Duel.GetPlayerEffect(tp,EFFECT_ALLOW_MR3_SPSUMMON_FROM_ED)}
+									local descs,validEffs={},{}
+									for _,e in ipairs(eset) do
+										local tg=e:GetTarget()
+										if not tg or tg(e,c) then
+											table.insert(descs,e:GetDescription())
+											table.insert(validEffs,e)
+										end
+									end
+									local mr3_eff
+									local ct=#validEffs
+									if ct>0 then
+										local opt=Duel.SelectOption(tp,STRING_DO_NOT_APPLY,table.unpack(descs))
+										if opt>0 then
+											mr3_eff=validEffs[opt]
+										end
+									end
+									
+									if mr3_eff then
+										local ep=mr3_eff:GetOwnerPlayer()
+										local zones=mr3_eff:GetValue()
+										if tp==1-ep then
+											zones=zones>>16
+										end
+										zones=zones&0x7f
+										e1=Effect.GlobalEffect()
+										e1:SetType(EFFECT_TYPE_FIELD)
+										e1:SetProperty(EFFECT_FLAG_OATH)
+										e1:SetCode(EFFECT_BECOME_LINKED_ZONE)
+										e1:SetValue(zones)
+										Duel.RegisterEffect(e1,ep)
+										e2=Effect.GlobalEffect()
+										e2:SetType(EFFECT_TYPE_FIELD)
+										e2:SetCode(EFFECT_FORCE_MZONE)
+										e2:SetProperty(EFFECT_FLAG_PLAYER_TARGET|EFFECT_FLAG_OATH)
+										e2:SetTargetRange(1,0)
+										e2:SetValue(zones)
+										Duel.RegisterEffect(e2,tp)
+										
+										local op=mr3_eff:GetOperation()
+										if op then
+											op(mr3_eff,ep,c)
+										end
+										
+										if e1 then
+											xgl.RegisterResetAfterSpecialSummonRule(c,tp,e1,e2)
+										end
+									end
+									
+								end
+							end
+			
+			if op then
+				eff:SetOperation(function(e,tp,eg,ep,ev,re,r,rp,c)
+					new_op(e,tp,eg,ep,ev,re,r,rp,c)
+					op(e,tp,eg,ep,ev,re,r,rp,c)
+				end
+				)
+			else
+				eff:SetOperation(new_op)
+			end
+	
+		elseif IsEffectCode(code,EFFECT_SPSUMMON_PROC_G) then
+			--[["Lazy" implementation for EFFECT_ALLOW_MR3_SPSUMMON_FROM_ED into the Pendulum Summoning procedures (this method does not force me to modify the scripts of all cards that perform a Pendulum Summon immediately after their effect's resolution and/or that grant additional Pendulum Summons)]]
 		
-		if IsEffectCode(code,EFFECT_SET_BASE_ATTACK,EFFECT_SET_BASE_DEFENSE) and not aux.BaseStatsModCheck then
+			local op=eff:GetOperation()
+			
+			eff:SetOperation(function(_e,tp,eg,_ep,ev,re,r,rp,c,sg,inchain)
+				local ok = true
+				
+				while ok do
+					op(e,tp,eg,ep,ev,re,r,rp,c,sg,inchain)
+					ok=false
+					
+					local eset={Duel.GetPlayerEffect(tp,EFFECT_ALLOW_MR3_SPSUMMON_FROM_ED)}
+					if #sg*#eset==0 then return end
+						
+					local validAssignments = xgl.GetZoneAssignmentsForGroup(sg,tp,tp)
+					
+					--LEAVE FOR DEBUG PURPOSES
+					-- for i, assign in ipairs(validAssignments) do
+						-- Debug.Message("Option #"..i)
+						-- for card, zone in pairs(assign) do
+							-- Debug.Message("  "..card:GetOriginalCode().." → 0x"..string.format("%X", zone))
+						-- end
+					-- end
+					
+					if #validAssignments==0 then
+						sg:Clear()
+						Debug.Message("Glitchy warns: you selected an invalid group of cards for Pendulum Summon. Please try again")
+						ok=true
+					else
+					
+						local tempDisableEffs,alreadyChosen,ogct={},{},0
+						
+						for tc in sg:Iter() do
+							
+							if not tc:IsLocation(LOCATION_EXTRA) then
+								local z = 0x7f & ~(select(2, Duel.GetLocationCount(tp, LOCATION_MZONE)))
+								alreadyChosen[tc]=z
+							else
+								local validZones = 0
+								for _,tab in ipairs(validAssignments) do
+									local z=tab[tc]
+									local ct,goal=0,0
+									for c,cz in pairs(tab) do
+										if alreadyChosen[c] then
+											goal=goal+1
+											if alreadyChosen[c]&cz>0 then
+												ct=ct+1
+											end
+										end
+									end
+									if ct==goal then
+										validZones = validZones|z
+									end
+								end
+								
+								
+								local e1,e2
+								local descs,validEffs={},{}
+								for _,e in ipairs(eset) do
+									local tg=e:GetTarget()
+									local zones=e:Evaluate(tc)
+									if (not tg or tg(e,tc)) and validZones&zones>0 then
+										table.insert(descs,e:GetDescription())
+										table.insert(validEffs,e)
+									end
+								end
+								local mr3_eff
+								local ct=#validEffs
+								
+								if ct>0 then
+									Duel.ConfirmCards(tp,tc)
+									if Duel.GetOriginalLocationCountFromEx(tp,tp,nil,tc)-ogct<=0 then
+										local opt=Duel.SelectOption(tp,table.unpack(descs))
+										mr3_eff=validEffs[opt+1]
+									else
+										local opt=Duel.SelectOption(tp,STRING_DO_NOT_APPLY,table.unpack(descs))
+										if opt>0 then
+											mr3_eff=validEffs[opt]
+										end
+									end
+								end
+								
+								if mr3_eff then
+									local ep=mr3_eff:GetOwnerPlayer()
+									local zones=mr3_eff:Evaluate(tc)
+									if tp==1-ep then
+										zones=zones>>16
+									end
+									zones=zones&validZones
+									alreadyChosen[tc]=zones
+									e1=Effect.GlobalEffect()
+									e1:SetType(EFFECT_TYPE_FIELD)
+									e1:SetProperty(EFFECT_FLAG_OATH)
+									e1:SetCode(EFFECT_BECOME_LINKED_ZONE)
+									e1:SetValue(zones)
+									Duel.RegisterEffect(e1,ep)
+									table.insert(tempDisableEffs,e1)
+									
+									e2=Effect.CreateEffect(tc)
+									e2:SetType(EFFECT_TYPE_SINGLE)
+									e2:SetProperty(EFFECT_FLAG_IGNORE_IMMUNE|EFFECT_FLAG_CANNOT_DISABLE|EFFECT_FLAG_UNCOPYABLE|EFFECT_FLAG_OATH)
+									e2:SetCode(EFFECT_FORCE_MZONE)
+									e2:SetValue(zones)
+									e2:SetReset(RESET_EVENT|RESETS_STANDARD)
+									tc:RegisterEffect(e2)
+									
+									local op=mr3_eff:GetOperation()
+									if op then
+										if not xgl.MR3SpSummonEffectOperation[mr3_eff] then
+											xgl.MR3SpSummonEffectOperation[mr3_eff]={op,tp,tp,tc}
+										end
+									end
+									
+									if e1 then
+										xgl.RegisterResetAfterSpecialSummonRule(tc,tp,e1)
+									end
+									
+								elseif ct>0 then
+									ogct = ogct+1
+									for _,tde in ipairs(tempDisableEffs) do
+										tde:SetCondition(aux.FALSE)
+									end
+									local _,zones=Duel.GetOriginalLocationCountFromEx(tp,tp,nil,tc)
+									for _,tde in ipairs(tempDisableEffs) do
+										tde:SetCondition(aux.TRUE)
+									end
+									
+									local z=(~zones)&0x7f
+									alreadyChosen[tc]=z
+									
+									e2=Effect.CreateEffect(tc)
+									e2:SetType(EFFECT_TYPE_SINGLE)
+									e2:SetProperty(EFFECT_FLAG_IGNORE_IMMUNE|EFFECT_FLAG_CANNOT_DISABLE|EFFECT_FLAG_UNCOPYABLE|EFFECT_FLAG_OATH)
+									e2:SetCode(EFFECT_FORCE_MZONE)
+									e2:SetValue(z)
+									e2:SetReset(RESET_EVENT|RESETS_STANDARD)
+									tc:RegisterEffect(e2)
+								end
+							end
+						end
+						
+						local e0=Effect.GlobalEffect()
+						e0:SetType(EFFECT_TYPE_FIELD|EFFECT_TYPE_CONTINUOUS)
+						e0:SetProperty(EFFECT_FLAG_CANNOT_DISABLE|EFFECT_FLAG_UNCOPYABLE)
+						e0:SetCode(EVENT_SPSUMMON)
+						e0:SetOperation(function(_e)
+							for mr3eff,tab in pairs(xgl.MR3SpSummonEffectOperation) do
+								local op,_ep,up,tc=table.unpack(tab)
+								op(mr3eff,_ep,up,tc)
+							end
+							xgl.ClearTableRecursive(xgl.MR3SpSummonEffectOperation)
+							_e:Reset()
+						end
+						)
+						Duel.RegisterEffect(e0,tp)
+					end
+				end
+			end
+			)
+		
+		elseif IsEffectCode(code,EFFECT_SET_BASE_ATTACK,EFFECT_SET_BASE_DEFENSE) and not aux.BaseStatsModCheck then
+			--[[Fix interaction between continuous original stats modifiers and lingering current+original stats modifiers (both activated and non): for example, if Shrink's effect is applied to a monster and Unstable Evolution is later equipped to that monster, the original ATK of that monster should be determined by the effect of Unstable Evolution. Currently, EDOPro applies the effects in an incorrect order, which means that Unstable Evolution's modifier is overwritten by the one of Shrink, even if the former was applied strictly after the latter. The interaction between Darkworld Shackles and Shrink is also problematic, as the ATK of a monster affected by Shackles is supposed to remain unchanged even after Shrink is applied to it.
+			REMOVE THIS CODE ONLY AFTER THE BUG IS FIXED IN THE CORE]]
+		
 			aux.BaseStatsModCheck=true
 			local ge=Effect.CreateEffect(c)
 			ge:SetType(EFFECT_TYPE_FIELD)
@@ -125,6 +364,44 @@ function Card.RegisterEffect(c,eff,...)
 				return C:GetDefense()
 			end)
 			Duel.RegisterEffect(ge2,0)
+		end
+	
+	elseif not isPassive then
+		local condition,cost,tg,op,val = e:GetCondition(),e:GetCost(),e:GetTarget(),e:GetOperation(),e:GetValue()
+		
+		if tg and not isHasExceptionType then
+			local newtg =	function(...)
+								local x={...}
+								local e,tp,eg,ep,ev,re,r,rp,chk,chkc = table.unpack(x)
+								
+								local previous_state = {self_reference_effect, last_tp, last_eg, last_ep, last_ev, last_re, last_r, last_rp, last_chk}
+								
+								self_reference_effect, last_tp, last_eg, last_ep, last_ev, last_re, last_r, last_rp, last_chk = table.unpack(x)
+								
+								if #x>1 and type(tp)=="number" and (tp==0 or tp==1) then
+									self_reference_tp = tp
+								end
+								
+								-- if #x>=9 and chk~=0 and (#x<10 or not chkc) and not cost then
+									-- Duel.RaiseEvent(e:GetHandler(),EVENT_CHAIN_CREATED,e,0,tp,tp,Duel.GetCurrentChain())
+								-- end
+								
+								local res=tg(table.unpack(x))
+								
+								self_reference_effect, last_tp, last_eg, last_ep, last_ev, last_re, last_r, last_rp, last_chk = table.unpack(previous_state)
+								
+								if xgl.TargetParamsTable and xgl.TargetParamsTable[e] then
+									xgl.ClearTableRecursive(xgl.TargetParamsTable[e])
+								end
+								
+								if chk==CHK_ANCESTAGON_PLASMATAIL then
+									res=xgl.CopyTable(xgl.AncestagonPlasmatailReturns)
+									xgl.ClearTable(xgl.AncestagonPlasmatailReturns)
+								end
+								return res
+								
+							end
+			e:SetTarget(newtg)
 		end
 	end
 	
@@ -183,7 +460,7 @@ function Card.GetBaseAttack(c)
 	local eset={c:IsHasEffect(ecode)}
 	table.sort(eset,function(a,b) return a:GetFieldID() < b:GetFieldID() end)
 	
-	aux.TableRemove(eset,function(t,i,j)
+	xgl.TableRemove(eset,function(t,i,j)
 		local eff=t[i]
 		if eff:IsHasProperty(EFFECT_FLAG_SINGLE_RANGE) then
 			local code=eff:GetCode()
@@ -239,7 +516,7 @@ function Card.GetBaseDefense(c)
 	local eset={c:IsHasEffect(ecode)}
 	table.sort(eset,function(a,b) return a:GetFieldID() < b:GetFieldID() end)
 	
-	aux.TableRemove(eset,function(t,i,j)
+	xgl.TableRemove(eset,function(t,i,j)
 		local eff=t[i]
 		if eff:IsHasProperty(EFFECT_FLAG_SINGLE_RANGE) then
 			local code=eff:GetCode()
@@ -323,7 +600,7 @@ function Card.GetAttack(c)
 	
 	local effects_atk,effects_atk_r={},{}
 	
-	aux.TableRemove(eset,function(t,i,j)
+	xgl.TableRemove(eset,function(t,i,j)
 		local eff=t[i]
 		if eff:IsHasProperty(EFFECT_FLAG_SINGLE_RANGE) then
 			local code=eff:GetCode()
@@ -474,7 +751,7 @@ function Card.GetDefense(c)
 	
 	local effects_def,effects_def_r={},{}
 	
-	aux.TableRemove(eset,function(t,i,j)
+	xgl.TableRemove(eset,function(t,i,j)
 		local eff=t[i]
 		if eff:IsHasProperty(EFFECT_FLAG_SINGLE_RANGE) then
 			local code=eff:GetCode()

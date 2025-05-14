@@ -1,10 +1,17 @@
 --Event Group (eg) Check Condition
 function Glitchy.EventGroupCond(f,min,max,exc)
 	if not min then min=1 end
-	return	function(e,tp,eg,ep,ev,re,r,rp)
-				local exc=(not exc) and nil or e:GetHandler()
-				return eg:IsExists(f,min,exc,e,tp,eg,ep,ev,re,r,rp) and (not max or not eg:IsExists(f,max,exc,e,tp,eg,ep,ev,re,r,rp))
-			end
+	if max then
+		return	function(e,tp,eg,ep,ev,re,r,rp)
+					local exc=(not exc) and nil or e:GetHandler()
+					return eg:IsExists(f,min,exc,e,tp,eg,ep,ev,re,r,rp) and not eg:IsExists(f,max,exc,e,tp,eg,ep,ev,re,r,rp)
+				end
+	else
+		return	function(e,tp,eg,ep,ev,re,r,rp)
+					local exc=(not exc) and nil or e:GetHandler()
+					return eg:IsExists(f,min,exc,e,tp,eg,ep,ev,re,r,rp)
+				end
+	end
 end
 function Glitchy.ExactEventGroupCond(f,ct,exc)
 	if not ct then ct=1 end

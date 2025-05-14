@@ -144,6 +144,11 @@ function Glitchy.ToDeckSelfCost(e,tp,eg,ep,ev,re,r,rp,chk)
 	if chk==0 then return c:IsAbleToDeckAsCost() end
 	Duel.SendtoDeck(c,nil,SEQ_DECKSHUFFLE,REASON_COST)
 end
+function Glitchy.ToExtraFaceupSelfCost(e,tp,eg,ep,ev,re,r,rp,chk)
+	local c=e:GetHandler()
+	if chk==0 then return c:IsAbleToExtraFaceupAsCost(e,tp) end
+	Duel.SendtoExtraP(c,tp,REASON_COST)
+end
 function Glitchy.ToExtraSelfCost(e,tp,eg,ep,ev,re,r,rp,chk)
 	local c=e:GetHandler()
 	if chk==0 then return c:IsAbleToExtraAsCost() end
@@ -166,6 +171,26 @@ function Glitchy.TributeSelfCost(e,tp,eg,ep,ev,re,r,rp,chk)
 end
 
 --COST THAT INVOLVE MOVING CARDS
+
+--Costs that banish a card(s)
+function Glitchy.BanishCost(f,loc1,loc2,min,max,exc,pos)
+	loc1 = loc1 and loc1 or LOCATION_ONFIELD
+	loc2 = loc2 and loc2 or 0
+	min = min and min or 1
+	max = max and max or min
+	pos = pos and pos or POS_FACEUP
+	return	function(e,tp,eg,ep,ev,re,r,rp,chk)
+				local exc=(not exc) and nil or e:GetHandler()
+				if chk==0 then return Duel.IsExistingMatchingCard(xgl.BanishFilter(f,true,pos),tp,loc1,loc2,min,exc,e,tp) end
+				Duel.Hint(HINT_SELECTMSG,tp,HINTMSG_REMOVE)
+				local g=Duel.SelectMatchingCard(tp,xgl.BanishFilter(f,true,pos),tp,loc1,loc2,min,max,exc,e,tp)
+				if #g>0 then
+					local ct=Duel.Remove(g,pos,REASON_COST)
+					return g,ct
+				end
+				return g,0
+			end
+end
 
 --Costs that discard a card(s) (min to max)
 function Glitchy.DiscardCost(f,min,max,exc)
@@ -251,7 +276,7 @@ end
 --[[Scripts the following restriction: "You cannot Special Summon monsters the turn you activate/use this effect, except [f] monsters".
 * f 	= Filter for the monsters that can still be SSed under the restriction
 * oath	= If true, the restriction is not applied if the activation of the effect is negated
-* reset	= Defines the reset timing for the restriction
+* reset	= Defines the reset timing for the restriction. If a table is passed, the second element is the reset count
 * id	= ID used for the activity counter and the description string
 * cf	= Filter for the activity counter (if not a function, it matches f). It supports LOCATION constants in order to exclude monsters Special Summoned from a specific location from being counted
 		towards the restriction
@@ -260,11 +285,13 @@ end
 OPTIONAL PARAMS:
 * other = If true, it scripts "You cannot Special Summon OTHER monsters the turn you activate/use this effect, except [f] monsters"
 * cost	= It is possible to invoke an additional user-defined cost function along with the one that handles the restriction.
+* lizardCheck = Target Function (so its first param is an Effect, not a Card!!!) for "Clock Lizard" check (aux.NOT is automatically called, so you can just copy the (f) filter and replace the functions with their "Original" counterparts)
 ]]
 function Glitchy.SSRestrictionCost(f,oath,reset,id,cf,desc,...)
 	local x={...}
-	local cost	= #x>0 and x[#x] or nil
-	local other	= #x>1 and x[#x-1] or nil
+	local other	= #x>0 and x[1] or nil
+	local cost	= #x>1 and x[2] or nil
+	local lizardCheck = #x>2 and x[3] or nil
 	
 	if id then
 		local donotcount_function = type(cf)=="function" and cf or f
@@ -280,18 +307,28 @@ function Glitchy.SSRestrictionCost(f,oath,reset,id,cf,desc,...)
 	local prop=EFFECT_FLAG_PLAYER_TARGET
 	if oath then prop=prop|EFFECT_FLAG_OATH end
 	if desc then prop=prop|EFFECT_FLAG_CLIENT_HINT end
-	if not reset then reset=RESET_PHASE|PHASE_END end
+	
+	local rct=1
+	if not reset then
+		reset=RESET_PHASE|PHASE_END
+	elseif type(reset)=="table" then
+		rct=reset[2]
+		reset=reset[1]
+	end
 	
 	return	function(e,tp,eg,ep,ev,re,r,rp,chk)
 				if chk==0 then return Duel.GetCustomActivityCount(id,tp,ACTIVITY_SPSUMMON)==0 and (not cost or cost(e,tp,eg,ep,ev,re,r,rp,chk)) end
-				local e1=Effect.CreateEffect(e:GetHandler())
+				local c=e:GetHandler()
+				local e1=Effect.CreateEffect(c)
 				if desc then
 					e1:SetDescription(id,desc)
 				end
 				e1:SetType(EFFECT_TYPE_FIELD)
 				e1:SetProperty(prop)
 				e1:SetCode(EFFECT_CANNOT_SPECIAL_SUMMON)
-				e1:SetReset(reset)
+				if reset~=0 then
+					e1:SetReset(reset,rct)
+				end
 				e1:SetTargetRange(1,0)
 				if type(cf)~="number" then
 					e1:SetTarget(	function(eff,c,sump,sumtype,sumpos,targetp,se)
@@ -308,16 +345,32 @@ function Glitchy.SSRestrictionCost(f,oath,reset,id,cf,desc,...)
 				if cost then
 					cost(e,tp,eg,ep,ev,re,r,rp,chk)
 				end
+				if lizardCheck then
+					if reset~=0 then
+						local e2=aux.createTempLizardCheck(c,aux.NOT(lizardCheck),reset,nil,nil,rct)
+						if prop&EFFECT_FLAG_OATH>0 then
+							e2:SetProperty(EFFECT_FLAG_OATH)
+						end
+						Duel.RegisterEffect(e2,tp)
+					else
+						local e2=Effect.CreateEffect(c)
+						e2:SetType(EFFECT_TYPE_FIELD)
+						if prop&EFFECT_FLAG_OATH>0 then
+							e2:SetProperty(EFFECT_FLAG_OATH)
+						end
+						e2:SetCode(CARD_CLOCK_LIZARD)
+						e2:SetTargetRange(0xff,0)
+						e2:SetTarget(aux.NOT(lizardCheck))
+						e2:SetValue(1)
+						Duel.RegisterEffect(e2,tp)
+					end
+				end
 			end
 end
 
 --TRIBUTE RELATED
 function Glitchy.CheckReleaseGroupCost(tp,f,minc,maxc,extraGroup,use_hand,check,ex,...)
 	local params={...}
-	if type(maxc)~="number" then
-		table.insert(params,1,ex)
-		maxc,use_hand,check,ex=minc,maxc,use_hand,check
-	end
 	if not ex then ex=Group.CreateGroup() end
 	local mg=Duel.GetReleaseGroup(tp,use_hand):Match(f or aux.TRUE,ex,table.unpack(params))
 	if extraGroup then
@@ -337,7 +390,7 @@ function Glitchy.SelectReleaseGroupCost(tp,f,minc,maxc,extraGroup,use_hand,check
 	end
 	local g,exg=mg:Split(Auxiliary.ReleaseCostFilter,nil,tp)
 	local specialchk=Auxiliary.MakeSpecialCheck(check,tp,exg,...)
-	local mustg=g:Match(function(c,tp)return c:IsHasEffect(EFFECT_EXTRA_RELEASE) and c:IsControler(1-tp)end,nil,tp)
+	local mustg=g:Match(function(c,tp) return c:IsHasEffect(EFFECT_EXTRA_RELEASE) and c:IsControler(1-tp) end,nil,tp)
 	local sg=Group.CreateGroup()
 	local cancel=false
 	sg:Merge(mustg)
@@ -356,7 +409,7 @@ function Glitchy.SelectReleaseGroupCost(tp,f,minc,maxc,extraGroup,use_hand,check
 			end
 		end
 	end
-	if #sg==0 then return sg end
+	if #sg==0 then return sg,sg,sg end
 	if  #(sg&exg)>0 then
 		local eff=(sg&exg):GetFirst():IsHasEffect(EFFECT_EXTRA_RELEASE_NONSUM)
 		if eff then
@@ -364,5 +417,46 @@ function Glitchy.SelectReleaseGroupCost(tp,f,minc,maxc,extraGroup,use_hand,check
 			Duel.Hint(HINT_CARD,0,eff:GetHandler():GetCode())
 		end
 	end
-	return sg
+	if extraGroup then
+		local sg1,sg2=sg:Split(aux.NOT(Card.IsContained),nil,extraGroup)
+		return sg,sg1,sg2
+	else
+		return sg,sg,Group.CreateGroup()
+	end
+end
+function Glitchy.TributeCost(f,minc,maxc,extraGroupFunc,use_hand,check,exceptHandler,setLabel,extraGroupOp)
+	if not extraGroupFunc then
+		return	function(e,tp,eg,ep,ev,re,r,rp,chk)
+					if check==true then check=aux.ReleaseCheckMMZ end
+					local exc = exceptHandler and e:GetHandler() or nil
+					if setLabel then e:SetLabel(setLabel) end
+					if chk==0 then return Duel.CheckReleaseGroupCost(tp,f,minc,maxc,use_hand,check,exc,e,tp) end
+					local g=Duel.SelectReleaseGroupCost(tp,f,minc,maxc,use_hand,check,exc,e,tp)
+					Duel.Release(g,REASON_COST)
+				end
+	else
+		return	function(e,tp,eg,ep,ev,re,r,rp,chk)
+					if check==true then check=aux.ReleaseCheckMMZ end
+					local exc = exceptHandler and e:GetHandler() or nil
+					local extraGroup
+					if type(extraGroupFunc)=="function" then
+						extraGroup=extraGroupFunc(e,tp,eg,ep,ev,re,r,rp)
+					else
+						extraGroup=Duel.Group(xgl.TributeFilter(f,true),tp,extraGroupFunc,0,exc)
+					end
+					if setLabel then e:SetLabel(setLabel) end
+					if chk==0 then return xgl.CheckReleaseGroupCost(tp,f,minc,maxc,extraGroup,use_hand,check,exc,e,tp) end
+					local g,g1,g2=xgl.SelectReleaseGroupCost(tp,f,minc,maxc,extraGroup,use_hand,check,exc,e,tp)
+					if extraGroupOp then
+						if #g2>0 then
+							extraGroupOp(g2,e,tp,eg,ep,ev,re,r,rp)
+						end
+						if #g1>0 then
+							Duel.Release(g1,REASON_COST)
+						end
+					else
+						Duel.Release(g,REASON_COST)
+					end
+				end
+	end
 end

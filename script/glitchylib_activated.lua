@@ -31,11 +31,12 @@ end
 --
 
 --Draw effect template
-function Glitchy.DrawTarget(p,val)
+function Glitchy.DrawTarget(p,val,ignore_chk)
+	p = p and p or 0
 	val=val and val or 1
 	return	function(e,tp,eg,ep,ev,re,r,rp,chk)
 				local p=p==0 and tp or 1-tp
-				if chk==0 then return Duel.IsPlayerCanDraw(p,val) end
+				if chk==0 then return ignore_chk or Duel.IsPlayerCanDraw(p,val) end
 				Duel.SetTargetPlayer(p)
 				Duel.SetTargetParam(val)
 				aux.DrawInfo(p,val)
@@ -46,6 +47,10 @@ function Glitchy.DrawOperation()
 				local p,d=Duel.GetChainInfo(0,CHAININFO_TARGET_PLAYER,CHAININFO_TARGET_PARAM)
 				Duel.Draw(p,d,REASON_EFFECT)
 			end
+end
+function Effect.SetDrawFunctions(e,p,val,ignore_chk)
+	e:SetTarget(xgl.DrawTarget(p,val,ignore_chk))
+	e:SetOperation(xgl.DrawOperation())
 end
 
 --Search effect templates: Add N card(s) from LOCATION to your hand
@@ -215,7 +220,7 @@ function Glitchy.SpecialSummonOperation(spmod,tgcheck,f,loc1,loc2,min,max,exc,su
 		max=max or min
 		local locs=loc1|loc2
 		local EDchk=locs&LOCATION_EXTRA>0
-		local minchk=min==1
+		local minchk = min==1 and max==1
 		
 		if locs&LOCATION_GRAVE>0 then
 			f=aux.Necro(f)
@@ -249,7 +254,7 @@ function Glitchy.SpecialSummonOperation(spmod,tgcheck,f,loc1,loc2,min,max,exc,su
 							local sump=IsOpponentSummons and 1-tp or tp
 							local recp=IsOpponentReceives and 1-tp or tp
 							local spf=xgl.SpecialSummonFromExtraDeckFilter(f,sumtype,sump,recp,ignore_sumcon,ignore_revlim,pos)
-							local g=Duel.Select(HINTMSG_SPSUMMON,false,tp,spf,tp,loc1,loc2,min,maxc,exc,e,tp)
+							local g=Duel.Select(HINTMSG_SPSUMMON,false,tp,spf,tp,loc1,loc2,min,max,exc,e,tp)
 							if #g>=min then
 								if not spmod then
 									Duel.SpecialSummon(g,sumtype,sump,recp,ignore_sumcon,ignore_revlim,pos)
@@ -264,8 +269,8 @@ function Glitchy.SpecialSummonOperation(spmod,tgcheck,f,loc1,loc2,min,max,exc,su
 							local sump=IsOpponentSummons and 1-tp or tp
 							local recp=IsOpponentReceives and 1-tp or tp
 							local ft=Duel.GetMZoneCount(sump,nil,recp)
-							local spf=xgl.SpecialSummonFilterX(ft>0,sumtype,sump,recp,ignore_sumcon,ignore_revlim,pos)
-							local g=Duel.Select(HINTMSG_SPSUMMON,false,tp,spf,tp,loc1,loc2,min,maxc,exc,e,tp)
+							local spf=xgl.SpecialSummonFilterX(ft>0,f,sumtype,sump,recp,ignore_sumcon,ignore_revlim,pos)
+							local g=Duel.Select(HINTMSG_SPSUMMON,false,tp,spf,tp,loc1,loc2,min,max,exc,e,tp)
 							if #g>=min then
 								if not spmod then
 									Duel.SpecialSummon(g,sumtype,sump,recp,ignore_sumcon,ignore_revlim,pos)
@@ -292,6 +297,7 @@ function Glitchy.SpecialSummonOperation(spmod,tgcheck,f,loc1,loc2,min,max,exc,su
 				end
 	end
 end
+
 function Effect.SetSpecialSummonFunctions(e,spmod,tgchk,f,loc1,loc2,min,max,exc,sumtype,IsOpponentSummons,IsOpponentReceives,ignore_sumcon,ignore_revlim,pos)
 	e:SetTarget(xgl.SpecialSummonTarget(tgchk,f,loc1,loc2,min,max,exc,sumtype,IsOpponentSummons,IsOpponentReceives,ignore_sumcon,ignore_revlim,pos))
 	e:SetOperation(xgl.SpecialSummonOperation(spmod,tgchk,f,loc1,loc2,min,max,exc,sumtype,IsOpponentSummons,IsOpponentReceives,ignore_sumcon,ignore_revlim,pos))
@@ -303,6 +309,7 @@ Glitchy.SendtoFilters={
 	[LOCATION_GRAVE]=xgl.ToGraveFilter;
 	[LOCATION_HAND]=xgl.SearchFilter;
 	[LOCATION_REMOVED]=xgl.BanishFilter;
+	[LOCATION_EXTRA]=xgl.ToExtraPFilter;
 }
 Glitchy.SendtoHints={
 	[0]=HINTMSG_DESTROY;
@@ -310,6 +317,7 @@ Glitchy.SendtoHints={
 	[LOCATION_GRAVE]=HINTMSG_TOGRAVE;
 	[LOCATION_HAND]=HINTMSG_RTOHAND;
 	[LOCATION_REMOVED]=HINTMSG_REMOVE;
+	[LOCATION_EXTRA]=HINTMSG_TOEXTRA;
 }
 Glitchy.SendtoCategories={
 	[0]=CATEGORY_DESTROY;
@@ -317,6 +325,7 @@ Glitchy.SendtoCategories={
 	[LOCATION_GRAVE]=CATEGORY_TOGRAVE;
 	[LOCATION_HAND]=CATEGORY_TOHAND;
 	[LOCATION_REMOVED]=CATEGORY_REMOVE;
+	[LOCATION_EXTRA]=CATEGORY_TOEXTRA;
 }
 Glitchy.SendtoActions={
 	[0]=function(g)
@@ -334,6 +343,9 @@ Glitchy.SendtoActions={
 	end;
 	[LOCATION_REMOVED]=function(g,e,tp,pos)
 		Duel.Remove(g,pos,REASON_EFFECT)
+	end;
+	[LOCATION_EXTRA]=function(g,e,tp)
+		Duel.SendtoExtraP(g,tp,REASON_EFFECT)
 	end;
 }
 function Glitchy.SendtoAuxiliaryFunction(destination,f,...)
@@ -521,18 +533,33 @@ function Effect.SetSSetFunctions(e,setmod,tgcheck,f,loc1,loc2,min,max,exc)
 	e:SetOperation(xgl.SSetOperation(setmod,tgcheck,f,loc1,loc2,min,max,exc))
 end
 
---Special Summon self template: Special Summon "this card"
+--Self action templates
+
+--Special Summon "this card"
 --[[Parameters
 1) redirect = Redirect the card to the specified location when it leaves the field
 ]]
-function Glitchy.SpecialSummonSelfTarget()
-	return	function(e,tp,eg,ep,ev,re,r,rp,chk)
-				local c=e:GetHandler()
-				if chk==0 then
-					return Duel.GetMZoneCount(tp)>0 and c:IsCanBeSpecialSummoned(e,0,tp,false,false)
+function Glitchy.SpecialSummonSelfTarget(handlecost)
+	if handlecost then
+		return	function(e,tp,eg,ep,ev,re,r,rp,chk)
+					local c=e:GetHandler()
+					if chk==0 then
+						local isCostChecked = e:GetLabel()==1
+						e:SetLabel(0)
+						return (isCostChecked or Duel.GetMZoneCount(tp)>0) and c:IsCanBeSpecialSummoned(e,0,tp,false,false)
+					end
+					e:SetLabel(0)
+					Duel.SetCardOperationInfo(c,CATEGORY_SPECIAL_SUMMON)
 				end
-				Duel.SetCardOperationInfo(c,CATEGORY_SPECIAL_SUMMON)
-			end
+	else
+		return	function(e,tp,eg,ep,ev,re,r,rp,chk)
+					local c=e:GetHandler()
+					if chk==0 then
+						return Duel.GetMZoneCount(tp)>0 and c:IsCanBeSpecialSummoned(e,0,tp,false,false)
+					end
+					Duel.SetCardOperationInfo(c,CATEGORY_SPECIAL_SUMMON)
+				end
+	end
 end
 function Glitchy.SpecialSummonSelfOperation(redirect)
 	return	function(e,tp,eg,ep,ev,re,r,rp)
@@ -545,4 +572,31 @@ function Glitchy.SpecialSummonSelfOperation(redirect)
 					end
 				end
 			end
+end
+function Effect.SetSpecialSummonSelfFunctions(e,handlecost,redirect)
+	e:SetTarget(xgl.SpecialSummonSelfTarget(handlecost))
+	e:SetOperation(xgl.SpecialSummonSelfOperation(redirect))
+end
+
+--Add "this card" to hand
+function Glitchy.ToHandSelfTarget()
+	return	function(e,tp,eg,ep,ev,re,r,rp,chk)
+				local c=e:GetHandler()
+				if chk==0 then
+					return c:IsAbleToHand()
+				end
+				Duel.SetCardOperationInfo(c,CATEGORY_TOHAND)
+			end
+end
+function Glitchy.ToHandSelfOperation()
+	return	function(e,tp,eg,ep,ev,re,r,rp)
+				local c=e:GetHandler()
+				if c:IsRelateToChain() then
+					Duel.Search(c)
+				end
+			end
+end
+function Effect.SetToHandSelfFunctions(e)
+	e:SetTarget(xgl.ToHandSelfTarget())
+	e:SetOperation(xgl.ToHandSelfOperation())
 end

@@ -47,12 +47,13 @@ function s.filter(c)
 end
 function s.target(e,tp,eg,ep,ev,re,r,rp,chk,chkc)
 	local c=e:GetHandler()
+	local exc=xgl.GetSelfTargetExceptionForSpellTrap(e)
 	if chkc then
-		return chkc:IsOnField() and chkc~=aux.ExceptThis(c,e) and s.filter(chkc)
+		return chkc:IsOnField() and chkc~=exc and s.filter(chkc)
 	end
-	if chk==0 then return Duel.IsExistingTarget(s.filter,tp,LOCATION_ONFIELD,LOCATION_ONFIELD,1,c) end
+	if chk==0 then return Duel.IsExistingTarget(s.filter,tp,LOCATION_ONFIELD,LOCATION_ONFIELD,1,exc) end
 	Duel.Hint(HINT_SELECTMSG,tp,HINTMSG_FACEUP)
-	local tc=Duel.SelectTarget(tp,s.filter,tp,LOCATION_ONFIELD,LOCATION_ONFIELD,1,1,c):GetFirst()
+	local tc=Duel.SelectTarget(tp,s.filter,tp,LOCATION_ONFIELD,LOCATION_ONFIELD,1,1,exc):GetFirst()
 	if tc:IsLocation(LOCATION_MZONE) then
 		e:SetCategory(CATEGORY_POSITION)
 		Duel.SetCardOperationInfo(tc,CATEGORY_POSITION)

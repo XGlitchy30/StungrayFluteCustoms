@@ -45,7 +45,7 @@ function Duel.GetSummonCountLimit(p)
 		return 2147483547
 	else
 		local ct=1
-		local eset={Duel.IsPlayerAffectedByEffect(p,EFFECT_SET_SUMMON_COUNT_LIMIT)}
+		local eset={Duel.GetPlayerEffect(p,EFFECT_SET_SUMMON_COUNT_LIMIT)}
 		for _,e in ipairs(eset) do
 			local val=e:Evaluate()
 			if val>ct then

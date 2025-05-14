@@ -4,7 +4,11 @@ xgl=Glitchy
 Duel.LoadScript("glitchylib_names.lua")
 
 --Custom Categories
-CATEGORY_ATTACH		=	0x1
+CATEGORY_ATTACH				=	0x1
+CATEGORY_SET_SPELLTRAP		=	0x2
+CATEGORY_PLACE_IN_PZONE		=	0x4
+
+CATEGORY_FLAG_ANCESTAGON_PLASMATAIL = 0x1
 
 CATEGORIES_SEARCH 			= 	CATEGORY_SEARCH|CATEGORY_TOHAND
 CATEGORIES_ATKDEF 			= 	CATEGORY_ATKCHANGE|CATEGORY_DEFCHANGE
@@ -12,14 +16,16 @@ CATEGORIES_FUSION_SUMMON 	= 	CATEGORY_SPECIAL_SUMMON|CATEGORY_FUSION_SUMMON
 CATEGORIES_TOKEN 			= 	CATEGORY_SPECIAL_SUMMON|CATEGORY_TOKEN
 
 --Custom Effects
-EFFECT_CANNOT_MODIFY_ATTACK		= 	2001	--Players affected by this effect cannot change ATK of the specified cards. Needed for implementation of "Hidden Monastery of Necrovalley".
-EFFECT_CANNOT_MODIFY_DEFENSE	=	2002	--Players affected by this effect cannot change DEF of the specified cards. Needed for implementation of "Hidden Monastery of Necrovalley"
-EFFECT_SUMMONABLE_BY_OPPONENT	=	2003	--The card has an effect that allows the opponent to Normal Summon it (see Moblins' Packmate)
-EFFECT_CANNOT_EQUIP_XGL			=	2004    --FUTUREPROOFING: Players affected by this effect cannot equip cards (specified by the value function) to the monsters specified by the target function
-EFFECT_BECOME_EXTRA_LINKED		=	2005	--Cards affected by this effect are treated as being Extra Linked (see "Dian Keto the Disco Master"). Requires glitchymods_link to be loaded
-EFFECT_UPDATE_LP				=	2006	--Effect that continuously updates the LP of a players, in a similar vein to a continuous ATK modifier for monsters (see "Dian Keto the Disco Master"). Requires glitchymods_lifepoints to be loaded
-EFFECT_REMEMBER_XYZ_HOLDER		=	2007	--Effect that makes it possible for a card to retain memory of the most recent Xyz Monster that had it as material. Requires glitchymods_xyz to be loaded.
-EFFECT_ASSUME_LOCATION			=	2008	--Cards affected by this effect are treated as if they were in the location specified as this effect's value. Requires glitchylib_redirect to be loaded
+EFFECT_CANNOT_MODIFY_ATTACK			= 	2001	--Players affected by this effect cannot change ATK of the specified cards. Needed for implementation of "Hidden Monastery of Necrovalley".
+EFFECT_CANNOT_MODIFY_DEFENSE		=	2002	--Players affected by this effect cannot change DEF of the specified cards. Needed for implementation of "Hidden Monastery of Necrovalley"
+EFFECT_SUMMONABLE_BY_OPPONENT		=	2003	--The card has an effect that allows the opponent to Normal Summon it (see Moblins' Packmate)
+EFFECT_CANNOT_EQUIP_XGL				=	2004    --FUTUREPROOFING: Players affected by this effect cannot equip cards (specified by the value function) to the monsters specified by the target function
+EFFECT_BECOME_EXTRA_LINKED			=	2005	--Cards affected by this effect are treated as being Extra Linked (see "Dian Keto the Disco Master"). Requires glitchymods_link to be loaded
+EFFECT_UPDATE_LP					=	2006	--Effect that continuously updates the LP of a players, in a similar vein to a continuous ATK modifier for monsters (see "Dian Keto the Disco Master"). Requires glitchymods_lifepoints to be loaded
+EFFECT_REMEMBER_XYZ_HOLDER			=	2007	--Effect that makes it possible for a card to retain memory of the most recent Xyz Monster that had it as material. Requires glitchymods_xyz to be loaded.
+EFFECT_ASSUME_LOCATION				=	2008	--Cards affected by this effect are treated as if they were in the location specified as this effect's value. Requires glitchylib_redirect to be loaded
+EFFECT_CANNOT_TO_EXTRA_P			=	2009	--[[Players affected by this effect cannot add Pendulum Cards to the Extra Deck, face-up. Can also be applied to a card instead of a player. Futureproofing for "Ancestagon Plasmatail" and similar cards]]
+EFFECT_ALLOW_MR3_SPSUMMON_FROM_ED	=	2010	--[[Players affected by this effect can use old MR3 rulings when Special Summoning monsters from the Extra Deck that meet the Target Function's requirements, and only to Summon them to the zones indicated by the Value Function. Requires glitchylib_MR3spsummon to be loaded]]
 
 --Locations
 
@@ -37,6 +43,7 @@ COIN_HEADS = 1
 COIN_TAILS = 0
 
 --Effects
+EFFECT_FLAG_EFFECT	=	0x10000000
 
 --Properties
 EFFECT_FLAG_DD = EFFECT_FLAG_DAMAGE_STEP|EFFECT_FLAG_DAMAGE_CAL
@@ -179,6 +186,8 @@ if not global_effect_category_table_global_check then
 	global_effect_info_table={}
 	global_possible_custom_effect_info_table={}
 	global_additional_info_table={}
+	
+	original_effect_category_table={}
 end
 function Effect.SetCustomCategory(e,cat,flags)
 	if not cat then cat=0 end
@@ -194,6 +203,20 @@ end
 function Effect.IsHasCustomCategory(e,cat1,cat2)
 	local ocat1,ocat2=e:GetCustomCategory()
 	return (cat1 and ocat1&cat1>0) or (cat2 and ocat2&cat2>0)
+end
+
+function Effect.SetOriginalCategory(e,cat)
+	if not cat then cat=0 end
+	e:SetCategory(cat)
+	original_effect_category_table[e]=cat
+end
+function Effect.GetOriginalCategory(e)
+	if not global_effect_category_table[e] then return e:GetCategory() end
+	return global_effect_category_table[e]
+end
+function Effect.IsHasOriginalCategory(e,cat)
+	local ocat=e:GetOriginalCategory()
+	return ocat&cat>0
 end
 
 --Card Actions
@@ -479,10 +502,10 @@ function Glitchy.AttachFilter2(f)
 				return (not f or f(c,e,...)) and c:IsType(TYPE_XYZ)
 			end
 end
-function Glitchy.BanishFilter(f,cost)
-	local ableto=cost and Card.IsAbleToRemoveAsCost or Card.IsAbleToRemove
-	return	function(c,...)
-				return (not f or f(c,...)) and ableto(c)
+function Glitchy.BanishFilter(f,cost,pos)
+	pos = pos and pos or POS_FACEUP
+	return	function(c,_,tp,...)
+				return (not f or f(c,...)) and (not cost and c:IsAbleToRemove(tp,pos) or cost and c:IsAbleToRemoveAsCost(pos))
 			end
 end
 function Glitchy.ControlFilter(f)
@@ -535,8 +558,20 @@ function Glitchy.ToDeckFilter(f,cost,loc)
 				end
 	end
 end
+function Glitchy.ToExtraPFilter(f,cost)
+	local ableto=cost and Card.IsAbleToExtraFaceupAsCost or Card.IsAbleToExtraFaceup
+	return	function(c,e,tp,...)
+				return (not f or f(c,e,tp,...)) and ableto(c,e,tp)
+			end
+end
 function Glitchy.ToGraveFilter(f,cost)
 	local ableto=cost and Card.IsAbleToGraveAsCost or Card.IsAbleToGrave
+	return	function(c,...)
+				return (not f or f(c,...)) and ableto(c)
+			end
+end
+function Glitchy.TributeFilter(f,cost)
+	local ableto=cost and Card.IsReleasable or Card.IsReleasableByEffect
 	return	function(c,...)
 				return (not f or f(c,...)) and ableto(c)
 			end
@@ -900,6 +935,48 @@ function Card.GlitchyGetColumnGroup(c,left,right,without_center)
 		return cg
 	end
 end
+function Card.GlitchyGetPreviousColumnGroup(c,left,right)
+	local left = (left and type(left)=="number" and left>=0) and left or 0
+	local right = (right and type(right)=="number" and right>=0) and right or 0
+	if left==0 and right==0 then
+		return c:GetColumnGroup()
+	else
+		local f = 	function(card,refc,val)
+						local refseq
+						if refc:GetPreviousSequence()<5 then
+							refseq=refc:GetPreviousSequence()
+						else
+							if refc:GetPreviousSequence()==5 then
+								refseq = 1
+							elseif refc:GetPreviousSequence()==6 then
+								refseq = 3
+							end
+						end
+						
+						if card:GetPreviousSequence()<5 then
+							if card:IsPreviousControler(refc:GetPreviousControler()) then
+								return math.abs(refseq-card:GetPreviousSequence())==val
+							else
+								return math.abs(refseq+card:GetPreviousSequence()-4)==val
+							end
+						
+						elseif card:GetPreviousSequence()==5 then
+							local seq = card:IsPreviousControler(refc:GetPreviousControler()) and 1 or 3
+							return math.abs(refseq-seq)==val
+						elseif card:GetPreviousSequence()==6 then
+							local seq = card:IsPreviousControler(refc:GetPreviousControler()) and 3 or 1
+							return math.abs(refseq-seq)==val
+						end
+					end
+					
+		local lg=Duel.Group(f,c:GetPreviousControler(),LOCATION_MZONE+LOCATION_SZONE,LOCATION_MZONE+LOCATION_SZONE,nil,c,left)
+		local cg = Group.CreateGroup()
+		local rg=Duel.Group(f,c:GetPreviousControler(),LOCATION_MZONE+LOCATION_SZONE,LOCATION_MZONE+LOCATION_SZONE,nil,c,right)
+		cg:Merge(lg)
+		cg:Merge(rg)
+		return cg
+	end
+end
 
 --Control
 function Card.CanOnlyControlOne(c,id)
@@ -973,9 +1050,10 @@ function Glitchy.DelayedOperation(card_or_group,phase,flag,e,tp,oper,cond,reset,
 end
 
 --Exception
-function Auxiliary.ActivateException(e,chk)
+function Glitchy.GetSelfTargetExceptionForSpellTrap(e)
 	local c=e:GetHandler()
-	if c and e:IsHasType(EFFECT_TYPE_ACTIVATE) and not c:IsType(TYPE_CONTINUOUS+TYPE_FIELD+TYPE_EQUIP) and not c:IsHasEffect(EFFECT_REMAIN_FIELD) and (chk or c:IsRelateToChain(0)) then
+	local chk=c:IsStatus(STATUS_CHAINING)
+	if e:IsHasType(EFFECT_TYPE_ACTIVATE) and not c:IsType(TYPE_CONTINUOUS|TYPE_FIELD|TYPE_EQUIP) and not c:IsHasEffect(EFFECT_REMAIN_FIELD) and (not chk or c:IsRelateToChain(e:GetChainLink())) then
 		return c
 	else
 		return nil
@@ -1060,7 +1138,7 @@ function Card.IsCanBeEquippedWith(c,ec,e,p,r,ignore_faceup)
 	--futureproofing (more checks could be added in the future)
 end
 function Duel.IsPlayerCanEquipCardTo(tp,be_equip,equip_to,e,checkLocationOnly)
-	local eset={Duel.IsPlayerAffectedByEffect(tp,EFFECT_CANNOT_EQUIP_XGL)}
+	local eset={Duel.GetPlayerEffect(tp,EFFECT_CANNOT_EQUIP_XGL)}
 	for _,ce in ipairs(eset) do
 		local tg=ce:GetTarget()
 		if not tg or tg(ce,equip_to,e,tp) then
@@ -1191,10 +1269,10 @@ function Glitchy.RaceFilter(race,f,...)
 				return target:IsRace(race) and (not f or f(target,table.unpack(ext_params)))
 			end
 end
-function Glitchy.STFilter(f,...)
+function Glitchy.SpellTrapFilter(f,...)
 	local ext_params={...}
 	return	function(target)
-				return target:IsST() and (not f or f(target,table.unpack(ext_params)))
+				return target:IsSpellTrap() and (not f or f(target,table.unpack(ext_params)))
 			end
 end
 
@@ -1217,7 +1295,7 @@ function Card.GetFlagEffectWithSpecificLabel(c,flag,label,reset)
 end
 function Duel.GetFlagEffectWithSpecificLabel(p,flag,label,reset)
 	flag=flag&0xfffffff
-	local eset={Duel.IsPlayerAffectedByEffect(p,flag|0x10000000)}
+	local eset={Duel.GetPlayerEffect(p,flag|0x10000000)}
 	for i=#eset,1,-1 do
 		local e=eset[i]
 		local x=e:GetLabel()
@@ -1634,9 +1712,8 @@ function Duel.GetColumnZoneFromSequence(seq,seqloc,loc)
 	--Debug.Message(zones)
 	return zones
 end
-function Duel.GetColumnGroupFromSequence(tp,seq,seqloc)
-	if seqloc&LOCATION_ONFIELD==0 then return end
-	local column_mzone,column_szone = Duel.GetColumnZoneFromSequence(seq,seqloc,LOCATION_MZONE),Duel.GetColumnZoneFromSequence(seq,seqloc,LOCATION_SZONE)
+function Duel.GetColumnGroupFromSequence(tp,seq)
+	local column_mzone,column_szone = Duel.GetFullColumnZoneFromSequence(seq,LOCATION_MZONE),Duel.GetFullColumnZoneFromSequence(seq,LOCATION_SZONE)
 	local g1=Duel.GetCardsInZone(column_mzone,tp,LOCATION_MZONE)
 	local g2=Duel.GetCardsInZone(column_mzone>>16,1-tp,LOCATION_MZONE)
 	local g3=Duel.GetCardsInZone(column_szone>>8,tp,LOCATION_SZONE)
@@ -2149,28 +2226,153 @@ function Card.IsPreviousDefenseOnField(c,def)
 end
 
 --Pendulum-related
-function Card.IsCapableSendToExtra(c,tp)
-	if not c:IsMonster(TYPE_EXTRA|TYPE_PENDULUM|TYPE_PANDEMONIUM) or c:IsHasEffect(EFFECT_CANNOT_TO_DECK) or not Duel.IsPlayerCanSendtoDeck(tp,c) then return false end
+function Card.IsAbleToExtraFaceup(c,e,tp,r,recp)
+	if not (c:IsType(TYPE_PENDULUM) and not c:IsForbidden() and not c:IsHasEffect(EFFECT_CANNOT_TO_DECK) and Duel.IsPlayerCanSendtoDeck(tp,c) and not c:IsHasEffect(EFFECT_CANNOT_TO_EXTRA_P)) then return false end
+	tp = tp or c:GetControler()
+	r = r or REASON_EFFECT
+	recp = recp or c:GetOwner()
+	local eset={Duel.GetPlayerEffect(tp,EFFECT_CANNOT_TO_EXTRA_P)}
+	for _,ce in ipairs(eset) do
+		local tg=ce:GetTarget()
+		if not tg or tg(ce,c,e,tp,r,recp) then
+			return false
+		end
+	end
 	return true
 end
-function Card.IsAbleToExtraFaceupAsCost(c,p,tp)
+function Card.IsCapableSendToExtra(c,tp)
+	if not c:IsMonster(TYPE_EXTRA|TYPE_PENDULUM) or c:IsHasEffect(EFFECT_CANNOT_TO_DECK) or not Duel.IsPlayerCanSendtoDeck(tp,c) then return false end
+	return true
+end
+function Card.IsAbleToExtraFaceupAsCost(c,e,tp,recp)
+	if not c:IsAbleToExtraFaceup(e,tp,REASON_COST,recp) or c:IsHasEffect(EFFECT_CANNOT_USE_AS_COST) then return false end
 	local redirect=0
-	local dest=LOCATION_DECK
-	if not c:IsMonster(TYPE_PENDULUM|TYPE_PANDEMONIUM) or c:IsLocation(LOCATION_EXTRA) or (tp and c:GetOwner()~=tp)
-		or c:IsHasEffect(EFFECT_CANNOT_USE_AS_COST) or not c:IsCapableSendToExtra(p) then 
-		return false
-	end
+	local dest=0
+	
 	if c:IsOnField() then
-		redirect=c:LeaveFieldRedirect(REASON_COST)&0xffff
+		redirect=c:GetLeaveFieldRedirect(REASON_COST)&0xffff
 	end
 	if redirect~=0 then
 		dest=redirect
 	end
-	redirect = c:DestinationRedirect(dest,REASON_COST)&0xffff
+	redirect = c:GetRealDestinationRedirect(dest,REASON_COST)&0xffff
 	if redirect~=0 then
 		dest=redirect
 	end
-	return dest==LOCATION_DECK
+	return dest==0
+end
+function Card.IsCanBePlacedInPZone(c,e,tp)
+	return not c:IsForbidden() --futureproof
+end
+
+--Reason
+function Effect.HasReasonArchetype(re,setcode)
+	local rc=re:GetHandler()
+	local trig_loc,trig_setcodes=Duel.GetChainInfo(0,CHAININFO_TRIGGERING_LOCATION,CHAININFO_TRIGGERING_SETCODES)
+	if not Duel.IsChainSolving() or (rc:IsRelateToEffect(re) and rc:IsLocation(trig_loc)
+		and (not rc:IsLocation(LOCATION_ONFIELD|LOCATION_REMOVED|LOCATION_EXTRA) or rc:IsFaceup())) then
+		return rc:IsSetCard(setcode)
+	end
+	for _,set in ipairs(trig_setcodes) do
+		if (setcode&0xfff)==(set&0xfff) and (setcode&set)==setcode then return true end
+	end
+end
+
+--Redirect
+function Card.IsAbleToLocationAsCost(c,loc)
+	local loclist={
+		[LOCATION_HAND]=Card.IsAbleToHandAsCost;
+		[LOCATION_GRAVE]=Card.IsAbleToGraveAsCost;
+		[LOCATION_DECK]=Card.IsAbleToDeckAsCost;
+		[LOCATION_EXTRA]=Card.IsAbleToExtraAsCost;
+		[LOCATION_REMOVED]=Card.IsAbleToRemoveAsCost;
+	}
+	return loclist[loc](c)
+end
+function Card.GetDestinationReset(c)
+	if c:IsOriginalType(TYPE_TOKEN) then return 0 end
+	local dest=c:GetDestination()
+	local options={
+		[LOCATION_HAND]=RESET_TOHAND;
+		[LOCATION_DECK]=RESET_TODECK;
+		[LOCATION_EXTRA]=RESET_TODECK;
+		[LOCATION_GRAVE]=RESET_TOGRAVE;
+		[LOCATION_REMOVED]=RESET_REMOVE|RESET_TEMP_REMOVE;
+		[LOCATION_ONFIELD]=RESET_TOFIELD;
+		[LOCATION_OVERLAY]=RESET_OVERLAY;
+	}
+	
+	for loc,eloc in pairs(options) do
+		if dest&loc>0 then
+			return eloc
+		end
+	end
+	
+	return 0
+end
+function Card.GetRealDestinationRedirect(c,dest,r)
+	local eset
+	if c:IsOriginalType(TYPE_TOKEN) then return 0 end
+	local options={
+		[LOCATION_HAND]=EFFECT_TO_HAND_REDIRECT;
+		[LOCATION_DECK]=EFFECT_TO_DECK_REDIRECT;
+		[LOCATION_GRAVE]=EFFECT_TO_GRAVE_REDIRECT;
+		[LOCATION_REMOVED]=EFFECT_REMOVE_REDIRECT
+	}
+	for loc,eloc in pairs(options) do
+		if dest==loc then
+			eset={c:IsHasEffect(eloc)}
+			break
+		end
+	end
+	if not eset then return 0 end
+	for _,e in ipairs(eset) do
+		local p=e:GetHandlerPlayer()
+		local val=e:Evaluate(c)
+		if val&LOCATION_HAND>0 and not c:IsHasEffect(EFFECT_CANNOT_TO_HAND) and Duel.IsPlayerCanSendtoHand(p,c) then
+			return LOCATION_HAND
+		end
+		if val&LOCATION_DECK>0 and not c:IsHasEffect(EFFECT_CANNOT_TO_DECK) and Duel.IsPlayerCanSendtoDeck(p,c) then
+			return LOCATION_DECK
+		end
+		if val&LOCATION_REMOVED>0 and not c:IsHasEffect(EFFECT_CANNOT_REMOVE) and Duel.IsPlayerCanRemove(p,c,r) then
+			return LOCATION_REMOVED
+		end
+		if val&LOCATION_GRAVE>0 and not c:IsHasEffect(EFFECT_CANNOT_TO_GRAVE) and Duel.IsPlayerCanSendtoGrave(p,c) then
+			return LOCATION_GRAVE
+		end
+	end
+	return 0
+end
+function Card.GetLeaveFieldRedirect(c,r)
+	local redirects=0
+	if c:IsOriginalType(TYPE_TOKEN) then return 0 end
+	local eset={c:IsHasEffect(EFFECT_LEAVE_FIELD_REDIRECT)}
+	for _,e in ipairs(eset) do
+		local p=e:GetHandlerPlayer()
+		local val=e:Evaluate(c)
+		if val&LOCATION_HAND>0 and not c:IsHasEffect(EFFECT_CANNOT_TO_HAND) and Duel.IsPlayerCanSendtoHand(p,c) then
+			redirects = redirects|LOCATION_HAND
+		end
+		if val&LOCATION_DECK>0 and not c:IsHasEffect(EFFECT_CANNOT_TO_DECK) and Duel.IsPlayerCanSendtoDeck(p,c) then
+			redirects = redirects|LOCATION_DECK
+		end
+		if val&LOCATION_REMOVED>0 and not c:IsHasEffect(EFFECT_CANNOT_REMOVE) and Duel.IsPlayerCanRemove(p,c,r) then
+			redirects = redirects|LOCATION_REMOVED
+		end
+	end
+	if redirects&LOCATION_REMOVED>0 then return LOCATION_REMOVED end
+	if redirects&LOCATION_DECK>0 then
+		if redirects&LOCATION_DECKBOT==LOCATION_DECKBOT then
+			return LOCATION_DECKBOT
+		end
+		if redirects&LOCATION_DECKSHF==LOCATION_DECKSHF then
+			return LOCATION_DECKSHF
+		end
+		return LOCATION_DECK
+	end
+	if redirects&LOCATION_HAND>0 then return LOCATION_HAND end
+	return 0
 end
 
 --Relation
@@ -2180,52 +2382,49 @@ function Card.IsMentionedByRitualSpell(c,spell)
 	return (spell.fit_monster and c:IsCode(table.unpack(spell.fit_monster))) or spell:ListsCode(c:GetCode())
 end
 
---Special Summons
-function Duel.SpecialSummonRedirect(redirect,e,g,sumtype,sump,fieldp,ignore_sumcon,ignore_revive_limit,pos,zone,desc)
-	if type(redirect)=="Effect" then
-		redirect,e,g,sumtype,sump,fieldp,ignore_sumcon,ignore_revive_limit,pos,zone = LOCATION_REMOVED,redirect,e,g,sumtype,sump,fieldp,ignore_sumcon,ignore_revive_limit,pos
-	end
+--Set Backrow
+function Glitchy.SetSuccessfullyFilter(c)
+	return c:IsFacedown() and c:IsLocation(LOCATION_SZONE)
+end
+function Card.MustWaitOneTurnToActivateAfterBeingSet(c)
+	return c:IsTrap() or c:IsSpell(TYPE_QUICKPLAY)
+end
+function Duel.SSetAndFastActivation(p,g,e,cond,brk)
 	if type(g)=="Card" then g=Group.FromCards(g) end
-	
-	if not desc then
-		if redirect==LOCATION_REMOVED then
-			desc=STRING_BANISH_REDIRECT
-		elseif redirect==LOCATION_DECK then
-			desc=STRING_TOP_OF_DECK_REDIRECT
-		elseif redirect==SEQ_DECKBOT then
-			desc=STRING_BOTTOM_OF_DECK_REDIRECT
-		elseif redirect==LOCATION_DECKSHF then
-			desc=STRING_SHUFFLE_INTO_DECK_REDIRECT
+	if Duel.SSet(p,g)>0 and (not cond or cond==true or cond(e,p)) then
+		local c=e:GetHandler()
+		local og=g:Filter(aux.AND(Card.MustWaitOneTurnToActivateAfterBeingSet,xgl.SetSuccessfullyFilter),nil)
+		if #og>0 and brk then
+			Duel.BreakEffect()
 		end
-	end
-	
-	local owner=e:GetHandler()
-	for dg in aux.Next(g) do
-		local finalzone=zone
-		if type(zone)=="table" then
-			finalzone=zone[fieldp+1]
-			if dg:IsCanBeSpecialSummoned(e,sumtype,sump,ignore_sumcon,ignore_revive_limit,pos,1-fieldp,zone[2-fieldp])
-			and (not dg:IsCanBeSpecialSummoned(e,sumtype,sump,ignore_sumcon,ignore_revive_limit,pos,fieldp,finalzone) or Duel.SelectYesNo(sump,aux.Stringid(61665245,2))) then
-				fieldp=1-fieldp
-				finalzone=zone[fieldp+1]
-			end
-		end
-		if Duel.SpecialSummonStep(dg,sumtype,sump,fieldp,ignore_sumcon,ignore_revive_limit,pos,finalzone) then
-			local e1=Effect.CreateEffect(owner)
+		for tc in aux.Next(og) do
+			local code = tc:IsTrap() and EFFECT_TRAP_ACT_IN_SET_TURN or EFFECT_QP_ACT_IN_SET_TURN
+			local e1=Effect.CreateEffect(c)
+			e1:SetDescription(STRING_FAST_ACTIVATION)
 			e1:SetType(EFFECT_TYPE_SINGLE)
-			e1:SetCode(EFFECT_LEAVE_FIELD_REDIRECT)
-			if desc then
-				e1:SetDescription(desc)
-				e1:SetProperty(EFFECT_FLAG_CANNOT_DISABLE|EFFECT_FLAG_CLIENT_HINT)
-			else
-				e1:SetProperty(EFFECT_FLAG_CANNOT_DISABLE)
-			end
-			e1:SetValue(redirect)
-			e1:SetReset(RESET_EVENT|RESETS_REDIRECT)
-			dg:RegisterEffect(e1,true)
+			e1:SetCode(code)
+			e1:SetProperty(EFFECT_FLAG_SET_AVAILABLE|EFFECT_FLAG_CLIENT_HINT)
+			e1:SetReset(RESET_EVENT|RESETS_STANDARD)
+			tc:RegisterEffect(e1)
 		end
 	end
-	return Duel.SpecialSummonComplete()
+end
+function Duel.SSetAndRedirect(p,g,e)
+	if type(g)=="Card" then g=Group.FromCards(g) end
+	if Duel.SSet(p,g)>0 then
+		local c=e:GetHandler()
+		local og=g:Filter(xgl.SetSuccessfullyFilter,nil)
+		for tc in aux.Next(og) do
+			local e1=Effect.CreateEffect(c)
+			e1:SetDescription(STRING_BANISH_REDIRECT)
+			e1:SetType(EFFECT_TYPE_SINGLE)
+			e1:SetProperty(EFFECT_FLAG_SET_AVAILABLE|EFFECT_FLAG_CANNOT_DISABLE|EFFECT_FLAG_CLIENT_HINT)
+			e1:SetCode(EFFECT_LEAVE_FIELD_REDIRECT)
+			e1:SetValue(LOCATION_REMOVED)
+			e1:SetReset(RESET_EVENT|RESETS_REDIRECT_FIELD)
+			tc:RegisterEffect(e1,true)
+		end
+	end
 end
 
 --Shortcuts
@@ -2262,9 +2461,6 @@ function Duel.Group(f,tp,loc1,loc2,exc,...)
 end
 function Duel.HintMessage(tp,msg)
 	Duel.Hint(HINT_SELECTMSG,tp,msg)
-end
-function Auxiliary.Necro(f)
-	return aux.NecroValleyFilter(f)
 end
 function Card.Activation(c,oath,timings,cond,cost,tg,op,stop)
 	local e1=Effect.CreateEffect(c)
@@ -2322,8 +2518,92 @@ function Duel.Highlight(g)
 	end
 end
 
---Stat Modifiers (futureproofing)
+--Shortcuts for filters
+function Auxiliary.Necro(f)
+	return aux.NecroValleyFilter(f)
+end
+function Glitchy.PlasmatailFilter(targeting_player,f)
+	return	function(c,...)
+				if f and not f(c,...) then return false end
+				local eset={c:IsHasEffect(CARD_ANCESTAGON_PLASMATAIL)}
+				for _,e in ipairs(eset) do
+					local val=e:Evaluate(c)
+					if targeting_player==val then
+						return false
+					end
+				end
+				return true
+			end
+end
 
+--Special Summons
+function Duel.SpecialSummonRedirect(redirect,e,g,sumtype,sump,fieldp,ignore_sumcon,ignore_revive_limit,pos,zone,desc)
+	if type(redirect)=="Effect" then
+		redirect,e,g,sumtype,sump,fieldp,ignore_sumcon,ignore_revive_limit,pos,zone = LOCATION_REMOVED,redirect,e,g,sumtype,sump,fieldp,ignore_sumcon,ignore_revive_limit,pos
+	end
+	if type(g)=="Card" then g=Group.FromCards(g) end
+	
+	if not desc then
+		if redirect==LOCATION_REMOVED then
+			desc=STRING_BANISH_REDIRECT
+		elseif redirect==LOCATION_DECK then
+			desc=STRING_TOP_OF_DECK_REDIRECT
+		elseif redirect==SEQ_DECKBOT then
+			desc=STRING_BOTTOM_OF_DECK_REDIRECT
+		elseif redirect==LOCATION_DECKSHF then
+			desc=STRING_SHUFFLE_INTO_DECK_REDIRECT
+		end
+	end
+	
+	local owner=e:GetHandler()
+	for dg in aux.Next(g) do
+		local finalzone=zone
+		if type(zone)=="table" then
+			finalzone=zone[fieldp+1]
+			if dg:IsCanBeSpecialSummoned(e,sumtype,sump,ignore_sumcon,ignore_revive_limit,pos,1-fieldp,zone[2-fieldp])
+			and (not dg:IsCanBeSpecialSummoned(e,sumtype,sump,ignore_sumcon,ignore_revive_limit,pos,fieldp,finalzone) or Duel.SelectYesNo(sump,aux.Stringid(61665245,2))) then
+				fieldp=1-fieldp
+				finalzone=zone[fieldp+1]
+			end
+		end
+		if Duel.SpecialSummonStep(dg,sumtype,sump,fieldp,ignore_sumcon,ignore_revive_limit,pos,finalzone) then
+			local e1=Effect.CreateEffect(owner)
+			e1:SetType(EFFECT_TYPE_SINGLE)
+			e1:SetCode(EFFECT_LEAVE_FIELD_REDIRECT)
+			if desc then
+				e1:SetDescription(desc)
+				e1:SetProperty(EFFECT_FLAG_CANNOT_DISABLE|EFFECT_FLAG_CLIENT_HINT)
+			else
+				e1:SetProperty(EFFECT_FLAG_CANNOT_DISABLE)
+			end
+			e1:SetValue(redirect)
+			e1:SetReset(RESET_EVENT|RESETS_REDIRECT)
+			dg:RegisterEffect(e1,true)
+		end
+	end
+	return Duel.SpecialSummonComplete()
+end
+
+--Special Summon Procedures and After Effect Resolution
+function Glitchy.RegisterResetAfterSpecialSummonRule(c,tp,...)
+	local effs={...}
+	local e0=Effect.CreateEffect(c)
+	e0:SetType(EFFECT_TYPE_FIELD|EFFECT_TYPE_CONTINUOUS)
+	e0:SetProperty(EFFECT_FLAG_CANNOT_DISABLE|EFFECT_FLAG_UNCOPYABLE)
+	e0:SetCode(EVENT_SPSUMMON)
+	e0:SetOperation(function(_e,_tp,_eg,_ep,_ev,_re,_r,_rp)
+		for _,e in ipairs(effs) do
+			e:Reset()
+		end
+		_e:Reset()
+	end
+	)
+	Duel.RegisterEffect(e0,tp)
+	return e0
+end
+
+
+--Stat Modifiers (futureproofing)
 function Card.HasATK(c)
 	return c:IsMonster()
 end
@@ -2352,6 +2632,16 @@ function Card.IsCanUpdateStats(c,atk,def,e,tp,r,exactly)
 end
 
 --Tables
+
+--Generate a table that contains all cards contained by the input group
+function Group.GetEquivalentTable(g)
+	local tab={}
+	for c in g:Iter() do
+		table.insert(tab,c)
+	end
+	return tab
+end
+
 function Glitchy.FindInTable(tab,...)
 	local extras={...}
 	if #extras==0 then return false end
@@ -2365,6 +2655,19 @@ function Glitchy.FindInTable(tab,...)
 	end
 	
 	return false
+end
+function Glitchy.CopyTable(tab,...)
+	if not tab then return end
+	local copy={}
+	local pre={...}
+	for _,b in ipairs(pre) do
+		table.insert(copy,b)
+	end
+	
+	for _,a in ipairs(tab) do
+		table.insert(copy,a)
+	end
+	return copy
 end
 function Glitchy.ClearTable(tab)
 	local size=#tab
@@ -2381,6 +2684,24 @@ function Glitchy.ClearTableRecursive(tab)
 		end
 		tab[k]=nil
 	end
+end
+function Glitchy.TableRemove(t, fnKeep)
+    local j, n = 1, #t;
+
+    for i=1,n do
+        if (fnKeep(t, i, j)) then
+            -- Move i's kept value to j's position, if it's not already there.
+            if (i ~= j) then
+                t[j] = t[i];
+                t[i] = nil;
+            end
+            j = j + 1; -- Increment position of where we'll place the next kept value.
+        else
+            t[i] = nil;
+        end
+    end
+
+    return t;
 end
 
 --Target function
@@ -2453,6 +2774,76 @@ function Group.GetXyzMaterialGroup(xyzg,matf,...)
 	return g
 end
 
+--Zones
+-- Recursively collects every way to assign 'cards' into 'available_zones'
+local function _collectAssignments(cards, idx, available_zones, current, results, p, up)
+    if idx > #cards then
+        -- snapshot current assignment
+        local snap = {}
+        for card, zone in pairs(current) do
+            snap[card] = zone
+        end
+        table.insert(results, snap)
+        return
+    end
+
+    local c = cards[idx]
+    -- build list of possible zones for this card
+    local zones = {}
+    do
+        local _, mask
+        if c:IsLocation(LOCATION_EXTRA) then
+            _, mask = Duel.GetLocationCountFromEx(p, up, nil, c)
+        else
+            _, mask = Duel.GetLocationCount(p, LOCATION_MZONE, up, nil)
+        end
+        mask = 0x7f & ~mask 
+        for _, z in aux.BitSplit(mask) do
+            table.insert(zones, z)
+        end
+    end
+
+    for _, z in ipairs(zones) do
+        if (available_zones & z) ~= 0 then
+            current[c] = z
+            _collectAssignments(cards, idx+1, available_zones & ~z, current, results, p, up)
+            current[c] = nil
+        end
+    end
+end
+
+--- Returns a list of all valid zone‐assignments for exactly the given group of cards.
+-- @param sg  a Group containing exactly the cards you want to place
+-- @param p   player ID
+-- @param up  position (e.g. POS_FACEUP)
+-- @return    an array of tables; each table maps each card→zone bitmask
+function Glitchy.GetZoneAssignmentsForGroup(sg, p, up)
+    local cards = (type(sg)=="Group") and sg:GetEquivalentTable() or sg
+
+    -- compute the starting available‐zones bitmask
+    local available = 0x7f & ~(select(2, Duel.GetLocationCount(p, LOCATION_MZONE, up)))
+    if Duel.CheckLocation(p, LOCATION_MZONE, 5) then available = available | 0x20 end
+    if Duel.CheckLocation(p, LOCATION_MZONE, 6) then available = available | 0x40 end
+
+    -- collect all assignments
+    local unfilteredResults,results = {},{}
+    _collectAssignments(cards, 1, available, {}, unfilteredResults, p, up)
+	
+	for _,tab in ipairs(unfilteredResults) do
+		local emzct=0
+		for c,z in pairs(tab) do
+			if z>0x10 then
+				emzct=emzct+1
+			end
+		end
+		if emzct<=1 then
+			table.insert(results, tab)
+		end
+	end
+	
+    return results
+end
+
 
 --LOAD OTHER LIBRARIES
 Duel.LoadScript("glitchylib_subgroup.lua")	--FUNCTIONS FOR SUBGROUP CHECKING/SELECTION
@@ -2461,4 +2852,3 @@ Duel.LoadScript("glitchylib_cost.lua")		--COSTS
 Duel.LoadScript("glitchylib_single.lua")	--SINGLE-TYPE EFFECTS TEMPLATES
 Duel.LoadScript("glitchylib_field.lua")		--FIELD-TYPE EFFECTS TEMPLATES
 Duel.LoadScript("glitchylib_activated.lua")	--ACTIVATED EFFECTS TEMPLATES
-Duel.LoadScript("glitchylib_regeff.lua")	--MODIFICATIONS TO EFFECT REGISTRATION PROCEDURE
