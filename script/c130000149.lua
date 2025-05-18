@@ -46,7 +46,7 @@ function s.target(e,tp,eg,ep,ev,re,r,rp,chk,chkc)
 			e:SetLabel(0)
 			return Duel.CheckReleaseGroupCost(tp,s.cfilter,1,false,s.spcheck,nil,dg)
 		else
-			return Duel.IsExistingTarget(xgl.PlasmatailFilter(tp),tp,LOCATION_ONFIELD,LOCATION_ONFIELD,1,exc)
+			return Duel.IsExistingTarget(xgl.PlasmatailFilter(tp),tp,LOCATION_ONFIELD,LOCATION_ONFIELD,2,exc)
 		end
 	end
 	if e:GetLabel()==1 then
@@ -55,7 +55,7 @@ function s.target(e,tp,eg,ep,ev,re,r,rp,chk,chkc)
 		Duel.Release(sg,REASON_COST)
 	end
 	Duel.Hint(HINT_SELECTMSG,tp,HINTMSG_DESTROY)
-	local g=Duel.SelectTarget(tp,xgl.PlasmatailFilter(tp),tp,LOCATION_ONFIELD,LOCATION_ONFIELD,1,1,exc)
+	local g=Duel.SelectTarget(tp,xgl.PlasmatailFilter(tp),tp,LOCATION_ONFIELD,LOCATION_ONFIELD,2,2,exc)
 	Duel.SetOperationInfo(0,CATEGORY_DESTROY,g,#g,0,0)
 end
 function s.activate(e,tp,eg,ep,ev,re,r,rp)
