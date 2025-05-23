@@ -50,7 +50,6 @@ function Card.RegisterEffect(c,eff,...)
 			local new_op = 	function(_e,tp,eg,_ep,ev,re,r,rp,c)
 								if c:IsLocation(LOCATION_EXTRA) then
 									local e1,e2
-									Debug.Message(EFFECT_ALLOW_MR3_SPSUMMON_FROM_ED)
 									local eset={Duel.GetPlayerEffect(tp,EFFECT_ALLOW_MR3_SPSUMMON_FROM_ED)}
 									local descs,validEffs={},{}
 									for _,e in ipairs(eset) do
