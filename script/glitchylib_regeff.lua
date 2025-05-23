@@ -1,53 +1,11 @@
 Glitchy=Glitchy or {}
 xgl=Glitchy
 
+Duel.LoadScript("glitchylib_new.lua")
+
 self_reference_effect, last_tp, last_eg, last_ep, last_ev, last_re, last_r, last_rp, last_chk = nil, nil, nil, nil, nil, nil, nil, nil, nil
 
 CHK_ANCESTAGON_PLASMATAIL				=	130000138
-
---[[Effect.Evaluate
-Get the value of an effect. If the effect has a function as value, it calculates the value of the function
-]]
-function Effect.Evaluate(e,...)
-	local extraargs={...}
-	local val=e:GetValue()
-	if not val then return false end
-	if type(val)=="function" then
-		local results={val(e,table.unpack(extraargs))}
-		return table.unpack(results)
-	else
-		return val
-	end
-end
-function Effect.EvaluateInteger(e,...)
-	local extraargs={...}
-	local val=e:GetValue()
-	if not val then return 0 end
-	if type(val)=="function" then
-		local results={val(e,table.unpack(extraargs))}
-		return table.unpack(results)
-	else
-		return val
-	end
-end
-function Glitchy.TableRemove(t, fnKeep)
-    local j, n = 1, #t;
-
-    for i=1,n do
-        if (fnKeep(t, i, j)) then
-            -- Move i's kept value to j's position, if it's not already there.
-            if (i ~= j) then
-                t[j] = t[i];
-                t[i] = nil;
-            end
-            j = j + 1; -- Increment position of where we'll place the next kept value.
-        else
-            t[i] = nil;
-        end
-    end
-
-    return t;
-end
 
 --
 local _RegisterEffect = Card.RegisterEffect
@@ -92,6 +50,7 @@ function Card.RegisterEffect(c,eff,...)
 			local new_op = 	function(_e,tp,eg,_ep,ev,re,r,rp,c)
 								if c:IsLocation(LOCATION_EXTRA) then
 									local e1,e2
+									Debug.Message(EFFECT_ALLOW_MR3_SPSUMMON_FROM_ED)
 									local eset={Duel.GetPlayerEffect(tp,EFFECT_ALLOW_MR3_SPSUMMON_FROM_ED)}
 									local descs,validEffs={},{}
 									for _,e in ipairs(eset) do

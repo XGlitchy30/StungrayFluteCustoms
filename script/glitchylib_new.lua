@@ -108,6 +108,17 @@ function Effect.Evaluate(e,...)
 		return val
 	end
 end
+function Effect.EvaluateInteger(e,...)
+	local extraargs={...}
+	local val=e:GetValue()
+	if not val then return 0 end
+	if type(val)=="function" then
+		local results={val(e,table.unpack(extraargs))}
+		return table.unpack(results)
+	else
+		return val
+	end
+end
 
 --Attach as material
 function Card.IsCanBeAttachedTo(c,xyzc,e,p,r)
