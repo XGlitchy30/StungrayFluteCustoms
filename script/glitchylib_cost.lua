@@ -218,6 +218,7 @@ function Glitchy.RevealCost(f,min,max,exc,reset,rct)
 					local g=Duel.SelectMatchingCard(tp,xgl.RevealFilter(f),tp,LOCATION_HAND,0,min,max,exc,e,tp,eg,ep,ev,re,r,rp)
 					if #g>0 then
 						Duel.ConfirmCards(1-tp,g)
+						Duel.ShuffleHand(tp)
 					end
 				end
 	else
