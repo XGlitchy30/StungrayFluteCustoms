@@ -21,28 +21,30 @@ aux.DelayedEventRaiserTable = {}
 
 --[[Raises custom event with a compound Event Group containing all cards that raised the specified event at different times during a Chain.
 Handles correct interactions with Trigger Effects whose resolution depends on the specific card that raised the event (eg. Union Hangar)
-c 								= The card that needs to check for the event
-code 							= The code of the custom event that will be raised. A progressive ID might be needed in some cases, for example when check_if_already_in_location is set (see
-								Dismay from the Dark)
-event							= The event that must be checked. You can specify multiple events by passing a table
-f								= Filter for the cards that are involved in the "event(s)"
-flag							= Specify the id for the flag effect that is used internally by this function
-range							= If specified, these checks will only be performed while "c" is in the "range". Otherwise, the checks are always performed during the Duel
+-c 								= The card that needs to check for the event
+-code 							= The code of the custom event that will be raised.
+-event							= The event that must be checked. You can specify multiple events by passing a table
+-f								= Filter for the cards that are involved in the "event(s)"
+-flag							= Specify the id for the flag effect that is used internally by this function
+-range							= If specified, these checks will only be performed while "c" is in the "range". Otherwise, the checks are always performed during the Duel
 								 (the latter case applies for private-location Trigger Effects)
-evgcheck						= You can specify an additional check for the compound Event Group before raising the custom event. If this check is not passed, the custom event is not raised.
-check_if_already_in_location	= If a location is specified, the respective AddThisCardInLocationAlreadyCheck will be performed
-operation						= You can invoke a function before raising the custom event. The function must return the Event Value of the custom event.
-simult_check					= You can specify an id for an additional flag that separately keeps track of cards that were simultaneously involved in an instance of the specified event.
-forced							= Raises the custom event even if the final group is empty (required for mandatory Trigger Effects)
-customevgop						= Allows to call a custom function when the cards involved in the local Event Groups are receiving the flag
+-evgcheck						= You can specify an additional check for the compound Event Group before raising the custom event. If this check is not passed, the custom event is not raised.
+-check_if_already_in_location	= If a location is specified, the respective AddThisCardInLocationAlreadyCheck will be performed
+-operation						= You can invoke a function before raising the custom event. The function must return the Event Value of the custom event.
+-simult_check					= You can specify an id for an additional flag that separately keeps track of cards that were simultaneously involved in an instance of the specified event.
+-forced							= Raises the custom event even if the final group is empty (required for mandatory Trigger Effects)
+-customevgop						= Allows to call a custom function when the cards involved in the local Event Groups are receiving the flag
 								(useful for effects that must keep track of certain properties the cards had in a previous location)
-raiseOnlyOneEvent				= If true, only 1 custom event will be raised, independently from how many times the input event was detected
-checkcond						= If this condition is not met, the event check does not occur
+-raiseOnlyOneEvent				= If true, only 1 custom event will be raised, independently from how many times the input event was detected
+-checkcond						= If this condition is not met, the event check does not occur
+-isNotEventGroupCode             = Must be true if the passed event does not have an associated Event Group
 ]]
-function Auxiliary.RegisterMergedDelayedEventGlitchy(c,code,event,f,flag,range,evgcheck,check_if_already_in_location,operation,simult_check,forced,customevgop,raiseOnlyOneEvent,checkcond)
+function Auxiliary.RegisterMergedDelayedEventGlitchy(c,code,event,f,flag,range,evgcheck,check_if_already_in_location,operation,simult_check,forced,customevgop,raiseOnlyOneEvent,checkcond,isNotEventGroupCode)
 	if type(event)~="table" then event={event} end
 	if not f then f=aux.TRUE end
 	if not flag then flag=c:GetOriginalCode() end
+	if not operation then operation=aux.ReturnMergedID end
+	
 	local se
 	if check_if_already_in_location then
 		if check_if_already_in_location&LOCATION_GRAVE>0 then
@@ -82,7 +84,7 @@ function Auxiliary.RegisterMergedDelayedEventGlitchy(c,code,event,f,flag,range,e
 				ge1:SetCode(ev)
 				ge1:SetLabel(code)
 				ge1:SetLabelObject(g)
-				ge1:SetOperation(Auxiliary.MergedDelayEventCheckGlitchy1(ev,flag,f,nil,evgcheck,nil,operation,simult_check,forced,customevgop,EVENT_COUNTER_ID,raiseOnlyOneEvent,checkcond))
+				ge1:SetOperation(Auxiliary.MergedDelayEventCheckGlitchy1(ev,flag,f,nil,evgcheck,nil,operation,simult_check,forced,customevgop,EVENT_COUNTER_ID,raiseOnlyOneEvent,checkcond,isNotEventGroupCode))
 				Duel.RegisterEffect(ge1,0)
 			end
 		end
@@ -90,7 +92,7 @@ function Auxiliary.RegisterMergedDelayedEventGlitchy(c,code,event,f,flag,range,e
 			local ge2=ge1:Clone()
 			ge2:SetCode(EVENT_CHAIN_END)
 			ge2:SetCondition(aux.TRUE)
-			ge2:SetOperation(Auxiliary.MergedDelayEventCheckGlitchy2(flag,nil,evgcheck,nil,operation,forced,EVENT_COUNTER_ID,raiseOnlyOneEvent))
+			ge2:SetOperation(Auxiliary.MergedDelayEventCheckGlitchy2(flag,nil,evgcheck,nil,operation,forced,EVENT_COUNTER_ID,raiseOnlyOneEvent,isNotEventGroupCode))
 			Duel.RegisterEffect(ge2,0)
 		end
 		if simult_check then
@@ -119,13 +121,13 @@ function Auxiliary.RegisterMergedDelayedEventGlitchy(c,code,event,f,flag,range,e
 			--ge1:SetRange(range)
 			ge1:SetLabel(code)
 			ge1:SetLabelObject(g)
-			ge1:SetOperation(Auxiliary.MergedDelayEventCheckGlitchy1(ev,flag,f,public_range,evgcheck,se,operation,simult_check,forced,customevgop,EVENT_COUNTER_ID,raiseOnlyOneEvent,checkcond))
+			ge1:SetOperation(Auxiliary.MergedDelayEventCheckGlitchy1(ev,flag,f,public_range,evgcheck,se,operation,simult_check,forced,customevgop,EVENT_COUNTER_ID,raiseOnlyOneEvent,checkcond,isNotEventGroupCode))
 			Duel.RegisterEffect(ge1,0)
 		end
 		local ge2=ge1:Clone()
 		ge2:SetCode(EVENT_CHAIN_END)
 		ge2:SetCondition(aux.TRUE)
-		ge2:SetOperation(Auxiliary.MergedDelayEventCheckGlitchy2(flag,public_range,evgcheck,se,operation,forced,EVENT_COUNTER_ID,raiseOnlyOneEvent))
+		ge2:SetOperation(Auxiliary.MergedDelayEventCheckGlitchy2(flag,public_range,evgcheck,se,operation,forced,EVENT_COUNTER_ID,raiseOnlyOneEvent,isNotEventGroupCode))
 		Duel.RegisterEffect(ge2,0)
 		if simult_check then
 			aux.MustUpdateEventID[c]=false
@@ -142,6 +144,18 @@ function Auxiliary.RegisterMergedDelayedEventGlitchy(c,code,event,f,flag,range,e
 			Duel.RegisterEffect(ge5,0)
 		end
 	end
+	
+	if not aux.MergedDelayedEventResetCheck then
+		aux.MergedDelayedEventResetCheck=true
+		local ge9=Effect.GlobalEffect()
+		ge9:SetType(EFFECT_TYPE_FIELD|EFFECT_TYPE_CONTINUOUS)
+		ge9:SetCode(EVENT_TURN_END)
+		ge9:OPT()
+		ge9:SetOperation(function()
+			xgl.ClearTableRecursive(aux.DelayedEventRaiserTable)
+		end)
+		Duel.RegisterEffect(ge9,0)
+	end
 end
 function Auxiliary.ContTrapMergedEventCheckCond(e,tp,eg,ep,ev,re,r,rp)
 	local c=e:GetHandler()
@@ -150,7 +164,7 @@ end
 function Auxiliary.SignalEventIDUpdate(e,tp,eg,ep,ev,re,r,rp)
 	aux.MustUpdateEventID[e:GetOwner()] = true
 end
-function Auxiliary.MergedDelayEventCheckGlitchy1(event,id,f,range,evgcheck,se,operation,simult_check,forced,customevgop,eid,raiseOnlyOneEvent,checkcond)
+function Auxiliary.MergedDelayEventCheckGlitchy1(event,id,f,range,evgcheck,se,operation,simult_check,forced,customevgop,eid,raiseOnlyOneEvent,checkcond,isNotEventGroupCode)
 	return	function(e,tp,eg,ep,ev,re,r,rp)
 				local c=e:GetOwner()
 				local tp=c:GetControler()
@@ -171,36 +185,42 @@ function Auxiliary.MergedDelayEventCheckGlitchy1(event,id,f,range,evgcheck,se,op
 				local g=e:GetLabelObject()
 				if type(g)~="Group" then return end
 				local obj = type(se)=="Effect" and se:GetLabelObject() or nil
-				local evg=eg:Filter(f,nil,e,tp,eg,ep,ev,re,r,rp,obj,event):Filter(aux.SimultaneousEventCheck,nil,obj)
+				local evg=not isNotEventGroupCode and eg:Filter(f,nil,e,tp,eg,ep,ev,re,r,rp,obj,event):Filter(aux.SimultaneousEventCheck,nil,obj) or nil
 				--Debug.Message(#evg)
 				local flagID=id
 				
 				local updatedEventID=false
 				if aux.MustUpdateEventID[c]==true then
 					updatedEventID=true
-					if forced and type(aux.EventCounter[eid])=="number" and #evg>0 then
+					if forced and type(aux.EventCounter[eid])=="number" and (not evg or #evg>0) then
 						aux.EventCounter[eid] = aux.EventCounter[eid] + 1
 					end
 					EVENT_ID = EVENT_ID + 1
 					aux.MustUpdateEventID[c]=false
 				end
 				
-				for tc in aux.Next(evg) do
-					if type(id)=="function" then
-						flagID=id(event,tc,e,tp,eg,ep,ev,re,r,rp)
+				if evg then
+					for tc in aux.Next(evg) do
+						if type(id)=="function" then
+							flagID=id(event,tc,e,tp,eg,ep,ev,re,r,rp)
+						end
+						tc:RegisterFlagEffect(flagID,RESET_EVENT+RESETS_STANDARD-RESET_TURN_SET,EFFECT_FLAG_SET_AVAILABLE,1,label)
+						if simult_check then
+							tc:RegisterFlagEffect(simult_check,RESET_PHASE+PHASE_END,EFFECT_FLAG_SET_AVAILABLE,1,EVENT_ID)
+						end
+						
+						if customevgop then
+							customevgop(tc,e,tp,eg,ep,ev,re,r,rp,evg)
+						end
 					end
-					tc:RegisterFlagEffect(flagID,RESET_EVENT+RESETS_STANDARD-RESET_TURN_SET,EFFECT_FLAG_SET_AVAILABLE,1,label)
-					if simult_check then
-						tc:RegisterFlagEffect(simult_check,RESET_PHASE+PHASE_END,EFFECT_FLAG_SET_AVAILABLE,1,EVENT_ID)
-					end
-					
+					g:Merge(evg) --Debug.Message('gsize '..tostring(#g))
+				else
 					if customevgop then
-						customevgop(tc,e,tp,eg,ep,ev,re,r,rp,evg)
+						customevgop(e,tp,eg,ep,ev,re,r,rp)
 					end
 				end
 				
-				
-				g:Merge(evg)				--Debug.Message('gsize '..tostring(#g))
+							
 				if Duel.GetCurrentChain()==0 and not Duel.CheckEvent(EVENT_CHAIN_SOLVED) and not Duel.CheckEvent(EVENT_CHAIN_END) then
 					--Debug.Message('nochain')
 					local flags	
@@ -210,14 +230,16 @@ function Auxiliary.MergedDelayEventCheckGlitchy1(event,id,f,range,evgcheck,se,op
 						flags={id}
 					end
 					local G=Group.CreateGroup()
-					for _,cid in ipairs(flags) do
-						local _eg=g:Clone()
-						_eg=_eg:Filter(Card.HasFlagEffectLabel,nil,cid,label)
-						
-						--Debug.Message("NOCHAIN_FILTERED_COUNT "..tostring(cid)..": "..tostring(#_eg))
-						G:Merge(_eg)
+					if evg then
+						for _,cid in ipairs(flags) do
+							local _eg=g:Clone()
+							_eg=_eg:Filter(Card.HasFlagEffectLabel,nil,cid,label)
+							
+							--Debug.Message("NOCHAIN_FILTERED_COUNT "..tostring(cid)..": "..tostring(#_eg))
+							G:Merge(_eg)
+						end
 					end
-					if g and #g>0 and (#G>0 or forced) then
+					if not evg or (g and #g>0 and (#G>0 or forced)) then
 						if not evgcheck or evgcheck(G,e,tp,ep,ev,re,r,rp) then
 							--Debug.Message('a')
 							local customev=ev
@@ -244,7 +266,7 @@ function Auxiliary.MergedDelayEventCheckGlitchy1(event,id,f,range,evgcheck,se,op
 				end
 			end
 end
-function Auxiliary.MergedDelayEventCheckGlitchy2(id,range,evgcheck,se,operation,forced,eid,raiseOnlyOneEvent)
+function Auxiliary.MergedDelayEventCheckGlitchy2(id,range,evgcheck,se,operation,forced,eid,raiseOnlyOneEvent,isNotEventGroupCode)
 	return	function(e,tp,eg,ep,ev,re,r,rp)
 				local c=e:GetOwner()
 				local tp=c:GetControler()
@@ -260,7 +282,8 @@ function Auxiliary.MergedDelayEventCheckGlitchy2(id,range,evgcheck,se,operation,
 				local g=e:GetLabelObject()
 				if type(g)~="Group" then return end
 				--Debug.Message('test')
-				if #g>0 then
+				if isNotEventGroupCode or #g>0 then
+					
 					local flags
 					if type(id)=="function" then
 						flags={id()}
@@ -268,15 +291,17 @@ function Auxiliary.MergedDelayEventCheckGlitchy2(id,range,evgcheck,se,operation,
 						flags={id}
 					end
 					local G=Group.CreateGroup()
-					for _,cid in ipairs(flags) do
-						local _eg=g:Clone()
-						--Debug.Message("FLAG: "..tostring(cid))
-						_eg=_eg:Filter(Card.HasFlagEffectLabel,nil,cid,label)
-						--Debug.Message("FILTERED GROUP COUNT: "..tostring(#_eg))
-						
-						G:Merge(_eg)
+					if not isNotEventGroupCode then
+						for _,cid in ipairs(flags) do
+							local _eg=g:Clone()
+							--Debug.Message("FLAG: "..tostring(cid))
+							_eg=_eg:Filter(Card.HasFlagEffectLabel,nil,cid,label)
+							--Debug.Message("FILTERED GROUP COUNT: "..tostring(#_eg))
+							
+							G:Merge(_eg)
+						end
 					end
-				    if g and #g>0 and (#G>0 or forced) then
+				    if isNotEventGroupCode or (g and #g>0 and (#G>0 or forced)) then
 						--Debug.Message('b')
 						if not evgcheck or evgcheck(G,e,tp,ep,ev,re,r,rp) then
 							local customev=ev

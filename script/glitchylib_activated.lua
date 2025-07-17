@@ -28,7 +28,26 @@ function Glitchy.CheckTargetsAtResolution(tgcheck,loc1,loc2,tp,g,f,...)
 		return #g>0, g
 	end
 end
---
+
+--Targeting template
+Glitchy.Target = aux.FunctionWithNamedArgs(
+function(f,loc1,loc2,min,max,exc,extrachk,hint,extratg,extraparams)
+	loc1 = loc1 or 0
+	loc2 = loc2 or 0
+	min = min or 1
+	max = max or min
+	return	function(e,tp,eg,ep,ev,re,r,rp,chk,chkc)
+				if chkc then return xgl.CreateChkc(chkc,e,tp,loc1,loc2,exc,f,e,tp) end
+				local x=extraparams and {extraparams(e,tp,eg,ep,ev,re,r,rp,chk)} or {}
+				if chk==0 then
+					return (not extrachk or extrachk(e,tp,eg,ep,ev,re,r,rp)) and Duel.IsExists(true,f,tp,loc1,loc2,min,exc,e,tp,table.unpack(x))
+				end
+				local g=Duel.Select(hint,true,tp,f,tp,loc1,loc2,min,max,exc,e,tp,table.unpack(x))
+				if extratg then extratg(g,e,tp,eg,ep,ev,re,r,rp,chk) end
+			end
+end,
+"f","loc1","loc2","min","max","exc","extrachk","hint","extratg","extraparams"
+)
 
 --Draw effect template
 function Glitchy.DrawTarget(p,val,ignore_chk)
@@ -537,7 +556,8 @@ end
 
 --Special Summon "this card"
 --[[Parameters
-1) redirect = Redirect the card to the specified location when it leaves the field
+1) handlecost = If true, cost already handles the MZone check
+2) redirect = Redirect the card to the specified location when it leaves the field
 ]]
 function Glitchy.SpecialSummonSelfTarget(handlecost)
 	if handlecost then

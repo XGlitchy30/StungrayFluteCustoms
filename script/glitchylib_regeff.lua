@@ -361,6 +361,35 @@ function Card.RegisterEffect(c,eff,...)
 							end
 			e:SetTarget(newtg)
 		end
+	
+		if op and not isHasExceptionType then
+			local newop =	function(...)
+								local x={...}
+								local e,tp,eg,ep,ev,re,r,rp,chk,chkc = table.unpack(x)
+								
+								local previous_state = {self_reference_effect, last_tp, last_eg, last_ep, last_ev, last_re, last_r, last_rp, last_chk}
+								
+								self_reference_effect, last_tp, last_eg, last_ep, last_ev, last_re, last_r, last_rp, last_chk = table.unpack(x)
+								
+								if #x>1 and type(tp)=="number" and (tp==0 or tp==1) then
+									self_reference_tp = tp
+								end
+								
+								-- if #x>=9 and chk~=0 and (#x<10 or not chkc) and not cost then
+									-- Duel.RaiseEvent(e:GetHandler(),EVENT_CHAIN_CREATED,e,0,tp,tp,Duel.GetCurrentChain())
+								-- end
+								
+								local res=op(table.unpack(x))
+								
+								self_reference_effect, last_tp, last_eg, last_ep, last_ev, last_re, last_r, last_rp, last_chk = table.unpack(previous_state)
+								
+								
+								return res
+								
+							end
+			e:SetOperation(newop)
+			
+		end
 	end
 	
 	local res=_RegisterEffect(c,eff,...)

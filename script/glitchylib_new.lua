@@ -26,6 +26,8 @@ EFFECT_REMEMBER_XYZ_HOLDER			=	2007	--Effect that makes it possible for a card t
 EFFECT_ASSUME_LOCATION				=	2008	--Cards affected by this effect are treated as if they were in the location specified as this effect's value. Requires glitchylib_redirect to be loaded
 EFFECT_CANNOT_TO_EXTRA_P			=	2009	--[[Players affected by this effect cannot add Pendulum Cards to the Extra Deck, face-up. Can also be applied to a card instead of a player. Futureproofing for "Ancestagon Plasmatail" and similar cards]]
 EFFECT_ALLOW_MR3_SPSUMMON_FROM_ED	=	2010	--[[Players affected by this effect can use old MR3 rulings when Special Summoning monsters from the Extra Deck that meet the Target Function's requirements, and only to Summon them to the zones indicated by the Value Function. Requires glitchylib_MR3spsummon to be loaded]]
+EFFECT_SKIP_DICE_ROLL				=	2011	--[[Dice rolls (that meet the requirements of the Target Function) of players affected by this effect will be skipped. The would-be results of the roll are replaced by the value returned by this effect]]
+EFFECT_CAN_BE_TUNER_GLITCHY			=	2012	--[[Similar to EFFECT_CAN_BE_TUNER, but it allows to also specify whether it can be applied or not depending on the Synchro Monster that is going to be Summoned. Requires glitchymods_synchro to be loaded]]
 
 --Locations
 
@@ -44,6 +46,11 @@ COIN_TAILS = 0
 
 --Effects
 EFFECT_FLAG_EFFECT	=	0x10000000
+
+--Effect types
+EFFECT_TYPES_TRIGGER = EFFECT_TYPE_TRIGGER_O|EFFECT_TYPE_TRIGGER_F
+EFFECT_TYPES_QUICK = EFFECT_TYPE_QUICK_O|EFFECT_TYPE_QUICK_F
+EFFECT_TYPES_EVENT = EFFECT_TYPE_ACTIVATE|EFFECT_TYPES_TRIGGER|EFFECT_TYPES_QUICK
 
 --Properties
 EFFECT_FLAG_DD = EFFECT_FLAG_DAMAGE_STEP|EFFECT_FLAG_DAMAGE_CAL
@@ -304,8 +311,9 @@ function Duel.Negate(g,e,reset,notfield,forced,typ,cond)
 	end
 	if not typ then typ=0 end
 	
-	local returntype=type(g)
-	if returntype=="Card" then
+	local paramtype=type(g)
+	local returntype=(paramtype=="Group" and #g==1) and "Card" or paramtype
+	if paramtype=="Card" then
 		g=Group.FromCards(g)
 	end
 	local check=0
@@ -333,6 +341,7 @@ function Duel.Negate(g,e,reset,notfield,forced,typ,cond)
 		end
 		e2:SetReset(RESET_EVENT|RESETS_STANDARD|reset,rct)
 		tc:RegisterEffect(e2,forced)
+
 		if not notfield and typ&TYPE_TRAP>0 and tc:IsType(TYPE_TRAPMONSTER) then
 			local e3=Effect.CreateEffect(c)
 			e3:SetType(EFFECT_TYPE_SINGLE)
@@ -341,17 +350,24 @@ function Duel.Negate(g,e,reset,notfield,forced,typ,cond)
 			if cond then
 				e3:SetCondition(cond)
 			end
-			e3:SetReset(RESET_EVENT+RESETS_STANDARD+reset,rct)
+			e3:SetReset(RESET_EVENT|RESETS_STANDARD|reset,rct)
 			tc:RegisterEffect(e3,forced)
 			local res=tc:CheckNegateConjunction(e1,e2,e3)
 			if res then
 				Duel.AdjustInstantly(tc)
+				res = res and tc:IsDisabled()
 			end
-			return e1,e2,e3,res
+			if returntype=="Card" then
+				return e1,e2,e3,res
+			elseif res then
+				check=check+1
+			end
 		end
+		
 		local res=tc:CheckNegateConjunction(e1,e2)
 		if res then
 			Duel.AdjustInstantly(tc)
+			res = res and tc:IsDisabled()
 		end
 		if returntype=="Card" then
 			return e1,e2,res
@@ -997,7 +1013,40 @@ function Card.OnlyOneOnField(c,id)
 	return c:SetUniqueOnField(1,1,id)
 end
 
---Delayed Operation (supports card_or_group == nil)
+---Delays a user-defined operation on a card or group until a specific Duel phase.
+--@param card_or_group  Card|Group|nil  
+--   A single Card or a Group of cards to which the delayed effect will apply.
+--   If `nil`, the effect is global (no filtering by cards).  
+--@param phase          integer  
+--   The Duel phase constant (e.g. `PHASE_DRAW`, `PHASE_STANDBY`, etc.) on which the operation will fire.  
+--@param flag           integer
+--   A unique identifier for flagging affected cards. Used internally to track which cards to operate on.  
+--@param e              Effect  
+--   The base Effect object that spawns the delayed effect.  
+--@param tp             number  
+--   The player to which the new delayed effect is registered.  
+--@param oper           function  
+--   Callback `(group, e, tp, eg, ep, ev, re, r, rp, turncount)`  
+--   executed when the phase occurs and `cond` (if any) passes.  
+--   `group` is the set of cards flagged for this effect.  
+--@param cond           function  
+--   Optional predicate `(group, e, tp, eg, ep, ev, re, r, rp, turncount) -> boolean`.  
+--   If provided, must return `true` to permit `oper` to run.  
+--@param reset          integer  
+--   The reset mask determining when the effect expires.  
+--   Defaults to `RESET_PHASE|phase`.  
+--@param reset_count    integer  
+--   How many times the reset mask can trigger before the effect is removed.  
+--   Defaults to `1`.  
+--@param hint           integer
+--   Optional client hint ID shown on flagged cards.  
+--   If truthy, also adds `EFFECT_FLAG_CLIENT_HINT`.  
+--@param effect_desc    integer  
+--   Optional description text for the delayed effect’s tooltip.  
+-- 
+--@return Effect  
+--   The newly created continuous field Effect that will run `oper` at the chosen phase.]]
+   
 function Glitchy.DelayedOperation(card_or_group,phase,flag,e,tp,oper,cond,reset,reset_count,hint,effect_desc)
 	local g
 	if card_or_group then
@@ -1022,7 +1071,7 @@ function Glitchy.DelayedOperation(card_or_group,phase,flag,e,tp,oper,cond,reset,
 	e1:SetCode(EVENT_PHASE|phase)
 	e1:SetReset(reset,reset_count)
 	e1:SetCountLimit(1)
-	e1:SetLabel(fid)
+	e1:SetLabel(card_or_group and fid or 0)
 	if g then
 		e1:SetLabelObject(g)
 	end
@@ -1886,6 +1935,9 @@ function Effect.OPT(e,ct)
 		return e:SetCountLimit(ct)
 	end
 end
+function Effect.OPC(e)
+	return e:SetCountLimit(1,0,EFFECT_COUNT_CODE_CHAIN)
+end
 
 if not Auxiliary.HOPTTracker then
 	Auxiliary.HOPTTracker={}
@@ -2432,7 +2484,7 @@ function Duel.SSetAndRedirect(p,g,e)
 			e1:SetProperty(EFFECT_FLAG_SET_AVAILABLE|EFFECT_FLAG_CANNOT_DISABLE|EFFECT_FLAG_CLIENT_HINT)
 			e1:SetCode(EFFECT_LEAVE_FIELD_REDIRECT)
 			e1:SetValue(LOCATION_REMOVED)
-			e1:SetReset(RESET_EVENT|RESETS_REDIRECT_FIELD)
+			e1:SetReset(RESET_EVENT|RESETS_REDIRECT)
 			tc:RegisterEffect(e1,true)
 		end
 	end
@@ -2548,6 +2600,38 @@ function Glitchy.PlasmatailFilter(targeting_player,f)
 end
 
 --Special Summons
+function Duel.SpecialSummonNegate(e,g,styp,sump,fieldp,ign1,ign2,pos,zone,reset,rc)
+	if not zone then zone=0xff end
+	if not reset then reset=0 end
+	if not rc then rc=e:GetHandler() end
+	if type(g)=="Card" then g=Group.FromCards(g) end
+	
+	for dg in aux.Next(g) do
+		local finalzone=zone
+		if type(zone)=="table" then
+			finalzone=zone[fieldp+1]
+			if tc:IsCanBeSpecialSummoned(e,sumtype,sump,ign1,ign2,pos,1-fieldp,zone[2-fieldp]) and (not tc:IsCanBeSpecialSummoned(e,sumtype,sump,ign1,ign2,pos,fieldp,finalzone) or Duel.SelectYesNo(sump,aux.Stringid(61665245,2))) then
+				fieldp=1-fieldp
+				finalzone=zone[fieldp+1]
+			end
+		end
+		if Duel.SpecialSummonStep(dg,styp,sump,fieldp,ign1,ign2,pos,finalzone) then
+			local e1=Effect.CreateEffect(rc)
+			e1:SetType(EFFECT_TYPE_SINGLE)
+			e1:SetProperty(EFFECT_FLAG_IGNORE_IMMUNE)
+			e1:SetCode(EFFECT_DISABLE)
+			e1:SetReset(RESET_EVENT|RESETS_STANDARD|reset)
+			dg:RegisterEffect(e1,true)
+			local e2=Effect.CreateEffect(rc)
+			e2:SetType(EFFECT_TYPE_SINGLE)
+			e2:SetCode(EFFECT_DISABLE_EFFECT)
+			e2:SetValue(RESET_TURN_SET)
+			e2:SetReset(RESET_EVENT|RESETS_STANDARD|reset)
+			dg:RegisterEffect(e2,true)
+		end
+	end
+	return Duel.SpecialSummonComplete()
+end
 function Duel.SpecialSummonRedirect(redirect,e,g,sumtype,sump,fieldp,ignore_sumcon,ignore_revive_limit,pos,zone,desc)
 	if type(redirect)=="Effect" then
 		redirect,e,g,sumtype,sump,fieldp,ignore_sumcon,ignore_revive_limit,pos,zone = LOCATION_REMOVED,redirect,e,g,sumtype,sump,fieldp,ignore_sumcon,ignore_revive_limit,pos
