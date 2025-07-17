@@ -6,6 +6,7 @@ Scripted by: XGlitchy30
 
 local s,id=GetID()
 Duel.LoadScript("glitchylib_new.lua")
+Duel.LoadScript("glitchylib_delayed_event.lua")
 function s.initial_effect(c)
 	--When this card is activated: You can add 1 "Lady Luck" monster from your Deck to your hand.
 	local e0=c:Activation(nil,nil,nil,nil,s.target,s.activate,true)
