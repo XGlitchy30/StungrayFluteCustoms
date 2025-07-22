@@ -33,7 +33,7 @@ function s.initial_effect(c)
 	● 1, 2 or 3: Special Summon 1 "Lady Luck Token" (Fairy/Tuner/LIGHT/ Level 1/ATK 600/ DEF 600) in Defense Position.
 	● 4, 5 or 6: Banish this card, and if you do, Special Summon 1 "Lady Luck" monster from your Deck during your 2nd Standby Phase after this effect's activation.]]
 	local e2=Effect.CreateEffect(c)
-	e2:SetDescription(id,1)
+	e2:SetDescription(id,5)
 	e2:SetCategory(CATEGORY_DICE|CATEGORIES_TOKEN|CATEGORY_REMOVE)
 	e2:SetType(EFFECT_TYPE_FIELD|EFFECT_TYPE_TRIGGER_O)
 	e2:SetProperty(EFFECT_FLAG_DELAY|EFFECT_FLAG_DAMAGE_STEP,EFFECT_FLAG2_CHECK_SIMULTANEOUS)
@@ -98,6 +98,9 @@ function s.transferResults(e,tp,eg,ep,ev,re,r,rp,obj)
 	return MERGED_ID
 end
 
+function s.filter(c)
+	return c:IsFaceup() and c:IsSetCard(SET_LADY_LUCK)
+end
 function s.atktg(e,tp,eg,ep,ev,re,r,rp,chk)
 	local c=e:GetHandler()
 	local g=Duel.Group(s.filter,tp,LOCATION_MZONE,0,nil)

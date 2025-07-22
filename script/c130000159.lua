@@ -134,16 +134,16 @@ end
 function s.disop(e,tp,eg,ep,ev,re,r,rp)
 	local d=Duel.TossDice(tp,1)
 	if d>=1 and d<=3 then
-		Duel.Hint(HINT_OPSELECTED,tp,aux.Stringid(id,3))
-		Duel.Hint(HINT_OPSELECTED,1-tp,aux.Stringid(id,3))
+		Duel.Hint(HINT_OPSELECTED,tp,aux.Stringid(id,4))
+		Duel.Hint(HINT_OPSELECTED,1-tp,aux.Stringid(id,4))
 		if Duel.IsChainNegatable(ev) then
 			Duel.BreakEffect()
 			Duel.NegateActivation(ev)
 		end
 		
 	elseif d>3 and d<=6 then
-		Duel.Hint(HINT_OPSELECTED,tp,aux.Stringid(id,4))
-		Duel.Hint(HINT_OPSELECTED,1-tp,aux.Stringid(id,4))
+		Duel.Hint(HINT_OPSELECTED,tp,aux.Stringid(id,5))
+		Duel.Hint(HINT_OPSELECTED,1-tp,aux.Stringid(id,5))
 		Duel.BreakEffect()
 		if re:GetHandler():IsRelateToChain(ev) then
 			Duel.Remove(eg,POS_FACEUP,REASON_EFFECT)
