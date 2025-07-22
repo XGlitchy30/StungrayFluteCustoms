@@ -85,14 +85,14 @@ function s.storeResults(e,tp,eg,ep,ev,re,r,rp)
 	local dc={Duel.GetDiceResult()}
 	local ct=(ev&0xff)+(ev>>16)
 	for i=1,ct do
-		c:RegisterFlagEffect(FLAG_SAVED_RESULT,RESETS_STANDARD,0,1,dc[i])
+		c:RegisterFlagEffect(FLAG_SAVED_RESULT,RESET_EVENT|RESETS_STANDARD,0,1,dc[i])
 	end
 end
 function s.transferResults(e,tp,eg,ep,ev,re,r,rp,obj)
 	local c=e:GetOwner()
 	c:ResetFlagEffect(FLAG_TRANSFERRED_RESULT)
 	for _,res in ipairs({c:GetFlagEffectLabel(FLAG_SAVED_RESULT)}) do
-		c:RegisterFlagEffect(FLAG_TRANSFERRED_RESULT,RESETS_STANDARD,0,1,res)
+		c:RegisterFlagEffect(FLAG_TRANSFERRED_RESULT,RESET_EVENT|RESETS_STANDARD,0,1,res)
 	end
 	c:ResetFlagEffect(FLAG_SAVED_RESULT)
 	return MERGED_ID
@@ -110,8 +110,16 @@ function s.atktg(e,tp,eg,ep,ev,re,r,rp,chk)
 	end
 	c:ResetFlagEffect(FLAG_TRANSFERRED_RESULT)
 	table.sort(results)
-	Duel.Hint(HINT_SELECTMSG,tp,aux.Stringid(id,4))
-	local val=Duel.AnnounceNumber(tp,table.unpack(results))*100
+	local n
+	if #results>1 then
+		Duel.Hint(HINT_SELECTMSG,tp,aux.Stringid(id,4))
+		n=Duel.AnnounceNumber(tp,table.unpack(results))
+	else
+		n=results[1]
+		Duel.Hint(HINT_NUMBER,tp,n)
+		Duel.Hint(HINT_NUMBER,1-tp,n)
+	end
+	local val=n*100
 	Duel.SetTargetParam(val)
 	Duel.SetOperationInfo(0,CATEGORY_ATKCHANGE,g,#g,tp,val)
 end

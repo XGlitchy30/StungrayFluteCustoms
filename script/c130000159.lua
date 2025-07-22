@@ -46,7 +46,7 @@ end
 
 --E2
 function s.tdcon(e,tp,eg,ep,ev,re,r,rp)
-	if not (re:IsMonsterEffect() and rp==tp and re:IsHasCategory(CATEGORY_DICE)) then return false end
+	if not (re and re:IsMonsterEffect() and rp==tp and re:IsHasCategory(CATEGORY_DICE)) then return false end
 	local setcodes=Duel.GetChainInfo(ev,CHAININFO_TRIGGERING_SETCODES)
 	for _,set in ipairs(setcodes) do
 		if (SET_LADY_LUCK&0xfff)==(set&0xfff) and (SET_LADY_LUCK&set)==SET_LADY_LUCK then return true end
