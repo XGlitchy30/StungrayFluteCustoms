@@ -466,6 +466,11 @@ function Card.HalveDEF(c,reset,rc,range,cond,prop,desc)
 	local def=math.floor(c:GetDefense()/2 + 0.5)
 	return c:ChangeDEF(def,reset,rc,range,cond,prop,desc)
 end
+function Card.HalveATKDEF(c,reset,rc,range,cond,prop,desc)
+	local atk=math.floor(c:GetAttack()/2 + 0.5)
+	local def=math.floor(c:GetDefense()/2 + 0.5)
+	return c:ChangeATKDEF(atk,def,reset,rc,range,cond,prop,desc)
+end
 function Card.DoubleATK(c,reset,rc,range,cond,prop,desc)
 	local atk=c:GetAttack()*2
 	return c:ChangeATK(atk,reset,rc,range,cond,prop,desc)

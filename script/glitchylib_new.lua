@@ -965,44 +965,41 @@ end
 function Card.GlitchyGetPreviousColumnGroup(c,left,right)
 	local left = (left and type(left)=="number" and left>=0) and left or 0
 	local right = (right and type(right)=="number" and right>=0) and right or 0
-	if left==0 and right==0 then
-		return c:GetColumnGroup()
-	else
-		local f = 	function(card,refc,val)
-						local refseq
-						if refc:GetPreviousSequence()<5 then
-							refseq=refc:GetPreviousSequence()
-						else
-							if refc:GetPreviousSequence()==5 then
-								refseq = 1
-							elseif refc:GetPreviousSequence()==6 then
-								refseq = 3
-							end
-						end
+	
+	local f = function(card,refc,val)
+		local refseq
+		if refc:GetPreviousSequence()<5 then
+			refseq=refc:GetPreviousSequence()
+		else
+			if refc:GetPreviousSequence()==5 then
+				refseq = 1
+			elseif refc:GetPreviousSequence()==6 then
+				refseq = 3
+			end
+		end
 						
-						if card:GetPreviousSequence()<5 then
-							if card:IsPreviousControler(refc:GetPreviousControler()) then
-								return math.abs(refseq-card:GetPreviousSequence())==val
-							else
-								return math.abs(refseq+card:GetPreviousSequence()-4)==val
-							end
-						
-						elseif card:GetPreviousSequence()==5 then
-							local seq = card:IsPreviousControler(refc:GetPreviousControler()) and 1 or 3
-							return math.abs(refseq-seq)==val
-						elseif card:GetPreviousSequence()==6 then
-							local seq = card:IsPreviousControler(refc:GetPreviousControler()) and 3 or 1
-							return math.abs(refseq-seq)==val
-						end
-					end
-					
-		local lg=Duel.Group(f,c:GetPreviousControler(),LOCATION_MZONE+LOCATION_SZONE,LOCATION_MZONE+LOCATION_SZONE,nil,c,left)
-		local cg = Group.CreateGroup()
-		local rg=Duel.Group(f,c:GetPreviousControler(),LOCATION_MZONE+LOCATION_SZONE,LOCATION_MZONE+LOCATION_SZONE,nil,c,right)
-		cg:Merge(lg)
-		cg:Merge(rg)
-		return cg
+		if card:GetPreviousSequence()<5 then
+			if card:IsPreviousControler(refc:GetPreviousControler()) then
+				return math.abs(refseq-card:GetPreviousSequence())==val
+			else
+				return math.abs(refseq+card:GetPreviousSequence()-4)==val
+			end
+		
+		elseif card:GetPreviousSequence()==5 then
+			local seq = card:IsPreviousControler(refc:GetPreviousControler()) and 1 or 3
+			return math.abs(refseq-seq)==val
+		elseif card:GetPreviousSequence()==6 then
+			local seq = card:IsPreviousControler(refc:GetPreviousControler()) and 3 or 1
+			return math.abs(refseq-seq)==val
+		end
 	end
+					
+	local lg=Duel.Group(f,c:GetPreviousControler(),LOCATION_MZONE+LOCATION_SZONE,LOCATION_MZONE+LOCATION_SZONE,nil,c,left)
+	local cg = Group.CreateGroup()
+	local rg=Duel.Group(f,c:GetPreviousControler(),LOCATION_MZONE+LOCATION_SZONE,LOCATION_MZONE+LOCATION_SZONE,nil,c,right)
+	cg:Merge(lg)
+	cg:Merge(rg)
+	return cg
 end
 
 --Control

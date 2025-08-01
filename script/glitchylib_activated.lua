@@ -464,8 +464,9 @@ function Glitchy.SSetTarget(tgchk,f,loc1,loc2,min,max,exc)
 					if chk==0 then
 						return Duel.IsExists(false,f,tp,loc1,loc2,min,exc,e,tp)
 					end
+					local players=(loc1*loc2~=0) and PLAYER_ALL or loc1>0 and tp or 1-tp
+					Duel.SetCustomOperationInfo(0,CATEGORY_SET_SPELLTRAP,nil,min,players,loc1|loc2)
 					if locs==LOCATION_GRAVE then
-						local players=(loc1*loc2~=0) and PLAYER_ALL or loc1>0 and tp or 1-tp
 						Duel.SetOperationInfo(0,CATEGORY_LEAVE_GRAVE,nil,min,players,0)
 					end
 				end
@@ -480,6 +481,7 @@ function Glitchy.SSetTarget(tgchk,f,loc1,loc2,min,max,exc)
 						return Duel.IsExists(true,f,tp,loc1,loc2,min,exc,e,tp)
 					end
 					local g=Duel.Select(HINTMSG_SET,true,tp,f,tp,loc1,loc2,min,max,exc,e,tp)
+					Duel.SetCustomOperationInfo(0,CATEGORY_SET_SPELLTRAP,g,#g,0,0)
 					local tg=g:Filter(Card.IsLocation,nil,LOCATION_GRAVE)
 					if #tg>0 then
 						Duel.SetOperationInfo(0,CATEGORY_LEAVE_GRAVE,g,#g,0,0)
