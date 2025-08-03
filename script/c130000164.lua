@@ -49,7 +49,7 @@ function s.tgfilter(c,tp)
 	if not (c:IsAbleToGraveAsCost() and Duel.GetMZoneCount(tp,c)>0) then return false end
 	if c:IsRace(RACE_SPELLCASTER) then
 		return c:IsLocation(LOCATION_MZONE|LOCATION_HAND)
-	elseif c:IsSetCard(SET_FLAMESPEAR_STYLE,SET_VIXEN_BREW) then
+	elseif c:IsSetCard({SET_FLAMESPEAR_STYLE,SET_VIXEN_BREW}) then
 		return (c:IsSpellTrapOnField() and c:IsFaceup()) or (c:IsLocation(LOCATION_HAND) and c:IsSpellTrap())
 	end
 	return false
@@ -79,7 +79,7 @@ end
 
 --E2
 function s.thfilter(c)
-	return c:IsSpellTrap() and c:IsSetCard(SET_FLAMESPEAR_STYLE,SET_VIXEN_BREW)
+	return c:IsSpellTrap() and c:IsSetCard({SET_FLAMESPEAR_STYLE,SET_VIXEN_BREW})
 end
 
 --E3
@@ -87,7 +87,7 @@ function s.cfilter(c)
 	return c:IsSpellTrap() and c:IsAbleToDeckAsCost()
 end
 function s.firstc(c)
-	return c:IsSetCard(SET_FLAMESPEAR_STYLE,SET_VIXEN_BREW)
+	return c:IsSetCard({SET_FLAMESPEAR_STYLE,SET_VIXEN_BREW})
 end
 function s.drawcost(e,tp,eg,ep,ev,re,r,rp,chk)
 	local g=Duel.Group(s.cfilter,tp,LOCATION_GRAVE,0,nil)

@@ -44,7 +44,7 @@ end
 
 --E2
 function s.thfilter(c)
-	return c:IsSpellTrap() and c:IsSetCard(SET_FLAMESPEAR_STYLE,SET_VIXEN_BREW)
+	return c:IsSpellTrap() and c:IsSetCard({SET_FLAMESPEAR_STYLE,SET_VIXEN_BREW})
 end
 
 --E3

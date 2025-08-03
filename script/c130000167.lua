@@ -37,7 +37,7 @@ s.listed_series={SET_SPELLBOOK,SET_WITCHCRAFTER,SET_PROPHECY}
 
 --E1
 function s.tgfilter(c,e,tp,bool)
-	return c:IsSpellTrap() and c:IsSetCard(SET_SPELLBOOK,SET_WITCHCRAFTER) and c:IsAbleToGrave()
+	return c:IsSpellTrap() and c:IsSetCard({SET_SPELLBOOK,SET_WITCHCRAFTER}) and c:IsAbleToGrave()
 		and (not bool or Duel.IsExistingMatchingCard(s.spfilter,tp,LOCATION_DECK,0,1,c,e,tp))
 end
 function s.spfilter(c,e,tp)
