@@ -9,6 +9,7 @@ CATEGORY_SET_SPELLTRAP		=	0x2
 CATEGORY_PLACE_IN_PZONE		=	0x4
 
 CATEGORY_FLAG_ANCESTAGON_PLASMATAIL = 0x1
+CATEGORY_FLAG_DRAINING_PARASITE		= 0x2	--Flag for effects that can call a stat-calculating function on the handler while already calculating the stat of the handler
 
 CATEGORIES_SEARCH 			= 	CATEGORY_SEARCH|CATEGORY_TOHAND
 CATEGORIES_ATKDEF 			= 	CATEGORY_ATKCHANGE|CATEGORY_DEFCHANGE
@@ -1812,6 +1813,20 @@ function Duel.GetMZoneCountFromLocation(tp,up,g,c)
 end
 
 --Location Groups
+function Duel.GetMonsters(p)
+	if not p then
+		return Duel.GetFieldGroup(0,LOCATION_MZONE,LOCATION_MZONE)
+	else
+		return Duel.GetFieldGroup(p,LOCATION_MZONE,0)
+	end
+end
+function Duel.GetMonstersCount(p)
+	if not p then
+		return Duel.GetFieldGroupCount(0,LOCATION_MZONE,LOCATION_MZONE)
+	else
+		return Duel.GetFieldGroupCount(p,LOCATION_MZONE,0)
+	end
+end
 function Duel.GetHand(p)
 	if not p then
 		return Duel.GetFieldGroup(0,LOCATION_HAND,LOCATION_HAND)

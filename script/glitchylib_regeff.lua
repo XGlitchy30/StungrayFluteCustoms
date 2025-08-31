@@ -397,6 +397,33 @@ function Card.RegisterEffect(c,eff,...)
 	return res
 end
 
+--PROCEDURE FOR CUSTOMS THAT REPLACE OFFICIAL CARDS AT THE START OF THE GAME (e.g: Numbers Revolution)
+--Must be called in aux.GlobalCheck
+--modcodes is an array formatted like this: {[officialID1]=replacementID1; [officialID2]=replacementID2; ...}
+function Glitchy.ReplaceOfficialCards(modcodes)
+	return	function()
+				local ge1=Effect.GlobalEffect()
+				ge1:SetType(EFFECT_TYPE_FIELD|EFFECT_TYPE_CONTINUOUS)
+				ge1:SetCode(EVENT_STARTUP)
+				ge1:SetOperation(Glitchy.ReplaceOfficialCardsOperation(modcodes))
+				Duel.RegisterEffect(ge1,0)
+			end
+end
+local function IsOfficialCardToReplace(c,modcodes)
+	return modcodes[c:GetOriginalCode()]
+end
+function Glitchy.ReplaceOfficialCardsOperation(modcodes)
+	return	function(e,tp,eg,ep,ev,re,r,rp)
+				local g=Duel.GetMatchingGroup(IsOfficialCardToReplace,0,LOCATION_ALL,LOCATION_ALL,nil,modcodes)
+				for tc in g:Iter() do
+					local code=tc:GetOriginalCode()
+					local modcode=modcodes[code]
+					tc:Recreate(modcode,nil,nil,nil,nil,nil,nil,nil,nil,nil,nil,nil,true)
+				end
+			end
+end
+
+--FIX FOR INCORRECT HANDLING OF CONTINUOUS EFFECTS THAT CHANGE ORIGINAL ATK/DEF
 local _GetBaseAttack,_GetBaseDefense,_GetAttack,_GetDefense = Card.GetBaseAttack,Card.GetBaseDefense,Card.GetAttack,Card.GetDefense
 
 aux.TempBaseAttack=math.maxinteger
