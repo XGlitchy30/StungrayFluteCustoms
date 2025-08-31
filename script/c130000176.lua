@@ -1,7 +1,7 @@
 --[[
 Ceria, Dancing Through Death
 Card Author: Knightmare88
-Scripted by: C.C
+Scripted by: XGlitchy30
 ]]
 
 local s,id=GetID()
@@ -25,10 +25,10 @@ s.listed_names={id}
 
 --E1
 function s.target(e,tp,eg,ep,ev,re,r,rp,chk)
-	local ct=Duel.GetMatchingGroupCount(Card.IsCode,tp,LOCATION_GRAVE,0,nil,id)
 	if chk==0 then
-		return ct>0
+		return true
 	end
+	local ct=Duel.GetMatchingGroupCount(Card.IsCode,tp,LOCATION_GRAVE,0,nil,id)
 	local c=e:GetHandler()
 	local v=ct*400
 	Duel.SetPossibleOperationInfo(0,CATEGORY_RECOVER,nil,0,tp,v)
