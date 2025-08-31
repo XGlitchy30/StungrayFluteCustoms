@@ -615,13 +615,13 @@ function Card.IsFaceupEx(c)
 	return c:IsLocation(LOCATION_HAND|LOCATION_GRAVE|LOCATION_DECK) or c:IsFaceup()
 end
 
-function Card.IsMonster(c,typ)
+function Card.IsMonsterType(c,typ)
 	return c:IsType(TYPE_MONSTER) and (type(typ)~="number" or c:IsType(typ))
 end
-function Card.IsSpell(c,typ)
+function Card.IsSpellType(c,typ)
 	return c:IsType(TYPE_SPELL) and (type(typ)~="number" or c:IsType(typ))
 end
-function Card.IsTrap(c,typ)
+function Card.IsTrapType(c,typ)
 	return c:IsType(TYPE_TRAP) and (type(typ)~="number" or c:IsType(typ))
 end
 -- function Card.IsNormalSpell(c)
@@ -637,7 +637,7 @@ function Card.IsST(c,typ)
 	return c:IsType(TYPE_ST) and (type(typ)~="number" or c:IsType(typ))
 end
 function Card.MonsterOrFacedown(c)
-	return c:IsMonster() or c:IsFacedown()
+	return c:IsMonsterType() or c:IsFacedown()
 end
 
 function Card.IsAttributeRace(c,attr,race)
@@ -648,7 +648,7 @@ function Card.IsOriginalAttributeRace(c,attr,race)
 end
 
 function Card.IsAppropriateEquipSpell(c,ec,tp)
-	return c:IsSpell(TYPE_EQUIP) and c:CheckEquipTarget(ec) and c:CheckUniqueOnField(tp) and not c:IsForbidden()
+	return c:IsSpellType(TYPE_EQUIP) and c:CheckEquipTarget(ec) and c:CheckUniqueOnField(tp) and not c:IsForbidden()
 end
 
 function Card.HasAttack(c)
@@ -1187,7 +1187,7 @@ end
 
 --Equip
 function Card.IsAppropriateEquipSpell(c,ec,tp)
-	return c:IsSpell(TYPE_EQUIP) and c:CheckEquipTarget(ec) and c:CheckUniqueOnField(tp,LOCATION_SZONE) and not c:IsForbidden()
+	return c:IsSpellType(TYPE_EQUIP) and c:CheckEquipTarget(ec) and c:CheckUniqueOnField(tp,LOCATION_SZONE) and not c:IsForbidden()
 end
 function Card.IsCanBeEquippedWith(c,ec,e,p,r,ignore_faceup)
 	r = r or REASON_EFFECT
@@ -1317,7 +1317,7 @@ function Glitchy.MonsterFilter(typ,f,...)
 		typ=nil
 	end
 	return	function(target)
-				return target:IsMonster(typ) and (not f or f(target,table.unpack(ext_params)))
+				return target:IsMonsterType(typ) and (not f or f(target,table.unpack(ext_params)))
 			end
 end
 function Glitchy.RaceFilter(race,f,...)
@@ -1894,7 +1894,7 @@ end
 
 --Set Monster/Spell/Trap
 function Card.IsCanBeSet(c,e,tp,ignore_mzone,ignore_szone)
-	if c:IsMonster() then
+	if c:IsMonsterType() then
 		return c:IsCanBeSpecialSummoned(e,0,tp,false,false,POS_FACEDOWN_DEFENSE) and (not ignore_mzone or Duel.GetMZoneCount(tp)>0)
 	elseif c:IsST() then
 		return c:IsSSetable(ignore_szone)
@@ -2301,7 +2301,7 @@ function Card.IsAbleToExtraFaceup(c,e,tp,r,recp)
 	return true
 end
 function Card.IsCapableSendToExtra(c,tp)
-	if not c:IsMonster(TYPE_EXTRA|TYPE_PENDULUM) or c:IsHasEffect(EFFECT_CANNOT_TO_DECK) or not Duel.IsPlayerCanSendtoDeck(tp,c) then return false end
+	if not c:IsMonsterType(TYPE_EXTRA|TYPE_PENDULUM) or c:IsHasEffect(EFFECT_CANNOT_TO_DECK) or not Duel.IsPlayerCanSendtoDeck(tp,c) then return false end
 	return true
 end
 function Card.IsAbleToExtraFaceupAsCost(c,e,tp,recp)
@@ -2447,7 +2447,7 @@ function Glitchy.SetSuccessfullyFilter(c)
 	return c:IsFacedown() and c:IsLocation(LOCATION_SZONE)
 end
 function Card.MustWaitOneTurnToActivateAfterBeingSet(c)
-	return c:IsTrap() or c:IsSpell(TYPE_QUICKPLAY)
+	return c:IsTrapType() or c:IsSpellType(TYPE_QUICKPLAY)
 end
 function Duel.SSetAndFastActivation(p,g,e,cond,brk)
 	if type(g)=="Card" then g=Group.FromCards(g) end
@@ -2458,7 +2458,7 @@ function Duel.SSetAndFastActivation(p,g,e,cond,brk)
 			Duel.BreakEffect()
 		end
 		for tc in aux.Next(og) do
-			local code = tc:IsTrap() and EFFECT_TRAP_ACT_IN_SET_TURN or EFFECT_QP_ACT_IN_SET_TURN
+			local code = tc:IsTrapType() and EFFECT_TRAP_ACT_IN_SET_TURN or EFFECT_QP_ACT_IN_SET_TURN
 			local e1=Effect.CreateEffect(c)
 			e1:SetDescription(STRING_FAST_ACTIVATION)
 			e1:SetType(EFFECT_TYPE_SINGLE)
@@ -2697,7 +2697,7 @@ end
 
 --Stat Modifiers (futureproofing)
 function Card.HasATK(c)
-	return c:IsMonster()
+	return c:IsMonsterType()
 end
 function Card.IsCanUpdateATK(c,atk,e,tp,r,exactly)
 	return c:IsFaceup() and c:HasATK() and (not exactly or atk>=0 or c:IsAttackAbove(-atk))
@@ -2707,7 +2707,7 @@ function Card.IsCanChangeATK(c,atk,e,tp,r)
 end
 
 function Card.HasDEF(c)
-	return c:IsMonster() and not c:IsOriginalType(TYPE_LINK) and not c:IsMaximumMode()
+	return c:IsMonsterType() and not c:IsOriginalType(TYPE_LINK) and not c:IsMaximumMode()
 end
 function Card.IsCanUpdateDEF(c,def,e,tp,r,exactly)
 	return c:IsFaceup() and c:HasDEF() (not exactly or def>=0 or c:IsDefenseAbove(-def))

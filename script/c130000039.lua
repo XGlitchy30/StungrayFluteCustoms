@@ -25,5 +25,5 @@ end
 s.listed_series={SET_MOBLINS}
 
 function s.filter(c)
-	return c:IsMonster() and c:IsSetCard(SET_MOBLINS)
+	return c:IsMonsterType() and c:IsSetCard(SET_MOBLINS)
 end

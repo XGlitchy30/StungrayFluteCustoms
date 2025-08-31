@@ -44,7 +44,7 @@ s.roll_dice=true
 
 --E2
 function s.rmfilter(c)
-	return c:IsMonster() and c:IsSetCard(SET_LADY_LUCK) and c:IsAbleToRemove()
+	return c:IsMonsterType() and c:IsSetCard(SET_LADY_LUCK) and c:IsAbleToRemove()
 end
 function s.spfilter(c,e,tp)
 	return c:IsSetCard(SET_LADY_LUCK) and c:IsCanBeSpecialSummoned(e,0,tp,false,false)

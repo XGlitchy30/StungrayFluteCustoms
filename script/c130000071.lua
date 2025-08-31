@@ -83,7 +83,7 @@ function s.cfilter(c)
 	if c:IsPreviousLocation(LOCATION_MZONE) then
 		return c:IsPreviousSetCard(SET_HIERATIC)
 	elseif not c:IsPreviousLocation(LOCATION_ONFIELD) then
-		return c:IsMonster() and c:IsSetCard(SET_HIERATIC)
+		return c:IsMonsterType() and c:IsSetCard(SET_HIERATIC)
 	else
 		return false
 	end

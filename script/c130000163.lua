@@ -85,7 +85,7 @@ function s.fusfilter(c)
 	return c:IsRace(RACE_SPELLCASTER)
 end
 function s.fextrafilter(c)
-	return c:IsMonster() and not c:IsOriginalType(TYPE_EXTRA) and c:IsAbleToDeck() and c:IsLocation(LOCATION_GRAVE)
+	return c:IsMonsterType() and not c:IsOriginalType(TYPE_EXTRA) and c:IsAbleToDeck() and c:IsLocation(LOCATION_GRAVE)
 end
 function s.fextra(e,tp,mg)
 	local sg=Duel.GetMatchingGroup(s.fextrafilter,tp,LOCATION_GRAVE,0,nil)

@@ -30,7 +30,7 @@ function s.spfilter(c,e,tp)
 	return c:IsFaceupEx() and c:IsRace(RACE_SPELLCASTER) and Duel.GetMZoneCountFromLocation(tp,tp,nil,c)>0 and c:IsCanBeSpecialSummoned(e,0,tp,false,false,POS_FACEUP_DEFENSE)
 end
 function s.thfilter(c)
-	return c:IsFaceupEx() and c:IsRace(RACE_SPELLCASTER) and c:IsMonster() and c:IsAbleToHand()
+	return c:IsFaceupEx() and c:IsRace(RACE_SPELLCASTER) and c:IsMonsterType() and c:IsAbleToHand()
 end
 function s.target(e,tp,eg,ep,ev,re,r,rp,chk)
 	local c=e:GetHandler()

@@ -45,7 +45,7 @@ function s.setfilter(c)
 	return c:IsSetCard(SET_LADY_LUCK) and c:IsSpellTrap() and c:IsSSetable()
 end
 function s.gychkfilter(c)
-	return c:IsInGY() and c:IsMonster() and c:IsSetCard(SET_LADY_LUCK)
+	return c:IsInGY() and c:IsMonsterType() and c:IsSetCard(SET_LADY_LUCK)
 end
 function s.dicetg(e,tp,eg,ep,ev,re,r,rp,chk)
 	if chk==0 then return true end

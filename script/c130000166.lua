@@ -35,7 +35,7 @@ s.listed_series={SET_FLAMESPEAR}
 
 --E1
 function s.thfilter(c)
-	return c:IsMonster() and c:IsSetCard(SET_FLAMESPEAR)
+	return c:IsMonsterType() and c:IsSetCard(SET_FLAMESPEAR)
 end
 
 --E2

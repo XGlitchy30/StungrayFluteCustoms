@@ -39,7 +39,7 @@ s.listed_series={SET_HIERATIC}
 
 --E1
 function s.tdfilter(c)
-	return c:IsMonster() and c:IsSetCard(SET_HIERATIC) and c:IsAbleToDeck()
+	return c:IsMonsterType() and c:IsSetCard(SET_HIERATIC) and c:IsAbleToDeck()
 end
 function s.tdtg(e,tp,eg,ep,ev,re,r,rp,chk)
 	if chk==0 then

@@ -40,7 +40,7 @@ end
 local FLAG_BROKEN_OATH = id+100
 
 function s.oathfilter(c)
-	return c:IsMonster() and not c:IsLevel(5)
+	return c:IsMonsterType() and not c:IsLevel(5)
 end
 function s.regcon(e,tp,eg,ep,ev,re,r,rp)
 	return r&REASON_XYZ>0 and eg:IsExists(s.oathfilter,1,nil)
@@ -89,7 +89,7 @@ function s.thcost(e,tp,eg,ep,ev,re,r,rp,chk)
 	e1:SetProperty(EFFECT_FLAG_OATH|EFFECT_FLAG_SET_AVAILABLE|EFFECT_FLAG_IGNORE_IMMUNE)
 	e1:SetCode(EFFECT_CANNOT_BE_XYZ_MATERIAL)
 	e1:SetTargetRange(LOCATION_ALL,LOCATION_ALL)
-	e1:SetTarget(function(e,c) return c:IsMonster() and not c:IsLevel(5) end)
+	e1:SetTarget(function(e,c) return c:IsMonsterType() and not c:IsLevel(5) end)
 	e1:SetValue(s.sumlimit)
 	e1:SetReset(RESET_PHASE|PHASE_END)
 	Duel.RegisterEffect(e1,tp)

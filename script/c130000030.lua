@@ -32,7 +32,7 @@ function s.matfilterself(c,e,tp)
 	return c:IsLocation(LOCATION_MZONE) and c:IsControler(tp) and c:IsCanBeEffectTarget(e) and not c:IsImmuneToEffect(e)
 end
 function s.matfilteroppo(c,p)
-	return c:IsMonster() and c:IsFaceup() and c:IsLocation(LOCATION_MZONE) and c:IsControler(p)
+	return c:IsMonsterType() and c:IsFaceup() and c:IsLocation(LOCATION_MZONE) and c:IsControler(p)
 end
 function s.fextra(ct)
 	return	function(e,tp,mg)

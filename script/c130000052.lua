@@ -64,7 +64,7 @@ function s.filter(c)
 	return c:IsFaceup() and c:IsOriginalType(TYPE_MONSTER) and c:IsRace(RACE_BEAST)
 end
 function s.excfilter(c)
-	return c:IsMonster() and c:IsRace(RACE_BEAST)
+	return c:IsMonsterType() and c:IsRace(RACE_BEAST)
 end
 function s.zonefilter(c,zones,tp)
 	return s.filter(c) and aux.IsZone(c,zones,tp)

@@ -52,7 +52,7 @@ function s.cfilter(c)
 	return c:IsFaceup() and ((c:IsRace(RACE_SPELLCASTER) and c:IsLevelAbove(7)) or (c:IsType(TYPE_FUSION) and c:IsRace(RACE_DRAGON) and c:ListsCodeAsMaterial(CARD_DARK_MAGICIAN,CARD_DARK_MAGICIAN_GIRL)))
 end
 function s.thcostfilter(c,tp)
-	return c:IsFaceupEx() and c:IsMonster() and c:IsRace(RACE_SPELLCASTER) and c:IsAbleToDeckAsCost()
+	return c:IsFaceupEx() and c:IsMonsterType() and c:IsRace(RACE_SPELLCASTER) and c:IsAbleToDeckAsCost()
 		and Duel.IsExistingMatchingCard(s.thfilter,tp,LOCATION_GRAVE,0,1,c)
 end
 function s.thfilter(c)

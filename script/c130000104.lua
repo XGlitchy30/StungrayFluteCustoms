@@ -41,7 +41,7 @@ end
 
 --E2
 function s.filter(c)
-	return c:IsMonster() and c:IsSetCard(SET_FIENTHALETE) and c:IsAbleToHand()
+	return c:IsMonsterType() and c:IsSetCard(SET_FIENTHALETE) and c:IsAbleToHand()
 end
 function s.thtg(e,tp,eg,ep,ev,re,r,rp,chk)
 	if chk==0 then return Duel.IsExistingMatchingCard(s.filter,tp,LOCATION_DECK,0,1,nil) end

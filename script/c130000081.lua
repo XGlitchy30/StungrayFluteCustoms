@@ -43,5 +43,5 @@ function s.activate(e,tp,eg,ep,ev,re,r,rp)
 	end
 end
 function s.thfilter(c)
-	return c:IsMonster() and c:IsRace(RACE_PSYCHIC) and c:IsAbleToHand()
+	return c:IsMonsterType() and c:IsRace(RACE_PSYCHIC) and c:IsAbleToHand()
 end

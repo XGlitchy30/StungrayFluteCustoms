@@ -37,7 +37,7 @@ function s.filter(c)
 	return c:IsFaceup() and c:IsCode(TOKEN_WICCINK)
 end
 function s.tgfilter(c)
-	return c:IsSpell() and c:IsSetCard(SET_WICCINK) and c:IsAbleToGrave()
+	return c:IsSpellType() and c:IsSetCard(SET_WICCINK) and c:IsAbleToGrave()
 end
 function s.target(e,tp,eg,ep,ev,re,r,rp,chk,chkc)
 	if chkc then return chkc:IsLocation(LOCATION_MZONE) and chkc:IsControler(tp) and s.filter(chkc) end

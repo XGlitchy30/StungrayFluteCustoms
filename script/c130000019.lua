@@ -81,7 +81,7 @@ function s.cost(e,tp,eg,ep,ev,re,r,rp,chk)
 	Duel.SendtoGrave(c,REASON_COST|REASON_DISCARD)
 end
 function s.filter2(c)
-	return c:IsSetCard(SET_CYBERDARK) and not (c:IsMonster() and c:IsOriginalRace(RACE_DRAGON)) and c:IsAbleToHand()
+	return c:IsSetCard(SET_CYBERDARK) and not (c:IsMonsterType() and c:IsOriginalRace(RACE_DRAGON)) and c:IsAbleToHand()
 end
 function s.target(e,tp,eg,ep,ev,re,r,rp,chk)
 	if chk==0 then return Duel.IsExistingMatchingCard(s.filter2,tp,LOCATION_GRAVE,0,1,nil) end
@@ -97,7 +97,7 @@ end
 
 --E3
 function s.tgfilter(c)
-	return c:IsMonster() and c:IsAbleToGrave()
+	return c:IsMonsterType() and c:IsAbleToGrave()
 end
 function s.gycon(e,tp,eg,ep,ev,re,r,rp)
 	local ec=e:GetHandler():GetEquipTarget()
@@ -111,7 +111,7 @@ function s.gyop(e,tp,eg,ep,ev,re,r,rp)
 	if not Duel.IsPlayerCanDiscardDeck(tp,1) then return end
 	Duel.ConfirmDecktop(tp,1)
 	local tc=Duel.GetDecktopGroup(tp,1):GetFirst()
-	if tc:IsMonster() then
+	if tc:IsMonsterType() then
 		Duel.DisableShuffleCheck()
 		Duel.SendtoGrave(tc,REASON_EFFECT|REASON_EXCAVATE)
 	else

@@ -94,7 +94,7 @@ end
 
 --E2
 function s.cfilter(c)
-	local current_state = not c:IsPreviousLocation(LOCATION_ONFIELD) and c:IsMonster() and c:IsSetCard(SET_ANCESTAGON)
+	local current_state = not c:IsPreviousLocation(LOCATION_ONFIELD) and c:IsMonsterType() and c:IsSetCard(SET_ANCESTAGON)
 	local previous_state = c:IsPreviousLocation(LOCATION_MZONE) and c:IsPreviousSetCard(SET_ANCESTAGON)
 	return current_state or previous_state
 end

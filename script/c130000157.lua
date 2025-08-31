@@ -66,7 +66,7 @@ function s.target(e,tp,eg,ep,ev,re,r,rp,chk)
 	end
 end
 function s.thfilter(c)
-	return c:IsSetCard(SET_LADY_LUCK) and c:IsMonster() and c:IsAbleToHand()
+	return c:IsSetCard(SET_LADY_LUCK) and c:IsMonsterType() and c:IsAbleToHand()
 end
 function s.activate(e,tp,eg,ep,ev,re,r,rp)
 	if not Duel.PlayerHasFlagEffect(tp,PFLAG_USED_ACTIVATION_EFFECT) and Duel.IsExistingMatchingCard(s.thfilter,tp,LOCATION_DECK,0,1,nil) and Duel.SelectYesNo(tp,STRING_ASK_SEARCH) then
@@ -138,7 +138,7 @@ end
 --E2
 function s.cfilter(c,_,tp)
 	return c:IsPreviousLocation(LOCATION_MZONE) and c:IsPreviousPosition(POS_FACEUP) and c:IsPreviousControler(tp) and c:IsPreviousSetCard(SET_LADY_LUCK)
-		and c:IsMonster() and c:IsSetCard(SET_LADY_LUCK)
+		and c:IsMonsterType() and c:IsSetCard(SET_LADY_LUCK)
 end
 function s.dicetg(e,tp,eg,ep,ev,re,r,rp,chk)
 	local c=e:GetHandler()

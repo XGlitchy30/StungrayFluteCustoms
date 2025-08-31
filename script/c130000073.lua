@@ -50,7 +50,7 @@ end
 
 --E2
 function s.rlfilter(c)
-	return c:IsMonster() and c:IsReleasable()
+	return c:IsMonsterType() and c:IsReleasable()
 end
 function s.rlcheck(sg,tp,exg)
 	return Duel.IsExists(true,aux.TRUE,tp,0,LOCATION_MZONE,1,sg)
@@ -86,7 +86,7 @@ function s.destg(e,tp,eg,ep,ev,re,r,rp,chk)
 end
 function s.desop(e,tp,eg,ep,ev,re,r,rp)
 	local tc=Duel.GetFirstTarget()
-	if tc:IsRelateToChain() and Duel.Destroy(tc,REASON_EFFECT)>0 and tc:IsLocation(LOCATION_GRAVE) and tc:IsMonster() and e:IsActivated() and Duel.GetTargetParam()==1 then
+	if tc:IsRelateToChain() and Duel.Destroy(tc,REASON_EFFECT)>0 and tc:IsLocation(LOCATION_GRAVE) and tc:IsMonsterType() and e:IsActivated() and Duel.GetTargetParam()==1 then
 		local c=e:GetHandler()
 		local e1=Effect.CreateEffect(c)
 		e1:SetType(EFFECT_TYPE_SINGLE)

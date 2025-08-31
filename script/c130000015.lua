@@ -99,7 +99,7 @@ function s.xyzfilter(c,tp)
 	return c:IsType(TYPE_XYZ) and Duel.IsExistingMatchingCard(s.atfilter,tp,LOCATION_DECK,0,1,nil,c,tp)
 end
 function s.atfilter(c,xyzc,tp)
-	return c:IsMonster() and c:IsCanBeXyzMaterial(xyzc,tp,REASON_EFFECT)
+	return c:IsMonsterType() and c:IsCanBeXyzMaterial(xyzc,tp,REASON_EFFECT)
 end
 function s.attg(e,tp,eg,ep,ev,re,r,rp,chk)
 	if chk==0 then

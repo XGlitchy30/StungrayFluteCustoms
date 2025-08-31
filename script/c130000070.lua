@@ -124,7 +124,7 @@ end
 
 --E2
 function s.atkfilter(c)
-	return c:IsFaceupEx() and c:IsMonster() and c:IsType(TYPE_NORMAL)
+	return c:IsFaceupEx() and c:IsMonsterType() and c:IsType(TYPE_NORMAL)
 end
 function s.statstg(e,tp,eg,ep,ev,re,r,rp,chk,chkc)
 	if chkc then return chkc:IsLocation(LOCATION_MZONE) and chkc:IsControler(tp) and chkc:IsFaceup() and chkc:IsSetCard(SET_HIERATIC) end

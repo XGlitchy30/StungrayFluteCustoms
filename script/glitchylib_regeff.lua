@@ -426,7 +426,7 @@ function Card.GetBaseAttack(c)
 		return _GetBaseAttack(c)
 	end
 	
-	if not c:IsOriginalType(TYPE_MONSTER) and not c:IsMonster() and not c:IsHasEffect(EFFECT_PRE_MONSTER) then
+	if not c:IsOriginalType(TYPE_MONSTER) and not c:IsMonsterType() and not c:IsHasEffect(EFFECT_PRE_MONSTER) then
 		return 0
 	end
 	if not c:IsLocation(LOCATION_MZONE) or c:IsStatus(STATUS_SUMMONING|STATUS_SPSUMMON_STEP) then
@@ -482,7 +482,7 @@ function Card.GetBaseDefense(c)
 	if not aux.CheckBaseStatsModCondition(c,true) then
 		return _GetBaseDefense(c)
 	end
-	if c:IsOriginalType(TYPE_LINK) or (not c:IsOriginalType(TYPE_MONSTER) and not c:IsMonster() and not c:IsHasEffect(EFFECT_PRE_MONSTER)) then
+	if c:IsOriginalType(TYPE_LINK) or (not c:IsOriginalType(TYPE_MONSTER) and not c:IsMonsterType() and not c:IsHasEffect(EFFECT_PRE_MONSTER)) then
 		return 0
 	end
 	if not c:IsLocation(LOCATION_MZONE) or c:IsStatus(STATUS_SUMMONING|STATUS_SPSUMMON_STEP) then
@@ -539,7 +539,7 @@ function Card.GetAttack(c)
 	if not aux.CheckBaseStatsModCondition(c) then
 		return _GetAttack(c)
 	end
-	if not c:IsOriginalType(TYPE_MONSTER) and not c:IsMonster() and not c:IsHasEffect(EFFECT_PRE_MONSTER) then
+	if not c:IsOriginalType(TYPE_MONSTER) and not c:IsMonsterType() and not c:IsHasEffect(EFFECT_PRE_MONSTER) then
 		return 0
 	end
 	if not c:IsLocation(LOCATION_MZONE) or c:IsStatus(STATUS_SUMMONING|STATUS_SPSUMMON_STEP) then
@@ -695,7 +695,7 @@ function Card.GetDefense(c)
 	if c:IsOriginalType(TYPE_LINK) then
 		return 0
 	end
-	if not c:IsOriginalType(TYPE_MONSTER) and not c:IsMonster() and not c:IsHasEffect(EFFECT_PRE_MONSTER) then
+	if not c:IsOriginalType(TYPE_MONSTER) and not c:IsMonsterType() and not c:IsHasEffect(EFFECT_PRE_MONSTER) then
 		return 0
 	end
 	if not c:IsLocation(LOCATION_MZONE) or c:IsStatus(STATUS_SUMMONING|STATUS_SPSUMMON_STEP) then
