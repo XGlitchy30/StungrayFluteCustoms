@@ -27,11 +27,11 @@ function s.initial_effect(c)
 	e2:SetFunctions(nil,nil,s.atktg,s.atkop)
 	c:RegisterEffect(e2)
 	--Replace official cards
-	aux.GlobalCheck(s,xgl.ReplaceOfficialCards(s.modcodes))
+	aux.GlobalCheck(s,xgl.AddArchetypeToOfficialCards(SET_OF_NATURE,s.modcodes))
 end
 s.listed_names={id}
 s.listed_series={SET_OF_NATURE}
-s.modcodes = {[62966332]=62966333}
+s.modcodes = {[62966332]=true}
 
 --E1
 function s.filter(c)

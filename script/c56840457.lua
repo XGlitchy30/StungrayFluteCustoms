@@ -13,8 +13,9 @@ function s.initial_effect(c)
 	e1:SetType(EFFECT_TYPE_IGNITION)
 	e1:SetRange(LOCATION_MZONE)
 	e1:SetCondition(s.condition)
-	e1:SetCost(Cost.Detach(1,1,nil))
-	e1:SetOperation(s.operation)
+	e1:SetCost(Cost.DetachFromSelf(1,1,nil))
+	e1:SetTarget(s.atktg)
+	e1:SetOperation(s.atkop)
 	c:RegisterEffect(e1)
 end
 s.xyz_number=39
@@ -25,27 +26,28 @@ end
 function s.condition(e,tp,eg,ep,ev,re,r,rp)
 	return aux.NumberLPCondition(e,tp,1000,0)
 end
-function s.operation(e,tp,eg,ep,ev,re,r,rp)
-	if not aux.NumberLPCondition(e,tp,1000,1) then return end
+function s.atktg(e,tp,eg,ep,ev,re,r,rp,chk)
+	if chk==0 then return Duel.IsExistingMatchingCard(Card.IsFaceup,tp,0,LOCATION_MZONE,1,nil) end
+end
+function s.atkop(e,tp,eg,ep,ev,re,r,rp)
+	if Duel.GetLP(tp)>1000 then return end
 	local c=e:GetHandler()
-	if c:IsRelateToEffect(e) and c:IsFaceup() then
-		local e1=Effect.CreateEffect(c)
-		e1:SetProperty(EFFECT_FLAG_CANNOT_DISABLE)
-		e1:SetType(EFFECT_TYPE_SINGLE)
-		e1:SetCode(EFFECT_UPDATE_ATTACK)
-		e1:SetValue(500)
-		e1:SetReset(RESET_EVENT|RESETS_STANDARD|RESET_PHASE|PHASE_END)
-		c:RegisterEffect(e1)
-		Duel.Hint(HINT_SELECTMSG,tp,HINTMSG_FACEUP)
-		local g=Duel.SelectMatchingCard(tp,Card.IsFaceup,tp,0,LOCATION_MZONE,1,1,nil)
-		if #g>0 then
-			Duel.HintSelection(g)
-			local e2=Effect.CreateEffect(c)
-			e2:SetType(EFFECT_TYPE_SINGLE)
-			e2:SetCode(EFFECT_UPDATE_ATTACK)
-			e2:SetValue(-1000)
-			e2:SetReset(RESET_EVENT|RESETS_STANDARD|RESET_PHASE|PHASE_END)
-			g:GetFirst():RegisterEffect(e2)
-		end
+	if not (c:IsRelateToEffect(e) and c:IsFaceup()) then return end
+	--This card gains 500 ATK until the end of this turn
+	local e1=Effect.CreateEffect(c)
+	e1:SetType(EFFECT_TYPE_SINGLE)
+	e1:SetProperty(EFFECT_FLAG_CANNOT_DISABLE)
+	e1:SetCode(EFFECT_UPDATE_ATTACK)
+	e1:SetValue(500)
+	e1:SetReset(RESETS_STANDARD_PHASE_END)
+	c:RegisterEffect(e1)
+	Duel.Hint(HINT_SELECTMSG,tp,HINTMSG_ATKDEF)
+	local sc=Duel.SelectMatchingCard(tp,Card.IsFaceup,tp,0,LOCATION_MZONE,1,1,nil):GetFirst()
+	if sc then
+		Duel.HintSelection(sc)
+		--Loses 1000 ATK until the end of this turn
+		local e2=e1:Clone()
+		e2:SetValue(-1000)
+		sc:RegisterEffect(e2)
 	end
 end

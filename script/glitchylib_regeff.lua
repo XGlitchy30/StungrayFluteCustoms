@@ -414,11 +414,69 @@ local function IsOfficialCardToReplace(c,modcodes)
 end
 function Glitchy.ReplaceOfficialCardsOperation(modcodes)
 	return	function(e,tp,eg,ep,ev,re,r,rp)
-				local g=Duel.GetMatchingGroup(IsOfficialCardToReplace,0,LOCATION_ALL,LOCATION_ALL,nil,modcodes)
-				for tc in g:Iter() do
-					local code=tc:GetOriginalCode()
-					local modcode=modcodes[code]
-					tc:Recreate(modcode,nil,nil,nil,nil,nil,nil,nil,nil,nil,nil,nil,true)
+				if Duel.GetPlayersCount(0)*Duel.GetPlayersCount(1)~=1 and not Duel.IsDuelType(DUEL_RELAY) then
+					local pcount=0
+					for p=0,1 do
+						local pct=Duel.GetPlayersCount(p)
+						for i=1,pct do
+							local g=Duel.GetMatchingGroup(IsOfficialCardToReplace,p,LOCATION_ALL,0,nil,modcodes)
+							for tc in g:Iter() do
+								local code=tc:GetOriginalCode()
+								local modcode=modcodes[code]
+								tc:Recreate(modcode,nil,nil,nil,nil,nil,nil,nil,nil,nil,nil,nil,true)
+							end
+							if pct>1 then
+								Duel.TagSwap(p)
+							end
+						end
+					end
+					
+				else
+					local g=Duel.GetMatchingGroup(IsOfficialCardToReplace,0,LOCATION_ALL,LOCATION_ALL,nil,modcodes)
+					for tc in g:Iter() do
+						local code=tc:GetOriginalCode()
+						local modcode=modcodes[code]
+						tc:Recreate(modcode,nil,nil,nil,nil,nil,nil,nil,nil,nil,nil,nil,true)
+					end
+				end
+			end
+end
+
+--PROCEDURE TO ADD OFFICIAL CARDS TO A CUSTOM ARCHETYPE (e.g: Inversion of Nature)
+--Must be called in aux.GlobalCheck
+--modcodes is an array formatted like this: {[officialID1]=replacementID1; [officialID2]=replacementID2; ...}
+function Glitchy.AddArchetypeToOfficialCards(setc,modcodes)
+	return	function()
+				local ge1=Effect.GlobalEffect()
+				ge1:SetType(EFFECT_TYPE_FIELD|EFFECT_TYPE_CONTINUOUS)
+				ge1:SetCode(EVENT_STARTUP)
+				ge1:SetOperation(Glitchy.AddArchetypeToOfficialCardsOperation(setc,modcodes))
+				Duel.RegisterEffect(ge1,0)
+			end
+end
+function Glitchy.AddArchetypeToOfficialCardsOperation(setc,modcodes)
+	return	function(e,tp,eg,ep,ev,re,r,rp)
+				if Duel.GetPlayersCount(0)*Duel.GetPlayersCount(1)~=1 and not Duel.IsDuelType(DUEL_RELAY) then
+					for p=0,1 do
+						local pct=Duel.GetPlayersCount(p)
+						for i=1,pct do
+							local g=Duel.GetMatchingGroup(IsOfficialCardToReplace,p,LOCATION_ALL,0,nil,modcodes)
+							for tc in g:Iter() do
+								local code=tc:GetOriginalCode()
+								tc:Recreate(code,nil,setc,nil,nil,nil,nil,nil,nil,nil,nil,nil,false)
+							end
+							if pct>1 then
+								Duel.TagSwap(p)
+							end
+						end
+					end
+					
+				else
+					local g=Duel.GetMatchingGroup(IsOfficialCardToReplace,0,LOCATION_ALL,LOCATION_ALL,nil,modcodes)
+					for tc in g:Iter() do
+						local code=tc:GetOriginalCode()
+						tc:Recreate(code,nil,setc,nil,nil,nil,nil,nil,nil,nil,nil,nil,false)
+					end
 				end
 			end
 end

@@ -33,14 +33,8 @@ function s.initial_effect(c)
 	e2:OPT()
 	e2:SetFunctions(nil,Cost.PayLP(500),s.attg,s.atop)
 	c:RegisterEffect(e2)
-	if not s.global_check then
-		s.global_check=true
-		local ge1=Effect.CreateEffect(c)
-		ge1:SetType(EFFECT_TYPE_FIELD|EFFECT_TYPE_CONTINUOUS)
-		ge1:SetCode(EVENT_STARTUP)
-		ge1:SetOperation(s.addmods)
-		Duel.RegisterEffect(ge1,0)
-	end
+	--Replace official cards
+	aux.GlobalCheck(s,xgl.ReplaceOfficialCards(s.modcodes))
 end
 s.listed_series={SET_NUMBER}
 
