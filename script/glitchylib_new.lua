@@ -7,6 +7,9 @@ Duel.LoadScript("glitchylib_names.lua")
 CATEGORY_ATTACH				=	0x1
 CATEGORY_SET_SPELLTRAP		=	0x2
 CATEGORY_PLACE_IN_PZONE		=	0x4
+CATEGORY_CODE_CHANGE		=	0x8
+CATEGORY_RACE_CHANGE		=	0x10
+CATEGORY_ATTRIBUTE_CHANGE	=	0x20
 
 CATEGORY_FLAG_ANCESTAGON_PLASMATAIL = 0x1
 CATEGORY_FLAG_DRAINING_PARASITE		= 0x2	--Flag for effects that can call a stat-calculating function on the handler while already calculating the stat of the handler
@@ -29,6 +32,10 @@ EFFECT_CANNOT_TO_EXTRA_P			=	2009	--[[Players affected by this effect cannot add
 EFFECT_ALLOW_MR3_SPSUMMON_FROM_ED	=	2010	--[[Players affected by this effect can use old MR3 rulings when Special Summoning monsters from the Extra Deck that meet the Target Function's requirements, and only to Summon them to the zones indicated by the Value Function. Requires glitchylib_MR3spsummon to be loaded]]
 EFFECT_SKIP_DICE_ROLL				=	2011	--[[Dice rolls (that meet the requirements of the Target Function) of players affected by this effect will be skipped. The would-be results of the roll are replaced by the value returned by this effect]]
 EFFECT_CAN_BE_TUNER_GLITCHY			=	2012	--[[Similar to EFFECT_CAN_BE_TUNER, but it allows to also specify whether it can be applied or not depending on the Synchro Monster that is going to be Summoned. Requires glitchymods_synchro to be loaded]]
+EFFECT_CANNOT_MODIFY_LEVEL_X		=	2013	--Players affected by this effect cannot change the Level/Rank/LinkRating of the specified cards. Needed for implementation of "The Valley of the Gravekeepers".
+EFFECT_CANNOT_MODIFY_CODE			=	2014	--Players affected by this effect cannot change the name of the specified cards, nor add names to them. Needed for implementation of "The Valley of the Gravekeepers".
+EFFECT_CANNOT_MODIFY_ATTRIBUTE		=	2015	--Players affected by this effect cannot change the Attribute of, nor add Attributes to, the specified cards, nor add names to them. Needed for implementation of "The Valley of the Gravekeepers".
+EFFECT_CANNOT_MODIFY_RACE			=	2016	--Players affected by this effect cannot change the Monster Type of, nor add Monster Types to, the specified cards, nor add names to them. Needed for implementation of "The Valley of the Gravekeepers".
 
 --Locations
 
@@ -310,7 +317,7 @@ function Duel.Negate(g,e,reset,notfield,forced,typ,cond)
 		rct=reset[2]
 		reset=reset[1]
 	end
-	if not typ then typ=0 end
+	if not typ then typ=TYPE_NEGATE_ALL end
 	
 	local paramtype=type(g)
 	local returntype=(paramtype=="Group" and #g==1) and "Card" or paramtype
@@ -480,17 +487,28 @@ function Duel.ShuffleIntoDeck(g,p,loc,seq,r,f,rp)
 	end
 	return 0
 end
-function Duel.PlaceOnTopOfDeck(g,p)
-	local ct=Duel.SendtoDeck(g,p,SEQ_DECKTOP,REASON_EFFECT)
+function Duel.PlaceOnTopOfDeck(g,tp,p,loc,r,f,rp)
+	if not loc then loc=LOCATION_DECK|LOCATION_EXTRA end
+	if not r then r=REASON_EFFECT end
+	local ct=Duel.SendtoDeck(g,p,SEQ_DECKTOP,r,rp)
 	if ct>0 then
-		local og=g:Filter(Card.IsLocation,nil,LOCATION_DECK)
+		local og=Duel.GetOperatedGroup():Filter(Card.IsLocation,nil,LOCATION_DECK)
 		for pp=tp,1-tp,1-2*tp do
-			local dg=og:Filter(Card.IsControler,nil,pp)
-			if #dg>1 then
-				Duel.SortDecktop(p,pp,#dg)
+			local dct=og:FilterCount(Card.IsControler,nil,pp)
+			if dct>1 then
+				Duel.SortDecktop(tp,pp,dct)
 			end
 		end
-		return ct
+		
+		if type(g)=="Card" and aux.PLChk(g,p,loc) and (not f or f(g)) then
+			return 1
+		elseif type(g)=="Group" then
+			local sg=g:Filter(aux.PLChk,nil,p,loc)
+			if f then
+				sg=sg:Filter(f,nil,sg)
+			end
+			return #sg
+		end
 	end
 	return 0
 end
@@ -2066,6 +2084,9 @@ function Duel.GetCustomOperationInfo(chain,cat)
 				table.insert(res,tab)
 			end
 		end
+		if #res==0 then
+			return false
+		end
 		return res
 	end
 end
@@ -2548,7 +2569,12 @@ function Card.Activation(c,oath,timings,cond,cost,tg,op,stop)
 		e1:HOPT(true)
 	end
 	if timings then
-		e1:SetRelevantTimings()
+		local typ=type(timings)
+		if typ=="boolean" then
+			e1:SetRelevantTimings()
+		elseif typ=="table" then
+			e1:SetHintTiming(timings[1],timings[2])
+		end
 	end
 	if cond then
 		e1:SetCondition(cond)

@@ -327,6 +327,30 @@ function Card.RegisterEffect(c,eff,...)
 	elseif not isPassive then
 		local condition,cost,tg,op,val = e:GetCondition(),e:GetCost(),e:GetTarget(),e:GetOperation(),e:GetValue()
 		
+		if cost and not isHasExceptionType then
+			local newcost =	function(...)
+								local x={...}
+								local e,tp,eg,ep,ev,re,r,rp,chk,chkc = table.unpack(x)
+								
+								local previous_state = {self_reference_effect, last_tp, last_eg, last_ep, last_ev, last_re, last_r, last_rp, last_chk}
+								
+								self_reference_effect, last_tp, last_eg, last_ep, last_ev, last_re, last_r, last_rp, last_chk = table.unpack(x)
+								
+								-- if #x>=9 and chk~=0 and (#x<10 or not chkc) and not cost then
+									-- Duel.RaiseEvent(e:GetHandler(),EVENT_CHAIN_CREATED,e,0,tp,tp,Duel.GetCurrentChain())
+								-- end
+								
+								e:SetCostChecked(true)
+								local res=cost(table.unpack(x))
+								
+								self_reference_effect, last_tp, last_eg, last_ep, last_ev, last_re, last_r, last_rp, last_chk = table.unpack(previous_state)
+
+								return res
+								
+							end
+			e:SetCost(newcost)
+		end
+		
 		if tg and not isHasExceptionType then
 			local newtg =	function(...)
 								local x={...}
@@ -336,15 +360,12 @@ function Card.RegisterEffect(c,eff,...)
 								
 								self_reference_effect, last_tp, last_eg, last_ep, last_ev, last_re, last_r, last_rp, last_chk = table.unpack(x)
 								
-								if #x>1 and type(tp)=="number" and (tp==0 or tp==1) then
-									self_reference_tp = tp
-								end
-								
 								-- if #x>=9 and chk~=0 and (#x<10 or not chkc) and not cost then
 									-- Duel.RaiseEvent(e:GetHandler(),EVENT_CHAIN_CREATED,e,0,tp,tp,Duel.GetCurrentChain())
 								-- end
 								
 								local res=tg(table.unpack(x))
+								e:SetCostChecked(false)
 								
 								self_reference_effect, last_tp, last_eg, last_ep, last_ev, last_re, last_r, last_rp, last_chk = table.unpack(previous_state)
 								
@@ -370,10 +391,6 @@ function Card.RegisterEffect(c,eff,...)
 								local previous_state = {self_reference_effect, last_tp, last_eg, last_ep, last_ev, last_re, last_r, last_rp, last_chk}
 								
 								self_reference_effect, last_tp, last_eg, last_ep, last_ev, last_re, last_r, last_rp, last_chk = table.unpack(x)
-								
-								if #x>1 and type(tp)=="number" and (tp==0 or tp==1) then
-									self_reference_tp = tp
-								end
 								
 								-- if #x>=9 and chk~=0 and (#x<10 or not chkc) and not cost then
 									-- Duel.RaiseEvent(e:GetHandler(),EVENT_CHAIN_CREATED,e,0,tp,tp,Duel.GetCurrentChain())

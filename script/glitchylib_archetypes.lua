@@ -155,7 +155,16 @@ function Auxiliary.NecroValleyFilter(f)
 		return _NecroValleyFilter(f)
 	else
 		return	function(target,...)
-					return f(target,...) and not (target:IsHasEffect(EFFECT_NECRO_VALLEY) and not target:IsHasEffect(CARD_HIDDEN_MONASTERY_OF_NECROVALLEY) and Duel.IsChainDisablable(0))
+					local res=f(target,...)
+					if not res then return false end
+					local dischk=Duel.IsChainDisablable(0)
+					if not dischk then
+						return true
+					end
+					if last_tp and Duel.IsPlayerAffectedByEffect(last_tp,CARD_THE_VALLEY_OF_GRAVEKEEPERS) and target:IsLocation(LOCATION_GRAVE) and not Duel.IsPlayerAffectedByEffect(target:GetControler(),EFFECT_NECRO_VALLEY_IM) then
+						return false
+					end
+					return not (target:IsHasEffect(EFFECT_NECRO_VALLEY) and not target:IsHasEffect(CARD_HIDDEN_MONASTERY_OF_NECROVALLEY))
 				end
 	end
 end
