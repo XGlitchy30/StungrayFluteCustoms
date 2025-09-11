@@ -50,7 +50,7 @@ s.listed_series={SET_GRAVEKEEPERS}
 s.material_setcode={SET_GRAVEKEEPERS}
 
 function s.ffilter(c,fc,sumtype,sp,sub,mg,sg)
-	return c:IsSetCard(SET_GRAVEKEEPERS,fc,sumtype,sp) and (not sg or sg:FilterCount(aux.TRUE,c)==0 or sg:IsExists(Card.IsCode,1,c,CARD_GRAVEKEEPERS_SPIRITUALIST,fc,sumtype,sp))
+	return c:IsSetCard(SET_GRAVEKEEPERS,fc,sumtype,sp) and (not sg or sg:FilterCount(aux.TRUE,c)==0 or sg:IsExists(Card.IsSummonCode,1,c,fc,sumtype,sp,CARD_GRAVEKEEPERS_SPIRITUALIST))
 end
 
 --GE1
