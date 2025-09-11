@@ -41,287 +41,310 @@ function Card.RegisterEffect(c,eff,...)
 	local isPassive = IsPassiveEffect(typ)
 	local isHasExceptionType = typ==EFFECT_TYPE_XMATERIAL or typ==EFFECT_TYPE_XMATERIAL|EFFECT_TYPE_FIELD or typ&EFFECT_TYPE_GRANT~=0
 	
-	if isPassive and typ~=EFFECT_TYPE_SINGLE then
-	
-		if IsEffectCode(code,EFFECT_SPSUMMON_PROC) and eff:GetRange()&LOCATION_EXTRA>0 then
-			--[[Implement EFFECT_ALLOW_MR3_SPSUMMON_FROM_ED for inherent SS procedures from the ED]]
+	if isPassive then
+		
+		--Implement negation of name-changing effects by "The Valley of the Gravekeepers"
+		if typ==EFFECT_TYPE_SINGLE then
+			if IsEffectCode(code,EFFECT_CHANGE_CODE,EFFECT_ADD_CODE) then
+				local codecond = function(e,...)
+					if cond and not cond(e,...) then return false end
+					local c=e:GetHandler()
+					local p=e:GetHandlerPlayer()
+					local eset={Duel.IsPlayerAffectedByEffect(p,EFFECT_CANNOT_MODIFY_CODE)}
+					for _,ce in ipairs(eset) do
+						local tg=ce:GetTarget()
+						if not tg or tg(ce,c,p,REASON_EFFECT) then
+							return false
+						end
+					end
+					return true
+				end
+				
+				e:SetCondition(codecond)
+			end
 			
-			local op=eff:GetOperation()
-			local new_op = 	function(_e,tp,eg,_ep,ev,re,r,rp,c)
-								if c:IsLocation(LOCATION_EXTRA) then
+		else
+	
+			if IsEffectCode(code,EFFECT_SPSUMMON_PROC) and eff:GetRange()&LOCATION_EXTRA>0 then
+				--[[Implement EFFECT_ALLOW_MR3_SPSUMMON_FROM_ED for inherent SS procedures from the ED]]
+				
+				local op=eff:GetOperation()
+				local new_op = 	function(_e,tp,eg,_ep,ev,re,r,rp,c)
+									if c:IsLocation(LOCATION_EXTRA) then
+										local e1,e2
+										local eset={Duel.GetPlayerEffect(tp,EFFECT_ALLOW_MR3_SPSUMMON_FROM_ED)}
+										local descs,validEffs={},{}
+										for _,e in ipairs(eset) do
+											local tg=e:GetTarget()
+											if not tg or tg(e,c) then
+												table.insert(descs,e:GetDescription())
+												table.insert(validEffs,e)
+											end
+										end
+										local mr3_eff
+										local ct=#validEffs
+										if ct>0 then
+											local opt=Duel.SelectOption(tp,STRING_DO_NOT_APPLY,table.unpack(descs))
+											if opt>0 then
+												mr3_eff=validEffs[opt]
+											end
+										end
+										
+										if mr3_eff then
+											local ep=mr3_eff:GetOwnerPlayer()
+											local zones=mr3_eff:GetValue()
+											if tp==1-ep then
+												zones=zones>>16
+											end
+											zones=zones&0x7f
+											e1=Effect.GlobalEffect()
+											e1:SetType(EFFECT_TYPE_FIELD)
+											e1:SetProperty(EFFECT_FLAG_OATH)
+											e1:SetCode(EFFECT_BECOME_LINKED_ZONE)
+											e1:SetValue(zones)
+											Duel.RegisterEffect(e1,ep)
+											e2=Effect.GlobalEffect()
+											e2:SetType(EFFECT_TYPE_FIELD)
+											e2:SetCode(EFFECT_FORCE_MZONE)
+											e2:SetProperty(EFFECT_FLAG_PLAYER_TARGET|EFFECT_FLAG_OATH)
+											e2:SetTargetRange(1,0)
+											e2:SetValue(zones)
+											Duel.RegisterEffect(e2,tp)
+											
+											local op=mr3_eff:GetOperation()
+											if op then
+												op(mr3_eff,ep,c)
+											end
+											
+											if e1 then
+												xgl.RegisterResetAfterSpecialSummonRule(c,tp,e1,e2)
+											end
+										end
+										
+									end
+								end
+				
+				if op then
+					eff:SetOperation(function(e,tp,eg,ep,ev,re,r,rp,c)
+						new_op(e,tp,eg,ep,ev,re,r,rp,c)
+						op(e,tp,eg,ep,ev,re,r,rp,c)
+					end
+					)
+				else
+					eff:SetOperation(new_op)
+				end
+		
+			elseif IsEffectCode(code,EFFECT_SPSUMMON_PROC_G) then
+				--[["Lazy" implementation for EFFECT_ALLOW_MR3_SPSUMMON_FROM_ED into the Pendulum Summoning procedures (this method does not force me to modify the scripts of all cards that perform a Pendulum Summon immediately after their effect's resolution and/or that grant additional Pendulum Summons)]]
+			
+				local op=eff:GetOperation()
+				
+				eff:SetOperation(function(_e,tp,eg,_ep,ev,re,r,rp,c,sg,inchain)
+					local ok = true
+					
+					while ok do
+						op(e,tp,eg,ep,ev,re,r,rp,c,sg,inchain)
+						ok=false
+						
+						local eset={Duel.GetPlayerEffect(tp,EFFECT_ALLOW_MR3_SPSUMMON_FROM_ED)}
+						if #sg*#eset==0 then return end
+							
+						local validAssignments = xgl.GetZoneAssignmentsForGroup(sg,tp,tp)
+						
+						--LEAVE FOR DEBUG PURPOSES
+						-- for i, assign in ipairs(validAssignments) do
+							-- Debug.Message("Option #"..i)
+							-- for card, zone in pairs(assign) do
+								-- Debug.Message("  "..card:GetOriginalCode().." → 0x"..string.format("%X", zone))
+							-- end
+						-- end
+						
+						if #validAssignments==0 then
+							sg:Clear()
+							Debug.Message("Glitchy warns: you selected an invalid group of cards for Pendulum Summon. Please try again")
+							ok=true
+						else
+						
+							local tempDisableEffs,alreadyChosen,ogct={},{},0
+							
+							for tc in sg:Iter() do
+								
+								if not tc:IsLocation(LOCATION_EXTRA) then
+									local z = 0x7f & ~(select(2, Duel.GetLocationCount(tp, LOCATION_MZONE)))
+									alreadyChosen[tc]=z
+								else
+									local validZones = 0
+									for _,tab in ipairs(validAssignments) do
+										local z=tab[tc]
+										local ct,goal=0,0
+										for c,cz in pairs(tab) do
+											if alreadyChosen[c] then
+												goal=goal+1
+												if alreadyChosen[c]&cz>0 then
+													ct=ct+1
+												end
+											end
+										end
+										if ct==goal then
+											validZones = validZones|z
+										end
+									end
+									
+									
 									local e1,e2
-									local eset={Duel.GetPlayerEffect(tp,EFFECT_ALLOW_MR3_SPSUMMON_FROM_ED)}
 									local descs,validEffs={},{}
 									for _,e in ipairs(eset) do
 										local tg=e:GetTarget()
-										if not tg or tg(e,c) then
+										local zones=e:Evaluate(tc)
+										if (not tg or tg(e,tc)) and validZones&zones>0 then
 											table.insert(descs,e:GetDescription())
 											table.insert(validEffs,e)
 										end
 									end
 									local mr3_eff
 									local ct=#validEffs
+									
 									if ct>0 then
-										local opt=Duel.SelectOption(tp,STRING_DO_NOT_APPLY,table.unpack(descs))
-										if opt>0 then
-											mr3_eff=validEffs[opt]
+										Duel.ConfirmCards(tp,tc)
+										if Duel.GetOriginalLocationCountFromEx(tp,tp,nil,tc)-ogct<=0 then
+											local opt=Duel.SelectOption(tp,table.unpack(descs))
+											mr3_eff=validEffs[opt+1]
+										else
+											local opt=Duel.SelectOption(tp,STRING_DO_NOT_APPLY,table.unpack(descs))
+											if opt>0 then
+												mr3_eff=validEffs[opt]
+											end
 										end
 									end
 									
 									if mr3_eff then
 										local ep=mr3_eff:GetOwnerPlayer()
-										local zones=mr3_eff:GetValue()
+										local zones=mr3_eff:Evaluate(tc)
 										if tp==1-ep then
 											zones=zones>>16
 										end
-										zones=zones&0x7f
+										zones=zones&validZones
+										alreadyChosen[tc]=zones
 										e1=Effect.GlobalEffect()
 										e1:SetType(EFFECT_TYPE_FIELD)
 										e1:SetProperty(EFFECT_FLAG_OATH)
 										e1:SetCode(EFFECT_BECOME_LINKED_ZONE)
 										e1:SetValue(zones)
 										Duel.RegisterEffect(e1,ep)
-										e2=Effect.GlobalEffect()
-										e2:SetType(EFFECT_TYPE_FIELD)
+										table.insert(tempDisableEffs,e1)
+										
+										e2=Effect.CreateEffect(tc)
+										e2:SetType(EFFECT_TYPE_SINGLE)
+										e2:SetProperty(EFFECT_FLAG_IGNORE_IMMUNE|EFFECT_FLAG_CANNOT_DISABLE|EFFECT_FLAG_UNCOPYABLE|EFFECT_FLAG_OATH)
 										e2:SetCode(EFFECT_FORCE_MZONE)
-										e2:SetProperty(EFFECT_FLAG_PLAYER_TARGET|EFFECT_FLAG_OATH)
-										e2:SetTargetRange(1,0)
 										e2:SetValue(zones)
-										Duel.RegisterEffect(e2,tp)
+										e2:SetReset(RESET_EVENT|RESETS_STANDARD)
+										tc:RegisterEffect(e2)
 										
 										local op=mr3_eff:GetOperation()
 										if op then
-											op(mr3_eff,ep,c)
+											if not xgl.MR3SpSummonEffectOperation[mr3_eff] then
+												xgl.MR3SpSummonEffectOperation[mr3_eff]={op,tp,tp,tc}
+											end
 										end
 										
 										if e1 then
-											xgl.RegisterResetAfterSpecialSummonRule(c,tp,e1,e2)
+											xgl.RegisterResetAfterSpecialSummonRule(tc,tp,e1)
 										end
+										
+									elseif ct>0 then
+										ogct = ogct+1
+										for _,tde in ipairs(tempDisableEffs) do
+											tde:SetCondition(aux.FALSE)
+										end
+										local _,zones=Duel.GetOriginalLocationCountFromEx(tp,tp,nil,tc)
+										for _,tde in ipairs(tempDisableEffs) do
+											tde:SetCondition(aux.TRUE)
+										end
+										
+										local z=(~zones)&0x7f
+										alreadyChosen[tc]=z
+										
+										e2=Effect.CreateEffect(tc)
+										e2:SetType(EFFECT_TYPE_SINGLE)
+										e2:SetProperty(EFFECT_FLAG_IGNORE_IMMUNE|EFFECT_FLAG_CANNOT_DISABLE|EFFECT_FLAG_UNCOPYABLE|EFFECT_FLAG_OATH)
+										e2:SetCode(EFFECT_FORCE_MZONE)
+										e2:SetValue(z)
+										e2:SetReset(RESET_EVENT|RESETS_STANDARD)
+										tc:RegisterEffect(e2)
 									end
-									
 								end
 							end
-			
-			if op then
-				eff:SetOperation(function(e,tp,eg,ep,ev,re,r,rp,c)
-					new_op(e,tp,eg,ep,ev,re,r,rp,c)
-					op(e,tp,eg,ep,ev,re,r,rp,c)
+							
+							local e0=Effect.GlobalEffect()
+							e0:SetType(EFFECT_TYPE_FIELD|EFFECT_TYPE_CONTINUOUS)
+							e0:SetProperty(EFFECT_FLAG_CANNOT_DISABLE|EFFECT_FLAG_UNCOPYABLE)
+							e0:SetCode(EVENT_SPSUMMON)
+							e0:SetOperation(function(_e)
+								for mr3eff,tab in pairs(xgl.MR3SpSummonEffectOperation) do
+									local op,_ep,up,tc=table.unpack(tab)
+									op(mr3eff,_ep,up,tc)
+								end
+								xgl.ClearTableRecursive(xgl.MR3SpSummonEffectOperation)
+								_e:Reset()
+							end
+							)
+							Duel.RegisterEffect(e0,tp)
+						end
+					end
 				end
 				)
-			else
-				eff:SetOperation(new_op)
-			end
-	
-		elseif IsEffectCode(code,EFFECT_SPSUMMON_PROC_G) then
-			--[["Lazy" implementation for EFFECT_ALLOW_MR3_SPSUMMON_FROM_ED into the Pendulum Summoning procedures (this method does not force me to modify the scripts of all cards that perform a Pendulum Summon immediately after their effect's resolution and/or that grant additional Pendulum Summons)]]
-		
-			local op=eff:GetOperation()
 			
-			eff:SetOperation(function(_e,tp,eg,_ep,ev,re,r,rp,c,sg,inchain)
-				local ok = true
-				
-				while ok do
-					op(e,tp,eg,ep,ev,re,r,rp,c,sg,inchain)
-					ok=false
-					
-					local eset={Duel.GetPlayerEffect(tp,EFFECT_ALLOW_MR3_SPSUMMON_FROM_ED)}
-					if #sg*#eset==0 then return end
-						
-					local validAssignments = xgl.GetZoneAssignmentsForGroup(sg,tp,tp)
-					
-					--LEAVE FOR DEBUG PURPOSES
-					-- for i, assign in ipairs(validAssignments) do
-						-- Debug.Message("Option #"..i)
-						-- for card, zone in pairs(assign) do
-							-- Debug.Message("  "..card:GetOriginalCode().." → 0x"..string.format("%X", zone))
-						-- end
-					-- end
-					
-					if #validAssignments==0 then
-						sg:Clear()
-						Debug.Message("Glitchy warns: you selected an invalid group of cards for Pendulum Summon. Please try again")
-						ok=true
-					else
-					
-						local tempDisableEffs,alreadyChosen,ogct={},{},0
-						
-						for tc in sg:Iter() do
-							
-							if not tc:IsLocation(LOCATION_EXTRA) then
-								local z = 0x7f & ~(select(2, Duel.GetLocationCount(tp, LOCATION_MZONE)))
-								alreadyChosen[tc]=z
-							else
-								local validZones = 0
-								for _,tab in ipairs(validAssignments) do
-									local z=tab[tc]
-									local ct,goal=0,0
-									for c,cz in pairs(tab) do
-										if alreadyChosen[c] then
-											goal=goal+1
-											if alreadyChosen[c]&cz>0 then
-												ct=ct+1
-											end
-										end
-									end
-									if ct==goal then
-										validZones = validZones|z
-									end
-								end
-								
-								
-								local e1,e2
-								local descs,validEffs={},{}
-								for _,e in ipairs(eset) do
-									local tg=e:GetTarget()
-									local zones=e:Evaluate(tc)
-									if (not tg or tg(e,tc)) and validZones&zones>0 then
-										table.insert(descs,e:GetDescription())
-										table.insert(validEffs,e)
-									end
-								end
-								local mr3_eff
-								local ct=#validEffs
-								
-								if ct>0 then
-									Duel.ConfirmCards(tp,tc)
-									if Duel.GetOriginalLocationCountFromEx(tp,tp,nil,tc)-ogct<=0 then
-										local opt=Duel.SelectOption(tp,table.unpack(descs))
-										mr3_eff=validEffs[opt+1]
-									else
-										local opt=Duel.SelectOption(tp,STRING_DO_NOT_APPLY,table.unpack(descs))
-										if opt>0 then
-											mr3_eff=validEffs[opt]
-										end
-									end
-								end
-								
-								if mr3_eff then
-									local ep=mr3_eff:GetOwnerPlayer()
-									local zones=mr3_eff:Evaluate(tc)
-									if tp==1-ep then
-										zones=zones>>16
-									end
-									zones=zones&validZones
-									alreadyChosen[tc]=zones
-									e1=Effect.GlobalEffect()
-									e1:SetType(EFFECT_TYPE_FIELD)
-									e1:SetProperty(EFFECT_FLAG_OATH)
-									e1:SetCode(EFFECT_BECOME_LINKED_ZONE)
-									e1:SetValue(zones)
-									Duel.RegisterEffect(e1,ep)
-									table.insert(tempDisableEffs,e1)
-									
-									e2=Effect.CreateEffect(tc)
-									e2:SetType(EFFECT_TYPE_SINGLE)
-									e2:SetProperty(EFFECT_FLAG_IGNORE_IMMUNE|EFFECT_FLAG_CANNOT_DISABLE|EFFECT_FLAG_UNCOPYABLE|EFFECT_FLAG_OATH)
-									e2:SetCode(EFFECT_FORCE_MZONE)
-									e2:SetValue(zones)
-									e2:SetReset(RESET_EVENT|RESETS_STANDARD)
-									tc:RegisterEffect(e2)
-									
-									local op=mr3_eff:GetOperation()
-									if op then
-										if not xgl.MR3SpSummonEffectOperation[mr3_eff] then
-											xgl.MR3SpSummonEffectOperation[mr3_eff]={op,tp,tp,tc}
-										end
-									end
-									
-									if e1 then
-										xgl.RegisterResetAfterSpecialSummonRule(tc,tp,e1)
-									end
-									
-								elseif ct>0 then
-									ogct = ogct+1
-									for _,tde in ipairs(tempDisableEffs) do
-										tde:SetCondition(aux.FALSE)
-									end
-									local _,zones=Duel.GetOriginalLocationCountFromEx(tp,tp,nil,tc)
-									for _,tde in ipairs(tempDisableEffs) do
-										tde:SetCondition(aux.TRUE)
-									end
-									
-									local z=(~zones)&0x7f
-									alreadyChosen[tc]=z
-									
-									e2=Effect.CreateEffect(tc)
-									e2:SetType(EFFECT_TYPE_SINGLE)
-									e2:SetProperty(EFFECT_FLAG_IGNORE_IMMUNE|EFFECT_FLAG_CANNOT_DISABLE|EFFECT_FLAG_UNCOPYABLE|EFFECT_FLAG_OATH)
-									e2:SetCode(EFFECT_FORCE_MZONE)
-									e2:SetValue(z)
-									e2:SetReset(RESET_EVENT|RESETS_STANDARD)
-									tc:RegisterEffect(e2)
-								end
-							end
+			elseif IsEffectCode(code,EFFECT_SET_BASE_ATTACK,EFFECT_SET_BASE_DEFENSE) and not aux.BaseStatsModCheck then
+				--[[Fix interaction between continuous original stats modifiers and lingering current+original stats modifiers (both activated and non): for example, if Shrink's effect is applied to a monster and Unstable Evolution is later equipped to that monster, the original ATK of that monster should be determined by the effect of Unstable Evolution. Currently, EDOPro applies the effects in an incorrect order, which means that Unstable Evolution's modifier is overwritten by the one of Shrink, even if the former was applied strictly after the latter. The interaction between Darkworld Shackles and Shrink is also problematic, as the ATK of a monster affected by Shackles is supposed to remain unchanged even after Shrink is applied to it.
+				REMOVE THIS CODE ONLY AFTER THE BUG IS FIXED IN THE CORE]]
+			
+				aux.BaseStatsModCheck=true
+				local ge=Effect.CreateEffect(c)
+				ge:SetType(EFFECT_TYPE_FIELD)
+				ge:SetCode(EFFECT_SET_ATTACK_FINAL)
+				ge:SetProperty(EFFECT_FLAG_REPEAT|EFFECT_FLAG_DELAY)
+				ge:SetTargetRange(LOCATION_MZONE,LOCATION_MZONE)
+				ge:SetLabel(EFFECT_SET_BASE_ATTACK,EFFECT_SET_BASE_DEFENSE)
+				ge:SetTarget(function(E,C)
+					aux.PreventBaseStatsModLoop=true
+					local elist={C:IsHasEffect(EFFECT_SET_BASE_ATTACK)}
+					aux.PreventBaseStatsModLoop=false
+					for _,eff in ipairs(elist) do
+						if eff:GetType()~=EFFECT_TYPE_SINGLE then
+							return true
 						end
-						
-						local e0=Effect.GlobalEffect()
-						e0:SetType(EFFECT_TYPE_FIELD|EFFECT_TYPE_CONTINUOUS)
-						e0:SetProperty(EFFECT_FLAG_CANNOT_DISABLE|EFFECT_FLAG_UNCOPYABLE)
-						e0:SetCode(EVENT_SPSUMMON)
-						e0:SetOperation(function(_e)
-							for mr3eff,tab in pairs(xgl.MR3SpSummonEffectOperation) do
-								local op,_ep,up,tc=table.unpack(tab)
-								op(mr3eff,_ep,up,tc)
-							end
-							xgl.ClearTableRecursive(xgl.MR3SpSummonEffectOperation)
-							_e:Reset()
-						end
-						)
-						Duel.RegisterEffect(e0,tp)
 					end
-				end
+					
+					return false
+				end)
+				ge:SetValue(function(E,C)
+					return C:GetAttack()
+				end)
+				Duel.RegisterEffect(ge,0)
+				local ge2=Effect.CreateEffect(c)
+				ge2:SetType(EFFECT_TYPE_FIELD)
+				ge2:SetCode(EFFECT_SET_DEFENSE_FINAL)
+				ge2:SetProperty(EFFECT_FLAG_REPEAT|EFFECT_FLAG_DELAY)
+				ge2:SetTargetRange(LOCATION_MZONE,LOCATION_MZONE)
+				ge2:SetLabel(EFFECT_SET_BASE_ATTACK,EFFECT_SET_BASE_DEFENSE)
+				ge2:SetTarget(function(E,C)
+					aux.PreventBaseStatsModLoop=true
+					local elist={C:IsHasEffect(EFFECT_SET_BASE_DEFENSE)}
+					aux.PreventBaseStatsModLoop=false
+					for _,eff in ipairs(elist) do
+						if eff:GetType()~=EFFECT_TYPE_SINGLE then
+							return true
+						end
+					end
+					
+					return false
+				end)
+				ge2:SetValue(function(E,C)
+					return C:GetDefense()
+				end)
+				Duel.RegisterEffect(ge2,0)
 			end
-			)
-		
-		elseif IsEffectCode(code,EFFECT_SET_BASE_ATTACK,EFFECT_SET_BASE_DEFENSE) and not aux.BaseStatsModCheck then
-			--[[Fix interaction between continuous original stats modifiers and lingering current+original stats modifiers (both activated and non): for example, if Shrink's effect is applied to a monster and Unstable Evolution is later equipped to that monster, the original ATK of that monster should be determined by the effect of Unstable Evolution. Currently, EDOPro applies the effects in an incorrect order, which means that Unstable Evolution's modifier is overwritten by the one of Shrink, even if the former was applied strictly after the latter. The interaction between Darkworld Shackles and Shrink is also problematic, as the ATK of a monster affected by Shackles is supposed to remain unchanged even after Shrink is applied to it.
-			REMOVE THIS CODE ONLY AFTER THE BUG IS FIXED IN THE CORE]]
-		
-			aux.BaseStatsModCheck=true
-			local ge=Effect.CreateEffect(c)
-			ge:SetType(EFFECT_TYPE_FIELD)
-			ge:SetCode(EFFECT_SET_ATTACK_FINAL)
-			ge:SetProperty(EFFECT_FLAG_REPEAT|EFFECT_FLAG_DELAY)
-			ge:SetTargetRange(LOCATION_MZONE,LOCATION_MZONE)
-			ge:SetLabel(EFFECT_SET_BASE_ATTACK,EFFECT_SET_BASE_DEFENSE)
-			ge:SetTarget(function(E,C)
-				aux.PreventBaseStatsModLoop=true
-				local elist={C:IsHasEffect(EFFECT_SET_BASE_ATTACK)}
-				aux.PreventBaseStatsModLoop=false
-				for _,eff in ipairs(elist) do
-					if eff:GetType()~=EFFECT_TYPE_SINGLE then
-						return true
-					end
-				end
-				
-				return false
-			end)
-			ge:SetValue(function(E,C)
-				return C:GetAttack()
-			end)
-			Duel.RegisterEffect(ge,0)
-			local ge2=Effect.CreateEffect(c)
-			ge2:SetType(EFFECT_TYPE_FIELD)
-			ge2:SetCode(EFFECT_SET_DEFENSE_FINAL)
-			ge2:SetProperty(EFFECT_FLAG_REPEAT|EFFECT_FLAG_DELAY)
-			ge2:SetTargetRange(LOCATION_MZONE,LOCATION_MZONE)
-			ge2:SetLabel(EFFECT_SET_BASE_ATTACK,EFFECT_SET_BASE_DEFENSE)
-			ge2:SetTarget(function(E,C)
-				aux.PreventBaseStatsModLoop=true
-				local elist={C:IsHasEffect(EFFECT_SET_BASE_DEFENSE)}
-				aux.PreventBaseStatsModLoop=false
-				for _,eff in ipairs(elist) do
-					if eff:GetType()~=EFFECT_TYPE_SINGLE then
-						return true
-					end
-				end
-				
-				return false
-			end)
-			ge2:SetValue(function(E,C)
-				return C:GetDefense()
-			end)
-			Duel.RegisterEffect(ge2,0)
 		end
 	
 	elseif not isPassive then
