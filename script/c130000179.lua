@@ -155,7 +155,7 @@ end
 
 --E3
 function s.disfilter(c,not_im0,not_im1,re)
-	if not c:IsRelateToEffect(re) then return false end
+	if not c:IsRelateToEffect(re) or not c:IsLocation(LOCATION_GRAVE) then return false end
 	if c:IsControler(0) then
 		return not_im0
 	else
