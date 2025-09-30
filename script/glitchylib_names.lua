@@ -11,6 +11,10 @@ CARD_ANCESTAGON_PLASMATAIL				=	130000138	--[[This effect is used to implement c
 
 CARD_ANCESTAGON_DUKE_SILVERAPTOR		=	130000150	--[[Hardcoded effect specific to "Ancestagon Duke Silveraptor"]]
 
+--Custom Cards associated with custom effects
+
+CARD_ALPINIA							=	130000188	--[[Flags that marks monsters who copied, from another card, an effect that triggers "If this card destroys an opponent's monster by battle"]]
+
 --Custom Archetypes
 SET_MOBLINS					=	0x300
 SET_WICCINK					=	0x301
@@ -36,6 +40,7 @@ CARD_GRAVEKEEPERS_SPIRITUALIST		=	58657303
 CARD_KAISER_DRAGON					=	94566432
 CARD_MIRACLE_STONE					=	31461282
 CARD_MOUNT_SYLVANIA					=	70222318
+CARD_VIC_VIPER_T301					=	10642488
 CARD_ZOMBIE_WORLD					=	4064256
 
 CARD_ADIRA_APOTHEOSIZED				=   130000020
@@ -53,9 +58,13 @@ CARD_VALERIE_THE_FLAMESPEAR			=	130000164
 CARD_WAVE_KING_OF_DEMONISU			=	130000126
 
 --Custom Tokens
+TOKEN_ALPINE				=	130000200
 TOKEN_ANCESTAGON			=	130000151
 TOKEN_BES_GARUN				=	130000137
 TOKEN_LADY_LUCK				=	130000161
+TOKEN_OPTION_WARRIOR		=	130000201
+TOKEN_PROTOTYPE_OPTION		=	130000202
+TOKEN_USKA					=	130000203
 TOKEN_WICCINK				=	130000050
 
 --Official Counters/Custom Counters

@@ -147,6 +147,55 @@ if Demonisu then
 	end
 end
 
+--GRADIUS
+if Gradius then
+	Gradius.AlpiniaTable = {
+		[1945387] = true; [3019642] = true; [6588580] = true; [10032958] = true; [11012887] = true; [12079734] = true; [13518809] = true; [14089428] = true; [22227683] = true; [26669055] = true;
+		[32314730] = true; [32491822] = true; [34568403] = true; [35514096] = true; [35638627] = true; [37115575] = true; [39761138] = true; [40737112] = true; [41098335] = true; [44689688] = true; 
+		[44913552] = true; [46263076] = true; [47025270] = true; [50933533] = true; [53025096] = true; [53981499] = true; [54484652] = true; [54702678] = true; [54860010] = true; [60681103] = true;
+		[61538782] = true; [62054060] = true; [62701967] = true; [62742651] = true; [71106375] = true; [73483491] = true; [74440055] = true; [74823665] = true; [76372778] = true; [76925842] = true;
+		[80321197] = true; [80367387] = true; [81059524] = true; [82841979] = true; [84055227] = true; [86170989] = true; [86321248] = true; [87259077] = true; [87350908] = true; [87622767] = true;
+		[88234821] = true; [89567993] = true; [91895091] = true; [93130021] = true; [93927067] = true; [94538053] = true; [96565487] = true; [97165977] = true; [97240499] = true;
+	}
+	
+	function Gradius.hasHardcodedAlpiniaMarker(e)
+		local etyp=e:GetType()
+		return ((etyp&(EFFECT_TYPE_SINGLE|EFFECT_TYPE_TRIGGER_O)==EFFECT_TYPE_SINGLE|EFFECT_TYPE_TRIGGER_O and e:IsHasProperty(EFFECT_FLAG_DELAY))
+				or etyp&(EFFECT_TYPE_SINGLE|EFFECT_TYPE_TRIGGER_F)==EFFECT_TYPE_SINGLE|EFFECT_TYPE_TRIGGER_F or etyp&(EFFECT_TYPE_QUICK_F)>0)
+				and e:GetCode()==EVENT_BATTLE_DESTROYING
+	end
+	
+	--Add marker flag to monsters who copy an effect tracked by Alpinia's condition
+	function Gradius.RegisterAlpiniaCopyCheck(s)
+		aux.GlobalCheck(s,function()
+		
+			local _CopyEffect, _ReplaceEffect = Card.CopyEffect, Card.ReplaceEffect
+			
+			Card.CopyEffect=function(c,code,reset,...)
+				local res= _CopyEffect(c,code,reset,...)
+				if res~=-1 and Gradius.AlpiniaTable[code] then
+					local x={...}
+					local rct=#x>0 and x[1] or 1
+					c:RegisterFlagEffect(CARD_ALPINIA,reset,0,rct)
+				end
+				return res
+			end
+			
+			Card.ReplaceEffect=function(c,code,reset,...)
+				local res= _ReplaceEffect(c,code,reset,...)
+				if res~=-1 and Gradius.AlpiniaTable[code] then
+					local x={...}
+					local rct=#x>0 and x[1] or 1
+					c:RegisterFlagEffect(CARD_ALPINIA,reset,0,rct)
+				end
+				return res
+			end
+			
+		end
+		)
+	end
+end
+
 --NECROVALLEY
 local _NecroValleyFilter = Auxiliary.NecroValleyFilter
 

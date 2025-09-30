@@ -12,7 +12,10 @@ CATEGORY_RACE_CHANGE		=	0x10
 CATEGORY_ATTRIBUTE_CHANGE	=	0x20
 
 CATEGORY_FLAG_ANCESTAGON_PLASMATAIL = 0x1
-CATEGORY_FLAG_DRAINING_PARASITE		= 0x2	--Flag for effects that can call a stat-calculating function on the handler while already calculating the stat of the handler
+CATEGORY_FLAG_DRAINING_PARASITE		= 0x2	--Flag for effects that can call a stat-calculating function on the handler, while already calculating the stat of the handler
+CATEGORY_FLAG_ALPINIA				= 0x4	--Flag for effects that exactly trigger "if the handler destroys an opponent's monster by battle"
+CATEGORY_FLAG_INCREMENTAL			= 0x8	--[[Flag to specify that an effect adds its own Value to a quantity, instead of setting the quantity equal to its Value.
+											Currently applicable to EFFECT_EXTRA_ATTACK]]
 
 CATEGORIES_SEARCH 			= 	CATEGORY_SEARCH|CATEGORY_TOHAND
 CATEGORIES_ATKDEF 			= 	CATEGORY_ATKCHANGE|CATEGORY_DEFCHANGE
@@ -1565,7 +1568,7 @@ end
 --Link Markers
 
 --LP
-function Duel.LoseLP(p,val)
+function Duel.LoseLP(tp,val)
 	return Duel.SetLP(tp,Duel.GetLP(tp)-math.abs(val))
 end
 

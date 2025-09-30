@@ -36,7 +36,7 @@ function Glitchy.LocationGroupCond(f,loc1,loc2,min,max,exc)
 	if not loc2 then loc2=loc1 end
 	if not min then min=1 end
 	return	function(e,tp,eg,ep,ev,re,r,rp)
-				if not tp then
+				if type(tp)~="number" then
 					tp=e:GetHandlerPlayer()
 				end
 				local exc=(exc) and e:GetHandler() or nil
@@ -49,7 +49,7 @@ function Glitchy.ExactLocationGroupCond(f,loc1,loc2,ct0,exc)
 	if not loc2 then loc2=loc1 end
 	if not ct then ct=1 end
 	return	function(e,tp,eg,ep,ev,re,r,rp)
-				if not tp then
+				if type(tp)~="number" then
 					tp=e:GetHandlerPlayer()
 				end
 				local exc=(not exc) and nil or e:GetHandler()
@@ -61,7 +61,7 @@ function Glitchy.CompareLocationGroupCond(res,f,loc,exc)
 	if not f then f=aux.TRUE end
 	if not loc then loc=LOCATION_MZONE end
 	return	function(e,tp,eg,ep,ev,re,r,rp)
-				if not tp then
+				if type(tp)~="number" then
 					tp=e:GetHandlerPlayer()
 				end
 				local res = (res and res==1) and 1-tp or tp
@@ -120,7 +120,7 @@ function Glitchy.IsEquippedCond(e)
 end
 function Glitchy.IsEquippedToCond(f)
 	return	function(e,tp)
-				if not tp then tp=e:GetHandlerPlayer() end
+				if type(tp)~="number" then tp=e:GetHandlerPlayer() end
 				local ec=e:GetHandler():GetEquipTarget()
 				return ec and (not f or f(ec,e,tp))
 			end
