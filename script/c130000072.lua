@@ -22,7 +22,7 @@ function s.initial_effect(c)
 	e1:OPT()
 	e1:SetFunctions(
 		s.negcon,
-		Cost.Detach(1,1,nil),
+		Cost.DetachFromSelf(1,1,nil),
 		s.negtg,
 		s.negop
 	)
