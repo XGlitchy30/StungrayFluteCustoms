@@ -40,7 +40,7 @@ end
 
 --E1
 function s.thcfilter(c,e,tp)
-	return c:IsMonster() and c:IsReleasable()
+	return c:IsMonsterType() and c:IsReleasable()
 		and Duel.IsExistingMatchingCard(s.tdfilter,tp,LOCATION_MZONE|LOCATION_GRAVE,LOCATION_MZONE|LOCATION_GRAVE,1,c,e)
 end
 function s.tdfilter(c,e)
@@ -79,7 +79,7 @@ end
 
 --E2
 function s.spfilter(c,e,tp)
-	return ((c:IsType(TYPE_NORMAL) and c:IsRace(RACE_DRAGON)) or (c:IsMonster() and not c:IsType(TYPE_LINK) and c:IsSetCard(SET_HIERATIC))) and c:IsCanBeSpecialSummoned(e,0,tp,false,false)
+	return ((c:IsType(TYPE_NORMAL) and c:IsRace(RACE_DRAGON)) or (c:IsMonsterType() and not c:IsType(TYPE_LINK) and c:IsSetCard(SET_HIERATIC))) and c:IsCanBeSpecialSummoned(e,0,tp,false,false)
 end
 function s.sptg(e,tp,eg,ep,ev,re,r,rp,chk)
 	if chk==0 then return true end

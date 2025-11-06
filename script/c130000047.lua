@@ -61,7 +61,7 @@ function s.desfilter(c,e,tp)
 	return c:IsFaceup() and c:IsCode(TOKEN_WICCINK) and (not e or Duel.IsExists(false,s.spfilter,tp,LOCATION_DECK|LOCATION_EXTRA,0,1,c,c,e,tp))
 end
 function s.spfilter(c,tk,e,tp)
-	return c:IsMonster() and c:IsSetCard(SET_WICCINK) and Duel.GetMZoneCountFromLocation(tp,tp,tk,c)>0 and c:IsCanBeSpecialSummoned(e,0,tp,true,false)
+	return c:IsMonsterType() and c:IsSetCard(SET_WICCINK) and Duel.GetMZoneCountFromLocation(tp,tp,tk,c)>0 and c:IsCanBeSpecialSummoned(e,0,tp,true,false)
 end
 function s.sptg(e,tp,eg,ep,ev,re,r,rp,chk)
 	local g=Duel.Group(s.desfilter,tp,LOCATION_ONFIELD,0,nil,e,tp)

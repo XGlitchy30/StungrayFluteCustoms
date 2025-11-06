@@ -44,7 +44,7 @@ s.listed_series={SET_ELEMENTAL_HERO}
 
 --E1
 function s.tgfilter(c,attr,...)
-	return c:IsMonster() and c:IsSetCard(SET_ELEMENTAL_HERO) and c:IsAbleToGraveAsCost() and (c:IsAttributeExcept(attr) or not c:IsCode(...))
+	return c:IsMonsterType() and c:IsSetCard(SET_ELEMENTAL_HERO) and c:IsAbleToGraveAsCost() and (c:IsAttributeExcept(attr) or not c:IsCode(...))
 end
 function s.target(e,tp,eg,ep,ev,re,r,rp,chk)
 	local c=e:GetHandler()

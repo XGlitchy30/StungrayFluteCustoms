@@ -66,7 +66,7 @@ end
 
 --E2
 function s.cfilter(c,_,tp)
-	return c:IsMonster() and c:IsSetCard(SET_BES) and c:IsControler(tp)
+	return c:IsMonsterType() and c:IsSetCard(SET_BES) and c:IsControler(tp)
 end
 function s.cttg(e,tp,eg,ep,ev,re,r,rp,chk)
 	local c=e:GetHandler()

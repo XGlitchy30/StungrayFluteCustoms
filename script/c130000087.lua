@@ -34,6 +34,8 @@ function s.activate(e,tp,eg,ep,ev,re,r,rp)
 		Duel.SortDecktop(tp,tp,2)
 		if Duel.SelectYesNo(tp,STRING_ASK_SHUFFLE_DECK) then
 			Duel.ShuffleDeck(tp)
+			Duel.Hint(HINT_SELECTMSG,tp,aux.Stringid(id,2))
+			Duel.Hint(HINT_SELECTMSG,1-tp,aux.Stringid(id,2))
 		end
 	end
 	xgl.DelayedOperation(nil,PHASE_STANDBY,nil,e,tp,s.delayedop,nil,nil,Duel.GetNextPhaseCount(PHASE_STANDBY),nil,aux.Stringid(id,1))

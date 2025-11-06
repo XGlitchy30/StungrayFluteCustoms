@@ -140,7 +140,7 @@ function s.disop(e,tp,eg,ep,ev,re,r,rp)
 	e1:SetProperty(EFFECT_FLAG_SINGLE_RANGE|EFFECT_FLAG_CANNOT_DISABLE|EFFECT_FLAG_UNCOPYABLE)
 	e1:SetCode(EFFECT_CANNOT_TRIGGER)
 	e1:SetRange(LOCATION_GRAVE)
-	e1:SetCondition(function(_e) return _e:GetHandler():IsMonster() end)
+	e1:SetCondition(function(_e) return _e:GetHandler():IsMonsterType() end)
 	e1:SetReset(RESET_EVENT|RESETS_STANDARD_EXC_GRAVE|RESET_PHASE|PHASE_END)
 	d:RegisterEffect(e1)
 end
@@ -153,7 +153,7 @@ end
 
 --E5
 function s.atkfilter(c)
-	return c:IsFaceup() and c:IsMonster() and c:IsSetCard(SET_ANCESTAGON)
+	return c:IsFaceup() and c:IsMonsterType() and c:IsSetCard(SET_ANCESTAGON)
 end
 function s.atkval(e,c)
 	return Duel.GetMatchingGroupCount(s.atkfilter,e:GetHandlerPlayer(),LOCATION_MZONE|LOCATION_EXTRA,0,nil)*50

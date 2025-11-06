@@ -63,7 +63,7 @@ end
 
 --E3
 function s.thfilter(c)
-	return c:IsSetCard(SET_DEMONISU) and c:IsMonster() and c:IsAbleToHand()
+	return c:IsSetCard(SET_DEMONISU) and c:IsMonsterType() and c:IsAbleToHand()
 end
 function s.thtg(e,tp,eg,ep,ev,re,r,rp,chk)
 	if chk==0 then
@@ -71,7 +71,7 @@ function s.thtg(e,tp,eg,ep,ev,re,r,rp,chk)
 		e:SetLabel(0)
 		if Duel.IsExistingMatchingCard(s.thfilter,tp,LOCATION_GRAVE,0,1,nil) then return true end
 		local c=e:GetHandler()
-		return isCostChecked and c:IsSetCard(SET_DEMONISU) and c:IsMonster() and c:IsAbleToGraveAsCost() and Duel.IsPlayerCanSendtoHandFromLocation(tp,LOCATION_GRAVE,c)
+		return isCostChecked and c:IsSetCard(SET_DEMONISU) and c:IsMonsterType() and c:IsAbleToGraveAsCost() and Duel.IsPlayerCanSendtoHandFromLocation(tp,LOCATION_GRAVE,c)
 	end
 	e:SetLabel(0)
 	Duel.SetOperationInfo(0,CATEGORY_TOHAND,nil,1,tp,LOCATION_GRAVE)

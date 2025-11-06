@@ -8,12 +8,6 @@ local s,id,o=GetID()
 Duel.LoadScript("glitchylib_new.lua")
 Duel.LoadScript("glitchylib_delayed_event.lua")
 function s.initial_effect(c)
-	if not s.progressive_id then
-		s.progressive_id=id
-	else
-		s.progressive_id=s.progressive_id+1
-	end
-	
 	c:Activation()
 	--All monsters on the field and in the GYs are also treated as Zombie monsters
 	local e1=Effect.CreateEffect(c)
@@ -25,15 +19,15 @@ function s.initial_effect(c)
 	e1:SetValue(RACE_ZOMBIE)
 	c:RegisterEffect(e1)
 	--If a monster(s) is Special Summoned from the GY: That monster(s) gains 300 ATK.
-	aux.RegisterMergedDelayedEventGlitchy(c,s.progressive_id,EVENT_SPSUMMON_SUCCESS,s.cfilter,id,LOCATION_FZONE,false,LOCATION_FZONE,nil,id+1,true)
+	aux.RegisterMergedDelayedEventGlitchy(c,id,EVENT_SPSUMMON_SUCCESS,s.cfilter,id,LOCATION_FZONE,false,LOCATION_FZONE,nil,id+1,true)
 	local e2=Effect.CreateEffect(c)
 	e2:SetDescription(id,0)
 	e2:SetCategory(CATEGORY_ATKCHANGE)
 	e2:SetType(EFFECT_TYPE_FIELD|EFFECT_TYPE_TRIGGER_F)
 	e2:SetProperty(0,EFFECT_FLAG2_CHECK_SIMULTANEOUS)
-	e2:SetCode(EVENT_CUSTOM+s.progressive_id)
+	e2:SetCode(EVENT_CUSTOM+id)
 	e2:SetRange(LOCATION_SZONE)
-	e2:SetFunctions(nil,nil,s.atktg,s.atkop)
+	e2:SetFunctions(aux.MergedDelayedEventCondition,nil,s.atktg,s.atkop)
 	c:RegisterEffect(e2)
 end
 
@@ -53,6 +47,16 @@ function s.rctg(e,c)
 			if not op or op(e,c) then return false end
 		end
 	end
+	
+	local p=e:GetHandlerPlayer()
+	local eset={Duel.GetPlayerEffect(p,EFFECT_CANNOT_MODIFY_RACE)}
+	for _,ce in ipairs(eset) do
+		local tg=ce:GetTarget()
+		if not tg or tg(ce,c,p,REASON_EFFECT) then
+			return false
+		end
+	end	
+	
 	return true
 end
 

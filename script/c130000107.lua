@@ -64,7 +64,7 @@ end
 
 --E2
 function s.thfilter(c)
-	return c:IsMonster() and c:IsSetCard(SET_FIENTHALETE) and c:IsAbleToHand()
+	return c:IsMonsterType() and c:IsSetCard(SET_FIENTHALETE) and c:IsAbleToHand()
 end
 function s.thtg(e,tp,eg,ep,ev,re,r,rp,chk)
 	if chk==0 then

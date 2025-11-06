@@ -37,13 +37,13 @@ end
 s.listed_series={SET_HIERATIC}
 
 function s.rlfilter(c,tp)
-	if not c:IsMonster() or not c:IsReleasableByEffect() then return false end
+	if not c:IsMonsterType() or not c:IsReleasableByEffect() then return false end
 	if not tp then return true end
 	local isNormalHieratic=c:IsType(TYPE_NORMAL) and c:IsSetCard(SET_HIERATIC)
 	return Duel.IsExists(false,s.thfilter,tp,LOCATION_DECK,0,1,nil,isNormalHieratic)
 end
 function s.thfilter(c,isNormalHieratic)
-	return c:IsSetCard(SET_HIERATIC) and c:IsAbleToHand() and (c:IsMonster() or (isNormalHieratic and c:IsSpellTrap()))
+	return c:IsSetCard(SET_HIERATIC) and c:IsAbleToHand() and (c:IsMonsterType() or (isNormalHieratic and c:IsSpellTrap()))
 end
 function s.thtg(e,tp,eg,ep,ev,re,r,rp,chk)
 	if chk==0 then

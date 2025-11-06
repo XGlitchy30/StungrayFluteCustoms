@@ -32,7 +32,7 @@ function s.activate(e,tp,eg,ep,ev,re,r,rp)
 	aux.RegisterClientHint(c,0,tp,1,1,aux.Stringid(id,1))
 end
 function s.regfilter(c)
-	return c:IsTrap() and not c:HasFlagEffect(id)
+	return c:IsTrapType() and not c:HasFlagEffect(id)
 end
 function s.regop(e,tp,eg,ep,ev,re,r,rp)
 	local g=Duel.GetMatchingGroup(s.regfilter,tp,LOCATION_GRAVE,LOCATION_GRAVE,nil)

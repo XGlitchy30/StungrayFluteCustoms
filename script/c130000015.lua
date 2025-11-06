@@ -33,14 +33,8 @@ function s.initial_effect(c)
 	e2:OPT()
 	e2:SetFunctions(nil,Cost.PayLP(500),s.attg,s.atop)
 	c:RegisterEffect(e2)
-	if not s.global_check then
-		s.global_check=true
-		local ge1=Effect.CreateEffect(c)
-		ge1:SetType(EFFECT_TYPE_FIELD|EFFECT_TYPE_CONTINUOUS)
-		ge1:SetCode(EVENT_STARTUP)
-		ge1:SetOperation(s.addmods)
-		Duel.RegisterEffect(ge1,0)
-	end
+	--Replace official cards
+	aux.GlobalCheck(s,xgl.ReplaceOfficialCards(s.modcodes))
 end
 s.listed_series={SET_NUMBER}
 
@@ -99,7 +93,7 @@ function s.xyzfilter(c,tp)
 	return c:IsType(TYPE_XYZ) and Duel.IsExistingMatchingCard(s.atfilter,tp,LOCATION_DECK,0,1,nil,c,tp)
 end
 function s.atfilter(c,xyzc,tp)
-	return c:IsMonster() and c:IsCanBeXyzMaterial(xyzc,tp,REASON_EFFECT)
+	return c:IsMonsterType() and c:IsCanBeXyzMaterial(xyzc,tp,REASON_EFFECT)
 end
 function s.attg(e,tp,eg,ep,ev,re,r,rp,chk)
 	if chk==0 then

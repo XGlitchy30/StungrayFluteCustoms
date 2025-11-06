@@ -62,7 +62,7 @@ end
 
 --E1
 function s.cfilter(c)
-	return c:IsMonster() and c:IsSetCard(SET_SIX_SAMURAI)
+	return c:IsMonsterType() and c:IsSetCard(SET_SIX_SAMURAI)
 end
 function s.cttg(e,tp,eg,ep,ev,re,r,rp,chk)
 	local c=e:GetHandler()

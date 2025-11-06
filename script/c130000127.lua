@@ -56,7 +56,7 @@ end
 
 --E2
 function s.cfilter(c,_,tp)
-	return c:IsMonster() and c:IsSetCard(SET_DEMONISU) and c:IsControler(tp) and not c:IsPreviousLocation(LOCATION_DECK)
+	return c:IsMonsterType() and c:IsSetCard(SET_DEMONISU) and c:IsControler(tp) and not c:IsPreviousLocation(LOCATION_DECK)
 end
 function s.nsfilter(c)
 	return c:IsSetCard(SET_DEMONISU) and c:IsLevelBelow(4) and c:IsSummonable(true,nil)

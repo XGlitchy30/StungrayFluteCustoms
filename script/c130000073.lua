@@ -50,13 +50,13 @@ end
 
 --E2
 function s.rlfilter(c)
-	return c:IsMonster() and c:IsReleasable()
+	return c:IsMonsterType() and c:IsReleasable()
 end
 function s.rlcheck(sg,tp,exg)
 	return Duel.IsExists(true,aux.TRUE,tp,0,LOCATION_MZONE,1,sg)
 end
 function s.descost(e,tp,eg,ep,ev,re,r,rp,chk)
-	local b1=Cost.Detach(1,1,nil)(e,tp,eg,ep,ev,re,r,rp,0)
+	local b1=Cost.DetachFromSelf(1,1,nil)(e,tp,eg,ep,ev,re,r,rp,0)
 	local b2=Duel.CheckReleaseGroupCost(tp,s.rlfilter,1,true,s.rlcheck,nil)
 	if b2 then
 		e:SetLabel(1)
@@ -67,7 +67,7 @@ function s.descost(e,tp,eg,ep,ev,re,r,rp,chk)
 	local opt=xgl.Option(tp,nil,nil,{b1,STRING_DETACH},{b2,STRING_RELEASE})
 	Duel.SetTargetParam(opt)
 	if opt==0 then
-		Cost.Detach(1,1,nil)(e,tp,eg,ep,ev,re,r,rp,chk)
+		Cost.DetachFromSelf(1,1,nil)(e,tp,eg,ep,ev,re,r,rp,chk)
 	elseif opt==1 then
 		local g=Duel.SelectReleaseGroupCost(tp,s.rlfilter,1,1,true,s.rlcheck,nil)
 		Duel.Release(g,REASON_COST)
@@ -86,7 +86,7 @@ function s.destg(e,tp,eg,ep,ev,re,r,rp,chk)
 end
 function s.desop(e,tp,eg,ep,ev,re,r,rp)
 	local tc=Duel.GetFirstTarget()
-	if tc:IsRelateToChain() and Duel.Destroy(tc,REASON_EFFECT)>0 and tc:IsLocation(LOCATION_GRAVE) and tc:IsMonster() and e:IsActivated() and Duel.GetTargetParam()==1 then
+	if tc:IsRelateToChain() and Duel.Destroy(tc,REASON_EFFECT)>0 and tc:IsLocation(LOCATION_GRAVE) and tc:IsMonsterType() and e:IsActivated() and Duel.GetTargetParam()==1 then
 		local c=e:GetHandler()
 		local e1=Effect.CreateEffect(c)
 		e1:SetType(EFFECT_TYPE_SINGLE)

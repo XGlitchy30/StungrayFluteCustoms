@@ -130,7 +130,7 @@ function s.repfilter(c)
 		and c:IsReason(REASON_EFFECT) and not c:HasFlagEffect(id+100)
 end
 function s.desfilter(c)
-	return c:IsFaceupEx() and c:IsSpell() and c:IsSetCard(SET_WICCINK) and c:IsAbleToDeck() and aux.nvfilter(c)
+	return c:IsFaceupEx() and c:IsSpellType() and c:IsSetCard(SET_WICCINK) and c:IsAbleToDeck() and aux.nvfilter(c)
 end
 function s.reptg(e,tp,eg,ep,ev,re,r,rp,chk)
 	local ct=eg:FilterCount(s.repfilter,nil)

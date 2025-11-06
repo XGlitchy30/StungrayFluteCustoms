@@ -466,6 +466,11 @@ function Card.HalveDEF(c,reset,rc,range,cond,prop,desc)
 	local def=math.floor(c:GetDefense()/2 + 0.5)
 	return c:ChangeDEF(def,reset,rc,range,cond,prop,desc)
 end
+function Card.HalveATKDEF(c,reset,rc,range,cond,prop,desc)
+	local atk=math.floor(c:GetAttack()/2 + 0.5)
+	local def=math.floor(c:GetDefense()/2 + 0.5)
+	return c:ChangeATKDEF(atk,def,reset,rc,range,cond,prop,desc)
+end
 function Card.DoubleATK(c,reset,rc,range,cond,prop,desc)
 	local atk=c:GetAttack()*2
 	return c:ChangeATK(atk,reset,rc,range,cond,prop,desc)
@@ -548,9 +553,8 @@ function Glitchy.ChangeRank(c,lv,reset,rc,range,cond,prop,desc)
 end
 
 --PROTECTIONS
-
---Add full destruction protection (battle/effects/maintenance/costs)
 function Card.CannotBeDestroyed(c,val,cond,reset,rc,range,prop,desc)
+	--Add full destruction protection (battle/effects/maintenance/costs)
 	local typ = EFFECT_TYPE_SINGLE
 	
 	local rc = rc and rc or c
@@ -594,9 +598,8 @@ function Card.CannotBeDestroyed(c,val,cond,reset,rc,range,prop,desc)
 	
 	return e
 end
-
---Add battle destruction protection
 function Card.CannotBeDestroyedByBattle(c,val,cond,reset,rc,range,prop,desc)
+	--Add battle destruction protection
 	local typ = EFFECT_TYPE_SINGLE
 	
 	local rc = rc and rc or c
@@ -640,9 +643,8 @@ function Card.CannotBeDestroyedByBattle(c,val,cond,reset,rc,range,prop,desc)
 	
 	return e,res
 end
-
---Add Tribute protection
 function Card.CannotBeTributed(c,val,cond,reset,rc,range,prop,desc)
+	--Add Tribute protection
 	local typ = EFFECT_TYPE_SINGLE
 	rc = rc or c
     local rct=1
@@ -696,7 +698,6 @@ end
 function Auxiliary.imoval(e,te)
 	return e:GetOwnerPlayer()~=te:GetOwnerPlayer()
 end
-
 Auxiliary.UnaffectedProtections={
 	[UNAFFECTED_OTHER]	= aux.imother;
 	[UNAFFECTED_OPPO]	= aux.imoval;
@@ -745,4 +746,11 @@ function Card.Unaffected(c,immunity,cond,reset,rc,range,prop,desc)
 	c:RegisterEffect(e)
 	
 	return e
+end
+
+--RESTRICTIONS
+function Glitchy.CannotAttack(c,val,reset,rc,range,cond,prop,desc)
+	if reset and not desc then desc=STRING_CANNOT_ATTACK end
+	local e=xgl.CreateSingleEffect(c,EFFECT_CANNOT_ATTACK,val,reset,{rc,true},range,cond,prop,desc)
+	c:RegisterEffect(e)
 end

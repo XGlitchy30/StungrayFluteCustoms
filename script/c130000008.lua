@@ -23,10 +23,10 @@ function s.condition(e,tp,eg,ep,ev,re,r,rp)
 	return ep==tp and Duel.GetAttackTarget()==nil
 end
 function s.filter(c,tp)
-	return c:IsSpell() and Duel.IsExists(false,s.thfilter,tp,LOCATION_DECK,0,1,c,{c:GetCode()})
+	return c:IsSpellType() and Duel.IsExists(false,s.thfilter,tp,LOCATION_DECK,0,1,c,{c:GetCode()})
 end
 function s.thfilter(c,codes)
-	return c:IsSpell() and c:IsRealCode(table.unpack(codes)) and c:IsAbleToHand()
+	return c:IsSpellType() and c:IsRealCode(table.unpack(codes)) and c:IsAbleToHand()
 end
 function s.target(e,tp,eg,ep,ev,re,r,rp,chk,chkc)
 	if chkc then return chkc:IsLocation(LOCATION_GRAVE) and s.filter(chkc,tp) end

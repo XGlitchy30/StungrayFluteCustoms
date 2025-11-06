@@ -81,14 +81,14 @@ end
 
 --E3
 function s.rlfilter(c)
-	return (c:IsMonster() or c:IsLocation(LOCATION_MZONE)) and c:IsSetCard(SET_HIERATIC) and c:IsReleasableByEffect()
+	return (c:IsMonsterType() or c:IsLocation(LOCATION_MZONE)) and c:IsSetCard(SET_HIERATIC) and c:IsReleasableByEffect()
 end
 function s.atkfilter(c,rg)
 	return c:IsFaceup() and c:IsSetCard(SET_HIERATIC) and rg:IsExists(aux.TRUE,1,c)
 end
 function s.stardustCheck(c)
 	if c:IsOnField() then return false end
-	return not c:IsPublic() or (c:IsMonster() and c:IsSetCard(SET_HIERATIC) and c:IsReleasableByEffect())
+	return not c:IsPublic() or (c:IsMonsterType() and c:IsSetCard(SET_HIERATIC) and c:IsReleasableByEffect())
 end
 function s.atktg(e,tp,eg,ep,ev,re,r,rp,chk,chkc)
 	local rg=Duel.GetReleaseGroup(tp,true,false,REASON_EFFECT):Filter(s.rlfilter,nil)

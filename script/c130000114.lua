@@ -53,7 +53,7 @@ function s.thcost(e,tp,eg,ep,ev,re,r,rp,chk)
 	Duel.RegisterEffect(e1,tp)
 end
 function s.thfilter(c)
-	return c:IsSetCard(SET_PERCUSSION_BEETLE) and c:IsMonster() and c:IsAbleToHand()
+	return c:IsSetCard(SET_PERCUSSION_BEETLE) and c:IsMonsterType() and c:IsAbleToHand()
 end
 function s.thtg(e,tp,eg,ep,ev,re,r,rp,chk)
 	if chk==0 then return Duel.IsExistingMatchingCard(s.thfilter,tp,LOCATION_DECK,0,1,nil) and Duel.IsPlayerCanDiscardHand(tp) end

@@ -32,7 +32,7 @@ end
 
 --E1
 function s.cfilter(c,e,tp,release)
-	if not c:IsMonster() then return false end
+	if not c:IsMonsterType() then return false end
 	if release then
 		if not c:IsReleasable() then
 			return false
@@ -53,7 +53,7 @@ function s.rlcheck(sg,tp,exg)
 	return Duel.IsExists(true,aux.TRUE,tp,0,LOCATION_MZONE,1,sg)
 end
 function s.rmfilter(c)
-	return c:IsMonster() and c:IsAbleToRemove() and aux.SpElimFilter(c)
+	return c:IsMonsterType() and c:IsAbleToRemove() and aux.SpElimFilter(c)
 end
 function s.cost(e,tp,eg,ep,ev,re,r,rp,chk)
 	local c=e:GetHandler()

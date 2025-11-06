@@ -44,7 +44,7 @@ end
 
 --E1
 function s.rmfilter(c)
-	return c:IsMonster() and c:IsSetCard(SET_FIRE_FIST) and c:IsLevelAbove(1) and c:IsAbleToRemoveAsCost()
+	return c:IsMonsterType() and c:IsSetCard(SET_FIRE_FIST) and c:IsLevelAbove(1) and c:IsAbleToRemoveAsCost()
 end
 function s.atktg(e,tp,eg,ep,ev,re,r,rp,chk)
 	if chk==0 then

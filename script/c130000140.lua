@@ -58,7 +58,7 @@ s.listed_names={id}
 
 --E1
 function s.costfilter(c,tp)
-	return c:IsMonster() and c:IsSetCard(SET_ANCESTAGON)
+	return c:IsMonsterType() and c:IsSetCard(SET_ANCESTAGON)
 		and (c:IsFaceup() or (c:IsLocation(LOCATION_HAND) and (not c:IsType(TYPE_PENDULUM) or not Duel.IsPlayerAffectedByEffect(tp,EFFECT_CANNOT_TO_EXTRA_P))))
 		and Duel.GetMZoneCount(tp,c)>0
 end

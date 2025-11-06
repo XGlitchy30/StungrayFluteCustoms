@@ -1,3 +1,13 @@
+--Implement cost payment check status for effects
+xgl.CostCheckedTable = {}
+
+function Effect.SetCostChecked(e,v)
+	xgl.CostCheckedTable[e]=v
+end
+function Effect.IsCostChecked(e)
+	return xgl.CostCheckedTable[e]==true
+end
+
 --Creates a cost function by merging the individual cost functions passed as paramters
 function Glitchy.CreateCost(...)
 	local x={...}
@@ -22,6 +32,11 @@ end
 function Glitchy.InfoCost(e,tp,eg,ep,ev,re,r,rp,chk)
 	if chk==0 then return true end
 	Duel.Hint(HINT_OPSELECTED,1-tp,e:GetDescription())
+end
+
+--Shadow cost that does nothing. Necessary for effects whose resolution depends on the cost
+function Glitchy.DummyCost(e,tp,eg,ep,ev,re,r,rp,chk)
+	if chk==0 then return true end
 end
 
 --Shadow cost that sets the label of the effect to 1. Useful for effects whose resolution depends on the cost

@@ -38,7 +38,7 @@ s.listed_series={SET_MOTHERHOOD}
 
 --E1
 function s.tdfilter(c)
-	return c:IsTrap() and c:IsSetCard(SET_MOTHERHOOD)
+	return c:IsTrapType() and c:IsSetCard(SET_MOTHERHOOD)
 end
 
 --E2

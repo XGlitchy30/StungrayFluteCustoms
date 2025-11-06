@@ -28,7 +28,26 @@ function Glitchy.CheckTargetsAtResolution(tgcheck,loc1,loc2,tp,g,f,...)
 		return #g>0, g
 	end
 end
---
+
+--Targeting template
+Glitchy.Target = aux.FunctionWithNamedArgs(
+function(f,loc1,loc2,min,max,exc,extrachk,hint,extratg,extraparams)
+	loc1 = loc1 or 0
+	loc2 = loc2 or 0
+	min = min or 1
+	max = max or min
+	return	function(e,tp,eg,ep,ev,re,r,rp,chk,chkc)
+				if chkc then return xgl.CreateChkc(chkc,e,tp,loc1,loc2,exc,f,e,tp) end
+				local x=extraparams and {extraparams(e,tp,eg,ep,ev,re,r,rp,chk)} or {}
+				if chk==0 then
+					return (not extrachk or extrachk(e,tp,eg,ep,ev,re,r,rp)) and Duel.IsExists(true,f,tp,loc1,loc2,min,exc,e,tp,table.unpack(x))
+				end
+				local g=Duel.Select(hint,true,tp,f,tp,loc1,loc2,min,max,exc,e,tp,table.unpack(x))
+				if extratg then extratg(g,e,tp,eg,ep,ev,re,r,rp,chk) end
+			end
+end,
+"f","loc1","loc2","min","max","exc","extrachk","hint","extratg","extraparams"
+)
 
 --Draw effect template
 function Glitchy.DrawTarget(p,val,ignore_chk)
@@ -355,7 +374,7 @@ function Glitchy.SendtoAuxiliaryFunction(destination,f,...)
 	local action=xgl.SendtoActions[destination]
 	return destf,hint,category,action
 end
-function Glitchy.SendtoTarget(destination,tgchk,f,loc1,loc2,min,max,exc,...)
+function Glitchy.SendtoTarget(destination,tgchk,f,loc1,loc2,min,max,exc,ignore_legality_check,...)
 	loc1=loc1 or 0
 	loc2=loc2 or 0
 	min=min or 1
@@ -366,7 +385,7 @@ function Glitchy.SendtoTarget(destination,tgchk,f,loc1,loc2,min,max,exc,...)
 		return	function(e,tp,eg,ep,ev,re,r,rp,chk)
 					local exc=exc and e:GetHandler() or nil
 					if chk==0 then
-						return Duel.IsExists(false,f,tp,loc1,loc2,min,exc,e,tp)
+						return ignore_legality_check or Duel.IsExists(false,f,tp,loc1,loc2,min,exc,e,tp)
 					end
 					local players=(loc1*loc2~=0) and PLAYER_ALL or loc1>0 and tp or 1-tp
 					Duel.SetOperationInfo(0,category,nil,min,players,locs)
@@ -379,7 +398,7 @@ function Glitchy.SendtoTarget(destination,tgchk,f,loc1,loc2,min,max,exc,...)
 						return xgl.CreateChkc(chkc,e,tp,loc1,loc2,exc,f,e,tp)
 					end
 					if chk==0 then
-						return Duel.IsExists(true,f,tp,loc1,loc2,min,exc,e,tp)
+						return ignore_legality_check or Duel.IsExists(true,f,tp,loc1,loc2,min,exc,e,tp)
 					end
 					local g=Duel.Select(hint,true,tp,f,tp,loc1,loc2,min,max,exc,e,tp)
 					if #g>0 then
@@ -427,7 +446,8 @@ function Glitchy.SendtoOperation(destination,tgcheck,f,loc1,loc2,min,max,exc,...
 end
 
 function Effect.SetSendtoFunctions(e,destination,tgcheck,f,loc1,loc2,min,max,exc,...)
-	e:SetTarget(xgl.SendtoTarget(destination,tgcheck,f,loc1,loc2,min,max,exc,...))
+	local ignore_legality_check = e:IsHasType(EFFECT_TYPE_TRIGGER_F|EFFECT_TYPE_QUICK_F)
+	e:SetTarget(xgl.SendtoTarget(destination,tgcheck,f,loc1,loc2,min,max,exc,ignore_legality_check,...))
 	e:SetOperation(xgl.SendtoOperation(destination,tgcheck,f,loc1,loc2,min,max,exc,...))
 end
 
@@ -445,8 +465,9 @@ function Glitchy.SSetTarget(tgchk,f,loc1,loc2,min,max,exc)
 					if chk==0 then
 						return Duel.IsExists(false,f,tp,loc1,loc2,min,exc,e,tp)
 					end
+					local players=(loc1*loc2~=0) and PLAYER_ALL or loc1>0 and tp or 1-tp
+					Duel.SetCustomOperationInfo(0,CATEGORY_SET_SPELLTRAP,nil,min,players,loc1|loc2)
 					if locs==LOCATION_GRAVE then
-						local players=(loc1*loc2~=0) and PLAYER_ALL or loc1>0 and tp or 1-tp
 						Duel.SetOperationInfo(0,CATEGORY_LEAVE_GRAVE,nil,min,players,0)
 					end
 				end
@@ -461,6 +482,7 @@ function Glitchy.SSetTarget(tgchk,f,loc1,loc2,min,max,exc)
 						return Duel.IsExists(true,f,tp,loc1,loc2,min,exc,e,tp)
 					end
 					local g=Duel.Select(HINTMSG_SET,true,tp,f,tp,loc1,loc2,min,max,exc,e,tp)
+					Duel.SetCustomOperationInfo(0,CATEGORY_SET_SPELLTRAP,g,#g,0,0)
 					local tg=g:Filter(Card.IsLocation,nil,LOCATION_GRAVE)
 					if #tg>0 then
 						Duel.SetOperationInfo(0,CATEGORY_LEAVE_GRAVE,g,#g,0,0)
@@ -535,9 +557,52 @@ end
 
 --Self action templates
 
+--Set "this card"
+function Glitchy.SSetSelfTarget(handlecost)
+	if handlecost then
+		return	function(e,tp,eg,ep,ev,re,r,rp,chk)
+					local c=e:GetHandler()
+					if chk==0 then
+						local costchk=e:IsCostChecked()
+						return (costchk or Duel.GetLocationCount(tp,LOCATION_SZONE)>0) and c:IsSSetable(not costchk)
+					end
+					Duel.SetOperationInfo(0,CATEGORY_LEAVE_GRAVE,c,1,tp,0)
+					Duel.SetCustomOperationInfo(0,CATEGORY_SET_SPELLTRAP,c,1,tp,0)
+				end
+	else
+		return	function(e,tp,eg,ep,ev,re,r,rp,chk)
+					local c=e:GetHandler()
+					if chk==0 then
+						return c:IsSSetable()
+					end
+					Duel.SetOperationInfo(0,CATEGORY_LEAVE_GRAVE,c,1,tp,0)
+					Duel.SetCustomOperationInfo(0,CATEGORY_SET_SPELLTRAP,c,1,tp,0)
+				end
+	end
+end
+function Glitchy.SSetSelfOperation(redirect,quickact)
+	return	function(e,tp,eg,ep,ev,re,r,rp)
+				local c=e:GetHandler()
+				if c:IsRelateToChain() and c:IsSSetable() then
+					if redirect then
+						Duel.SSetAndRedirect(tp,c,e)
+					elseif quickact then
+						Duel.SSetAndFastActivation(tp,c,e)
+					else
+						Duel.SSet(tp,c)
+					end
+				end
+			end
+end
+function Effect.SetSSetSelfFunctions(e,handlecost,redirect,quickact)
+	e:SetTarget(xgl.SSetSelfTarget(handlecost))
+	e:SetOperation(xgl.SSetSelfOperation(redirect,quickact))
+end
+
 --Special Summon "this card"
 --[[Parameters
-1) redirect = Redirect the card to the specified location when it leaves the field
+1) handlecost = If true, cost already handles the MZone check
+2) redirect = Redirect the card to the specified location when it leaves the field
 ]]
 function Glitchy.SpecialSummonSelfTarget(handlecost)
 	if handlecost then

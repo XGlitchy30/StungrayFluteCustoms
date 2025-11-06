@@ -55,7 +55,7 @@ s.listed_series={SET_DEMONISU}
 
 --E1
 function s.cfilter(c,_,tp)
-	return c:IsMonster() and c:IsControler(tp) and not c:IsPreviousLocation(LOCATION_DECK)
+	return c:IsMonsterType() and c:IsControler(tp) and not c:IsPreviousLocation(LOCATION_DECK)
 end
 function s.drawcon(e,tp,eg,ep,ev,re,r,rp)
 	local c=e:GetHandler()

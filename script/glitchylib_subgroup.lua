@@ -206,3 +206,17 @@ function Glitchy.dloccheck_field(g,e,tp,mg,c)
     local razor = {aux.NOT(Card.IsLocation),c:GetLocationSimple()}
     return valid,false,razor
 end
+
+--Group logical operations
+function Group.Intersection(g1,...)
+	local groups={...}
+	local g=g1:Clone()
+	for _,group in ipairs(groups) do
+		for tc in group:Iter() do
+			if not g:IsContains(tc) then
+				g:RemoveCard(tc)
+			end
+		end
+	end
+	return g
+end

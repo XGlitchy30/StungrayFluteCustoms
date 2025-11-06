@@ -145,7 +145,7 @@ s.TypeAttrInGYCodes={45702014,18214905,72819261,46425662,19036557,83032858,70856
 
 --E2
 function s.extratributes(e,c)
-	return c:IsMonster() and c:IsSetCard(SET_GRAVEKEEPERS)
+	return c:IsMonsterType() and c:IsSetCard(SET_GRAVEKEEPERS)
 end
 function s.value(e,c)
 	return s.extratributes,LOCATION_DECK,0,POS_FACEUP
@@ -245,7 +245,7 @@ end
 
 --E9
 function s.tfilter(c)
-	return c:IsFaceupEx() and c:IsMonster() and c:IsSetCard(SET_GRAVEKEEPERS)
+	return c:IsFaceupEx() and c:IsMonsterType() and c:IsSetCard(SET_GRAVEKEEPERS)
 end
 function s.negcon(e,tp,eg,ep,ev,re,r,rp)
 	local g=Duel.GetChainInfo(ev,CHAININFO_TARGET_CARDS)

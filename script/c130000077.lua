@@ -32,7 +32,7 @@ s.listed_series={SET_MOTHERHOOD}
 
 --E1
 function s.setfilter(c)
-	return c:IsTrap() and c:IsSetCard(SET_MOTHERHOOD)
+	return c:IsTrapType() and c:IsSetCard(SET_MOTHERHOOD)
 end
 
 --E2
@@ -75,5 +75,5 @@ function s.delayedop(ag,e,tp,eg,ep,ev,re,r,rp)
 	end
 end
 function s.tgfilter(c)
-	return c:IsMonster() and c:IsRace(RACE_PSYCHIC) and c:IsAbleToGrave()
+	return c:IsMonsterType() and c:IsRace(RACE_PSYCHIC) and c:IsAbleToGrave()
 end

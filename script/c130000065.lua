@@ -55,7 +55,7 @@ end
 
 --E2
 function s.spcfilter(c)
-	return (c:IsMonster() or c:IsLocation(LOCATION_MZONE)) and c:IsReleasable()
+	return (c:IsMonsterType() or c:IsLocation(LOCATION_MZONE)) and c:IsReleasable()
 end
 function s.spcheck(sg,tp,exg)
 	return Duel.GetMZoneCount(tp,sg)>0

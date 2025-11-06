@@ -19,7 +19,7 @@ function s.initial_effect(c)
     e1:OPT()
     e1:SetFunctions(
 		nil,
-		Cost.Detach(1,1,nil),
+		Cost.DetachFromSelf(1,1,nil),
 		s.drawtg,
 		s.drawop
 	)
@@ -47,7 +47,7 @@ function s.drawop(e,tp,eg,ep,ev,re,r,rp)
 	local dc=Duel.GetOperatedGroup():GetFirst()
 	Duel.ConfirmCards(1-tp,dc)
 	local c=e:GetHandler()
-	if c:IsRelateToChain() and c:IsFaceup() and dc:IsMonster() and dc:IsAttribute(ATTRIBUTE_LIGHT) then
+	if c:IsRelateToChain() and c:IsFaceup() and dc:IsMonsterType() and dc:IsAttribute(ATTRIBUTE_LIGHT) then
 		Duel.BreakEffect()
 		c:UpdateATK(500,RESET_PHASE|PHASE_END,c)
 	end

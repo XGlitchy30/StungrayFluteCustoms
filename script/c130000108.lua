@@ -44,7 +44,7 @@ end
 
 --E1
 function s.spfilter(c)
-	return c:IsSetCard(SET_FIENTHALETE) and not c:IsMonster(TYPE_LINK)
+	return c:IsSetCard(SET_FIENTHALETE) and not c:IsMonsterType(TYPE_LINK)
 end
 
 --E2
