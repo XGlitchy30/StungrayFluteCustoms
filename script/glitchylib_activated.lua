@@ -68,6 +68,9 @@ function Glitchy.DrawOperation()
 			end
 end
 function Effect.SetDrawFunctions(e,p,val,ignore_chk)
+	if type(ignore_chk)=="nil" and e:IsHasType(EFFECT_TYPE_TRIGGER_F|EFFECT_TYPE_QUICK_F) then
+		ignore_chk=true
+	end
 	e:SetTarget(xgl.DrawTarget(p,val,ignore_chk))
 	e:SetOperation(xgl.DrawOperation())
 end

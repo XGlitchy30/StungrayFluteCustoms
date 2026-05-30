@@ -262,57 +262,6 @@ function Duel.Banish(g,pos,r)
 	return Duel.Remove(g,pos,r)
 end
 
---For cards that equip other cards to themselves ONLY
-function Duel.EquipAndRegisterLimit(e,p,be_equip,equip_to,...)
-	local res=Duel.Equip(p,be_equip,equip_to,...)
-	if res and equip_to:GetEquipGroup():IsContains(be_equip) then
-		local e1=Effect.CreateEffect(e:GetHandler())
-		e1:SetType(EFFECT_TYPE_SINGLE)
-		e1:SetProperty(EFFECT_FLAG_OWNER_RELATE)
-		e1:SetCode(EFFECT_EQUIP_LIMIT)
-		e1:SetReset(RESET_EVENT|RESETS_STANDARD)
-		e1:SetValue(function(e,c)
-						return e:GetOwner()==c
-					end
-				   )
-		be_equip:RegisterEffect(e1)
-		return true
-	end
-	return false
-end
---For effects that equip a card to another card
-function Duel.EquipToOtherCardAndRegisterLimit(e,p,be_equip,equip_to,...)
-	local res=Duel.Equip(p,be_equip,equip_to,...)
-	if res and equip_to:GetEquipGroup():IsContains(be_equip) then
-		local e1=Effect.CreateEffect(e:GetHandler())
-		e1:SetType(EFFECT_TYPE_SINGLE)
-		e1:SetProperty(EFFECT_FLAG_CANNOT_DISABLE)
-		e1:SetCode(EFFECT_EQUIP_LIMIT)
-		e1:SetLabelObject(equip_to)
-		e1:SetReset(RESET_EVENT|RESETS_STANDARD)
-		e1:SetValue(function(e,c)
-						return e:GetLabelObject()==c
-					end
-				   )
-		be_equip:RegisterEffect(e1)
-		return true
-	end
-	return false
-end
-function Duel.EquipAndRegisterCustomLimit(f,p,be_equip,equip_to,...)
-	local res=Duel.Equip(p,be_equip,equip_to,...)
-	if res and equip_to:GetEquipGroup():IsContains(be_equip) then
-		local e1=Effect.CreateEffect(equip_to)
-		e1:SetType(EFFECT_TYPE_SINGLE)
-		e1:SetProperty(EFFECT_FLAG_OWNER_RELATE)
-		e1:SetCode(EFFECT_EQUIP_LIMIT)
-		e1:SetReset(RESET_EVENT|RESETS_STANDARD)
-		e1:SetValue(f)
-		be_equip:RegisterEffect(e1)
-	end
-	return res and equip_to:GetEquipGroup():IsContains(be_equip)
-end
-
 function Card.CheckNegateConjunction(c,e1,e2,e3)
 	return not c:IsImmuneToEffect(e1) and not c:IsImmuneToEffect(e2) and (not e3 or not c:IsImmuneToEffect(e3))
 end
@@ -1235,7 +1184,10 @@ function Card.IsAppropriateEquipSpell(c,ec,tp)
 end
 function Card.IsCanBeEquippedWith(c,ec,e,p,r,ignore_faceup)
 	r = r or REASON_EFFECT
-	return (ignore_faceup or c:IsFaceup()) and (not ec or (not ec:IsForbidden() and ec:CheckUniqueOnField(p,LOCATION_SZONE)))
+	if not ((ignore_faceup or c:IsFaceup()) and (not ec or (not ec:IsForbidden() and ec:CheckUniqueOnField(p,LOCATION_SZONE)))) then
+		return false
+	end
+	return Duel.IsPlayerCanEquipCardTo(p,ec,c,e)
 	--futureproofing (more checks could be added in the future)
 end
 function Duel.IsPlayerCanEquipCardTo(tp,be_equip,equip_to,e,checkLocationOnly)
@@ -1285,6 +1237,56 @@ function Glitchy.EquipToOtherCardAndRegisterLimit(e,p,be_equip,equip_to,...)
 		return true
 	end
 	return false
+end
+--For cards that equip other cards to themselves ONLY
+function Duel.EquipAndRegisterLimit(e,p,be_equip,equip_to,...)
+	local res=Duel.Equip(p,be_equip,equip_to,...)
+	if res and equip_to:GetEquipGroup():IsContains(be_equip) then
+		local e1=Effect.CreateEffect(e:GetHandler())
+		e1:SetType(EFFECT_TYPE_SINGLE)
+		e1:SetProperty(EFFECT_FLAG_OWNER_RELATE)
+		e1:SetCode(EFFECT_EQUIP_LIMIT)
+		e1:SetReset(RESET_EVENT|RESETS_STANDARD)
+		e1:SetValue(function(e,c)
+						return e:GetOwner()==c
+					end
+				   )
+		be_equip:RegisterEffect(e1)
+		return true
+	end
+	return false
+end
+--For effects that equip a card to another card
+function Duel.EquipToOtherCardAndRegisterLimit(e,p,be_equip,equip_to,...)
+	local res=Duel.Equip(p,be_equip,equip_to,...)
+	if res and equip_to:GetEquipGroup():IsContains(be_equip) then
+		local e1=Effect.CreateEffect(e:GetHandler())
+		e1:SetType(EFFECT_TYPE_SINGLE)
+		e1:SetProperty(EFFECT_FLAG_CANNOT_DISABLE)
+		e1:SetCode(EFFECT_EQUIP_LIMIT)
+		e1:SetLabelObject(equip_to)
+		e1:SetReset(RESET_EVENT|RESETS_STANDARD)
+		e1:SetValue(function(e,c)
+						return e:GetLabelObject()==c
+					end
+				   )
+		be_equip:RegisterEffect(e1)
+		return true
+	end
+	return false
+end
+function Duel.EquipAndRegisterCustomLimit(f,p,be_equip,equip_to,...)
+	local res=Duel.Equip(p,be_equip,equip_to,...)
+	if res and equip_to:GetEquipGroup():IsContains(be_equip) then
+		local e1=Effect.CreateEffect(equip_to)
+		e1:SetType(EFFECT_TYPE_SINGLE)
+		e1:SetProperty(EFFECT_FLAG_OWNER_RELATE)
+		e1:SetCode(EFFECT_EQUIP_LIMIT)
+		e1:SetReset(RESET_EVENT|RESETS_STANDARD)
+		e1:SetValue(f)
+		be_equip:RegisterEffect(e1)
+	end
+	return res and equip_to:GetEquipGroup():IsContains(be_equip)
 end
 
 --Excavate
@@ -1885,9 +1887,15 @@ function Duel.GetHandCount(p)
 	end
 end
 function Duel.GetDeck(p)
+	if not p then
+		return Duel.GetFieldGroup(0,LOCATION_DECK,LOCATION_DECK)
+	end
 	return Duel.GetFieldGroup(p,LOCATION_DECK,0)
 end
 function Duel.GetDeckCount(p)
+	if not p then
+		return Duel.GetFieldGroupCount(0,LOCATION_DECK,LOCATION_DECK)
+	end
 	return Duel.GetFieldGroupCount(p,LOCATION_DECK,0)
 end
 function Duel.GetGY(p)
@@ -2808,7 +2816,7 @@ function Card.HasDEF(c)
 	return c:IsMonsterType() and not c:IsOriginalType(TYPE_LINK) and not c:IsMaximumMode()
 end
 function Card.IsCanUpdateDEF(c,def,e,tp,r,exactly)
-	return c:IsFaceup() and c:HasDEF() (not exactly or def>=0 or c:IsDefenseAbove(-def))
+	return c:IsFaceup() and c:HasDEF() and (not exactly or def>=0 or c:IsDefenseAbove(-def))
 end
 function Card.IsCanChangeDEF(c,def,e,tp,r)
 	return c:IsFaceup() and c:HasDEF() and (not def or not c:IsDefense(def))
