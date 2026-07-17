@@ -230,3 +230,12 @@ function Auxiliary.NumberLPCondition(e,p,val,chk)
 	end
 	return false
 end
+
+
+--SALVO
+if Salvo then
+	function Card.IsSalvo(c)
+		return c:IsSetCard(SET_SALVO) or c:IsCode({88671720,59482302,70865988})
+	end
+	
+end

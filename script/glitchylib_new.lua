@@ -1927,10 +1927,18 @@ function Duel.GetBanishmentCount(p)
 	end
 end
 function Duel.GetExtraDeck(p)
-	return Duel.GetFieldGroup(p,LOCATION_EXTRA,0)
+	if not p then
+		return Duel.GetFieldGroup(0,LOCATION_EXTRA,LOCATION_EXTRA)
+	else
+		return Duel.GetFieldGroup(p,LOCATION_EXTRA,0)
+	end
 end
 function Duel.GetExtraDeckCount(p)
-	return Duel.GetFieldGroupCount(p,LOCATION_EXTRA,0)
+	if not p then
+		return Duel.GetFieldGroupCount(0,LOCATION_EXTRA,LOCATION_EXTRA)
+	else
+		return Duel.GetFieldGroupCount(p,LOCATION_EXTRA,0)
+	end
 end
 function Duel.GetPendulums(p,c)
 	if c then
@@ -2623,12 +2631,15 @@ end
 function Duel.HintMessage(tp,msg)
 	Duel.Hint(HINT_SELECTMSG,tp,msg)
 end
-function Card.Activation(c,oath,timings,cond,cost,tg,op,stop)
+function Card.Activation(c,oath,timings,cond,cost,tg,op,stop,cat)
 	local e1=Effect.CreateEffect(c)
 	if c:IsOriginalType(TYPE_PENDULUM) then
 		e1:SetDescription(STRING_ACTIVATE_PENDULUM)
 	end
 	e1:SetType(EFFECT_TYPE_ACTIVATE)
+	if cat then
+		e1:SetCategory(cat)
+	end
 	e1:SetCode(EVENT_FREE_CHAIN)
 	if oath then
 		e1:HOPT(true)
@@ -2639,6 +2650,8 @@ function Card.Activation(c,oath,timings,cond,cost,tg,op,stop)
 			e1:SetRelevantTimings()
 		elseif typ=="table" then
 			e1:SetHintTiming(timings[1],timings[2])
+		else
+			e1:SetHintTiming(timings)
 		end
 	end
 	if cond then

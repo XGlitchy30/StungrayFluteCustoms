@@ -441,6 +441,8 @@ function Glitchy.SelectReleaseGroupCost(tp,f,minc,maxc,extraGroup,use_hand,check
 	end
 end
 function Glitchy.TributeCost(f,minc,maxc,extraGroupFunc,use_hand,check,exceptHandler,setLabel,extraGroupOp)
+	minc=minc or 1
+	maxc=maxc or minc
 	if not extraGroupFunc then
 		return	function(e,tp,eg,ep,ev,re,r,rp,chk)
 					if check==true then check=aux.ReleaseCheckMMZ end

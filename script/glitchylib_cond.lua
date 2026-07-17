@@ -31,6 +31,14 @@ function Glitchy.ExactEventGroupCond(f,ct,exc)
 end
 
 --Location Group Check Conditions
+function Glitchy.ExactFieldGroupCountCond(loc1,loc2,ct)
+	return	function(e,tp,eg,ep,ev,re,r,rp)
+				if type(tp)~="number" then
+					tp=e:GetHandlerPlayer()
+				end
+				return Duel.GetFieldGroupCount(tp,loc1,loc2)==ct
+			end
+end
 function Glitchy.LocationGroupCond(f,loc1,loc2,min,max,exc)
 	if not loc1 then loc1=LOCATION_ONFIELD end
 	if not loc2 then loc2=loc1 end
