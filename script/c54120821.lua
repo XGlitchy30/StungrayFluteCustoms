@@ -29,7 +29,7 @@ function s.activate(e,tp,eg,ep,ev,re,r,rp)
 		aux.DelayedOperation(tc,PHASE_END,id,e,tp,
 			function(cc)
 				Duel.HintSelection(cc,true)
-				if aux.nvfilter(cc) then 
+				if aux.nvfilter(cc:GetFirst()) then 
 					Duel.SendtoDeck(cc,nil,SEQ_DECKTOP,REASON_EFFECT)
 				end
 			end
