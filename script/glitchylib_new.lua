@@ -11,7 +11,8 @@ CATEGORY_CODE_CHANGE			=	0x8
 CATEGORY_RACE_CHANGE			=	0x10
 CATEGORY_ATTRIBUTE_CHANGE		=	0x20
 CATEGORY_PLACE_IN_STZONE 		=	0x40
-CATEGORY_CHANGE_ATTACK_TARGET	=	0x80
+CATEGORY_NEGATE_ATTACK			=	0x80
+CATEGORY_CHANGE_ATTACK_TARGET	=	0x100
 
 CATEGORY_FLAG_ANCESTAGON_PLASMATAIL = 0x1
 CATEGORY_FLAG_DRAINING_PARASITE		= 0x2	--Flag for effects that can call a stat-calculating function on the handler, while already calculating the stat of the handler
@@ -1589,6 +1590,15 @@ function Effect.GetLabelCount(e)
 	if not tab then return 0 end
 	return #tab
 end
+function Effect.UpdateLabel(e,v,pos)
+	if not pos then
+		local newlabel=e:GetLabel()+v
+		e:SetLabel(newlabel)
+	else
+		local newlabel=e:GetSpecificLabel(pos)+v
+		e:SetSpecificLabel(newlabel,pos)
+	end
+end
 
 --Link Markers
 
@@ -2341,21 +2351,21 @@ function Card.IsPreviousCodeOnField(c,code,...)
 	end
 	return false
 end
-function Card.IsPreviousTypeOnField(c,typ)
-	return c:GetPreviousTypeOnField()&typ==typ
-end
+-- function Card.IsPreviousTypeOnField(c,typ)
+-- 	return c:GetPreviousTypeOnField()&typ==typ
+-- end
 function Card.IsPreviousLevelOnField(c,lv)
 	return c:GetPreviousLevelOnField()==lv
 end
 function Card.IsPreviousRankOnField(c,lv)
 	return c:GetPreviousRankOnField()==lv
 end
-function Card.IsPreviousAttributeOnField(c,att)
-	return c:GetPreviousAttributeOnField()&att==att
-end
-function Card.IsPreviousRaceOnField(c,rac)
-	return c:GetPreviousRaceOnField()&rac==rac
-end
+-- function Card.IsPreviousAttributeOnField(c,att)
+-- 	return c:GetPreviousAttributeOnField()&att==att
+-- end
+-- function Card.IsPreviousRaceOnField(c,rac)
+-- 	return c:GetPreviousRaceOnField()&rac==rac
+-- end
 function Card.IsPreviousAttackOnField(c,atk)
 	return c:GetPreviousAttackOnField()==atk
 end

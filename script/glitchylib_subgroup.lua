@@ -152,12 +152,10 @@ function Glitchy.SelectUnselectGroup(customLargeGroupThreshold,g,e,tp,minc,maxc,
 		else
 			sg:AddCard(tc)
 			
+			local delta = { added = Group.CreateGroup(), removed = Group.CreateGroup() }	--delta.added just for futureproofing
+			table.insert(deltas, delta)
+			table.insert(history,tc)
 			if rescon then
-				local delta = { added = Group.CreateGroup(), removed = Group.CreateGroup() }	--delta.added just for futureproofing
-				table.insert(deltas, delta)
-
-				
-				table.insert(history,tc)
 				local _,_,razor=rescon(sg,e,tp,mg,tc)
 				if razor then
 					if type(razor)=="table" then

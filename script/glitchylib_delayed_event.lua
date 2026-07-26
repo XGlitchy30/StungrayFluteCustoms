@@ -210,13 +210,13 @@ function Auxiliary.MergedDelayEventCheckGlitchy1(event,id,f,range,evgcheck,se,op
 						end
 						
 						if customevgop then
-							customevgop(tc,e,tp,eg,ep,ev,re,r,rp,evg)
+							customevgop(tc,e,tp,eg,ep,ev,re,r,rp,evg,event)
 						end
 					end
 					g:Merge(evg) --Debug.Message('gsize '..tostring(#g))
 				else
 					if customevgop then
-						customevgop(e,tp,eg,ep,ev,re,r,rp)
+						customevgop(e,tp,eg,ep,ev,re,r,rp,event)
 					end
 				end
 				
