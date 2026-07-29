@@ -6,6 +6,12 @@ Scripted by: XGlitchy30
 
 local s,id,o=GetID()
 Duel.LoadScript("glitchylib_new.lua")
+
+if not Kappa then
+	Kappa = {}
+	Duel.LoadScript("glitchylib_archetypes.lua",false)
+end
+
 function s.initial_effect(c)
 	--When your opponent's monster declares a direct attack: Target that monster; negate the attack, and if you do, Special Summon 2 "Kappa" monsters from your GY in face-down Defense Position, including a Normal Monster.
 	local e1=Effect.CreateEffect(c)
@@ -39,7 +45,7 @@ function s.condition(e,tp,eg,ep,ev,re,r,rp)
 	return Duel.GetAttacker():IsControler(1-tp) and Duel.GetAttackTarget()==nil
 end
 function s.spfilter(c,e,tp)
-	return c:IsSetCard(SET_KAPPA) and c:IsCanBeSpecialSummoned(e,0,tp,false,false,POS_FACEDOWN_DEFENSE)
+	return c:IsKappa() and c:IsCanBeSpecialSummoned(e,0,tp,false,false,POS_FACEDOWN_DEFENSE)
 end
 function s.target(e,tp,eg,ep,ev,re,r,rp,chk,chkc)
 	local tg=Duel.GetAttacker()
@@ -69,7 +75,8 @@ end
 
 --E2
 function s.spconfilter(c,tp)
-	return c:IsPreviousControler(tp) and c:IsPreviousPosition(POS_FACEUP) and c:IsPreviousTypeOnField(TYPE_NORMAL) and c:IsPreviousSetCard(SET_KAPPA)
+	return c:IsPreviousControler(tp) and c:IsPreviousPosition(POS_FACEUP) and c:IsPreviousTypeOnField(TYPE_NORMAL)
+		and (c:IsPreviousSetCard(SET_KAPPA) or c:IsPreviousCodeOnField(table.unpack(OFFICIAL_CODES_KAPPA)))
 end
 function s.spcon(e,tp,eg,ep,ev,re,r,rp)
 	return eg:IsExists(s.spconfilter,1,nil,tp)

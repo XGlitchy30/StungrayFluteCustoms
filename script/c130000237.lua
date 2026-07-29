@@ -8,6 +8,11 @@ local s,id=GetID()
 Duel.LoadScript("glitchylib_new.lua")
 Duel.LoadScript("glitchylib_delayed_event.lua")
 
+if not Kappa then
+	Kappa = {}
+	Duel.LoadScript("glitchylib_archetypes.lua",false)
+end
+
 function s.initial_effect(c)
 	--You can only control 1 "Ride the Rapids".
 	c:SetUniqueOnField(1,0,id)
@@ -25,7 +30,7 @@ function s.initial_effect(c)
 	e1:SetCode(EFFECT_UPDATE_ATTACK)
 	e1:SetRange(LOCATION_SZONE)
 	e1:SetTargetRange(LOCATION_MZONE,0)
-	e1:SetTarget(aux.TargetBoolFunction(Card.IsSetCard,SET_KAPPA))
+	e1:SetTarget(aux.TargetBoolFunction(Card.IsKappa))
 	e1:SetValue(200)
 	c:RegisterEffect(e1)
 	e1:UpdateDefenseClone(c)
@@ -48,7 +53,7 @@ s.listed_series={SET_KAPPA}
 s.lists_kappa_monster=true
 
 function s.cfilter(c)
-	return c:IsFaceup() and c:IsSetCard(SET_KAPPA)
+	return c:IsFaceup() and c:IsKappa()
 end
 function s.flagid(event,c,e,tp,eg,ep,ev,re,r,rp)
 	if not c then
@@ -118,7 +123,7 @@ end
 
 --E2
 function s.thfilter(c)
-	return c:IsMonster() and c:IsSetCard(SET_KAPPA) and c:IsAbleToHand()
+	return c:IsMonster() and c:IsKappa() and c:IsAbleToHand()
 end
 function s.thtg(e,tp,eg,ep,ev,re,r,rp,chk,chkc)
 	if chkc then return chkc:IsLocation(LOCATION_GRAVE) and chkc:IsControler(tp) and s.thfilter(chkc) end
@@ -137,7 +142,7 @@ end
 
 --E3
 function s.spfilter(c,e,tp)
-	return c:IsSetCard(SET_KAPPA) and c:IsCanBeSpecialSummoned(e,0,tp,false,false,POS_FACEDOWN_DEFENSE)
+	return c:IsKappa() and c:IsCanBeSpecialSummoned(e,0,tp,false,false,POS_FACEDOWN_DEFENSE)
 end
 function s.sptg(e,tp,eg,ep,ev,re,r,rp,chk,chkc)
 	if chkc then return chkc:IsLocation(LOCATION_GRAVE) and chkc:IsControler(tp) and s.spfilter(chkc,e,tp) end

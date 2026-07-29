@@ -7,6 +7,11 @@ Scripted by: XGlitchy30
 local s,id=GetID()
 Duel.LoadScript("glitchylib_new.lua")
 
+if not Kappa then
+	Kappa = {}
+	Duel.LoadScript("glitchylib_archetypes.lua",false)
+end
+
 function s.initial_effect(c)
 	c:Activation()
 	--You can only control 1 "River".
@@ -17,7 +22,7 @@ function s.initial_effect(c)
 	e1:SetCode(EFFECT_UPDATE_ATTACK)
 	e1:SetRange(LOCATION_SZONE)
 	e1:SetTargetRange(LOCATION_MZONE,0)
-	e1:SetTarget(aux.TargetBoolFunction(Card.IsSetCard,SET_KAPPA))
+	e1:SetTarget(aux.TargetBoolFunction(Card.IsKappa))
 	e1:SetValue(200)
 	c:RegisterEffect(e1)
 	e1:UpdateDefenseClone(c)
@@ -27,7 +32,7 @@ function s.initial_effect(c)
 	e2:SetCode(EFFECT_CHANGE_BATTLE_DAMAGE)
 	e2:SetRange(LOCATION_SZONE)
 	e2:SetTargetRange(LOCATION_MZONE,0)
-	e2:SetTarget(aux.TargetBoolFunction(Card.IsSetCard,SET_KAPPA))
+	e2:SetTarget(aux.TargetBoolFunction(Card.IsKappa))
 	e2:SetValue(aux.ChangeBattleDamage(0,HALF_DAMAGE))
 	c:RegisterEffect(e2)
 	--If a "Kappa" monster(s) is Normal or Special Summoned (except during the Damage Step): You can target 1 face-up monster your opponent controls; it loses 200 ATK/DEF.
@@ -48,7 +53,7 @@ s.lists_kappa_monster=true
 
 --E3
 function s.cfilter(c)
-	return c:IsFaceup() and c:IsSetCard(SET_KAPPA)
+	return c:IsFaceup() and c:IsKappa()
 end
 function s.statscon(e,tp,eg,ep,ev,re,r,rp)
 	return eg:IsExists(s.cfilter,1,nil)

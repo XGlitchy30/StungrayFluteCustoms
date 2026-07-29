@@ -6,6 +6,12 @@ Scripted by: XGlitchy30
 
 local s,id=GetID()
 Duel.LoadScript("glitchylib_new.lua")
+
+if not Kappa then
+	Kappa = {}
+	Duel.LoadScript("glitchylib_archetypes.lua",false)
+end
+
 function s.initial_effect(c)
 	--Add 1 "Kappa" monster from your Deck to your hand.
 	local e1=Effect.CreateEffect(c)
@@ -21,5 +27,5 @@ s.listed_series={SET_KAPPA}
 s.lists_kappa_monster=true
 
 function s.thfilter(c)
-	return c:IsMonster() and c:IsSetCard(SET_KAPPA)
+	return c:IsMonster() and c:IsKappa()
 end

@@ -5,7 +5,13 @@ Scripted by: XGlitchy30
 ]]
 
 local s,id=GetID()
-Duel.LoadScript("glitchylib.lua")
+Duel.LoadScript("glitchylib_new.lua")
+
+if not Kappa then
+	Kappa = {}
+	Duel.LoadScript("glitchylib_archetypes.lua",false)
+end
+
 function s.initial_effect(c)
     --FLIP: Target 1 monster your opponent controls; it loses 200 ATK/DEF.
     local e1=Effect.CreateEffect(c)
@@ -48,7 +54,7 @@ end
 
 --E2
 function s.spfilter(c,e,tp)
-	return c:IsSetCard(SET_KAPPA) and not c:IsCode(id) and c:IsCanBeSpecialSummoned(e,0,tp,false,false)
+	return c:IsKappa() and not c:IsCode(id) and c:IsCanBeSpecialSummoned(e,0,tp,false,false)
 end
 function s.sptg(e,tp,eg,ep,ev,re,r,rp,chk,chkc)
 	if chkc then return chkc:IsControler(tp) and chkc:IsLocation(LOCATION_GRAVE) and s.spfilter(chkc,e,tp) end

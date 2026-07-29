@@ -6,6 +6,12 @@ Scripted by: XGlitchy30
 
 local s,id=GetID()
 Duel.LoadScript("glitchylib_new.lua")
+
+if not Kappa then
+	Kappa = {}
+	Duel.LoadScript("glitchylib_archetypes.lua",false)
+end
+
 function s.initial_effect(c)
 	c:Activation()
 	--"Kappa" monsters you control gain 200 ATK/DEF.
@@ -14,7 +20,7 @@ function s.initial_effect(c)
 	e1:SetCode(EFFECT_UPDATE_ATTACK)
 	e1:SetRange(LOCATION_FZONE)
 	e1:SetTargetRange(LOCATION_MZONE,0)
-	e1:SetTarget(aux.TargetBoolFunction(Card.IsSetCard,SET_KAPPA))
+	e1:SetTarget(aux.TargetBoolFunction(Card.IsKappa))
 	e1:SetValue(200)
 	c:RegisterEffect(e1)
 	e1:UpdateDefenseClone(c)
@@ -46,7 +52,7 @@ s.lists_kappa_monster=true
 --E2
 function s.atkcon(e)
 	local d=Duel.GetAttackTarget()
-	return Duel.IsPhase(PHASE_DAMAGE_CAL) and d and d:IsControler(e:GetHandlerPlayer()) and d:IsFaceup() and d:IsSetCard(SET_KAPPA)
+	return Duel.IsPhase(PHASE_DAMAGE_CAL) and d and d:IsControler(e:GetHandlerPlayer()) and d:IsFaceup() and d:IsKappa()
 end
 function s.atktg(e,c)
 	return c==Duel.GetAttacker()
@@ -54,7 +60,7 @@ end
 
 --E3
 function s.lvfilter(c)
-	return c:IsFaceup() and c:IsSetCard(SET_KAPPA) and not c:IsLevel(2)
+	return c:IsFaceup() and c:IsKappa() and not c:IsLevel(2)
 end
 function s.thtg(e,tp,eg,ep,ev,re,r,rp,chk,chkc)
 	if chkc then return chkc:IsControler(tp) and chkc:IsLocation(LOCATION_MZONE) and s.lvfilter(chkc) end

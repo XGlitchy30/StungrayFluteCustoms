@@ -5,7 +5,13 @@ Scripted by: XGlitchy30
 ]]
 
 local s,id=GetID()
-Duel.LoadScript("glitchylib.lua")
+Duel.LoadScript("glitchylib_new.lua")
+
+if not Kappa then
+	Kappa = {}
+	Duel.LoadScript("glitchylib_archetypes.lua",false)
+end
+
 function s.initial_effect(c)
     --FLIP: Special Summon 1 "Kappa" monster from your hand.
     local e1=Effect.CreateEffect(c)
@@ -39,7 +45,7 @@ function s.target(e,tp,eg,ep,ev,re,r,rp,chk)
 	Duel.SetOperationInfo(0,CATEGORY_SPECIAL_SUMMON,nil,1,tp,LOCATION_HAND)
 end
 function s.filter(c,e,tp)
-	return c:IsSetCard(SET_KAPPA) and c:IsCanBeSpecialSummoned(e,0,tp,false,false)
+	return c:IsKappa() and c:IsCanBeSpecialSummoned(e,0,tp,false,false)
 end
 function s.operation(e,tp,eg,ep,ev,re,r,rp)
 	if Duel.GetLocationCount(tp,LOCATION_MZONE)<=0 then return end
@@ -52,14 +58,14 @@ end
 
 --E2
 function s.cfilter(c,tp)
-	return c:IsSummonPlayer(tp) and c:IsSummonLocation(LOCATION_EXTRA) and c:IsFaceup() and c:IsSetCard(SET_KAPPA)
+	return c:IsSummonPlayer(tp) and c:IsSummonLocation(LOCATION_EXTRA) and c:IsFaceup() and c:IsKappa()
 end
 function s.statscon(e,tp,eg,ep,ev,re,r,rp)
 	return eg:IsExists(s.cfilter,1,nil,tp)
 end
 function s.statstg(e,tp,eg,ep,ev,re,r,rp,chk)
 	if chk==0 then return true end
-    local g=Duel.Group(aux.FaceupFilter(Card.IsSetCard,SET_KAPPA),tp,LOCATION_MZONE,0,nil)
+    local g=Duel.Group(aux.FaceupFilter(Card.IsKappa),tp,LOCATION_MZONE,0,nil)
 	Duel.SetOperationInfo(0,CATEGORY_ATKCHANGE,g,#g,tp,200)
     Duel.SetOperationInfo(0,CATEGORY_DEFCHANGE,g,#g,tp,200)
 end

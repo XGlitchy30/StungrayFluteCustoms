@@ -5,10 +5,17 @@ Scripted by: XGlitchy30
 ]]
 
 local s,id=GetID()
+Duel.LoadScript("glitchylib_new.lua")
+
+if not Kappa then
+	Kappa = {}
+	Duel.LoadScript("glitchylib_archetypes.lua",false)
+end
+
 function s.initial_effect(c)
 	c:EnableReviveLimit()
 	--1 "Kappa" Tuner + 1+ non-Tuner "Kappa" monsters
-	Synchro.AddProcedure(c,aux.FilterBoolFunctionEx(Card.IsSetCard,SET_KAPPA),1,1,Synchro.NonTunerEx(Card.IsSetCard,SET_KAPPA),1,99)
+	Synchro.AddProcedure(c,aux.FilterBoolFunctionEx(Card.IsKappa),1,1,Synchro.NonTunerEx(Card.IsKappa),1,99)
 	--FLIP: Target 1 "Kappa" monster you control; it gains 500 ATK or DEF.
 	local e1=Effect.CreateEffect(c)
 	e1:SetDescription(aux.Stringid(id,0))
@@ -66,7 +73,7 @@ s.lists_kappa_monster=true
 
 --E1
 function s.filter(c)
-	return c:IsFaceup() and c:IsSetCard(SET_KAPPA)
+	return c:IsFaceup() and c:IsKappa()
 end
 function s.target(e,tp,eg,ep,ev,re,r,rp,chk,chkc)
 	if chkc then return chkc:IsLocation(LOCATION_MZONE) and chkc:IsControler(tp) and s.filter(chkc) end

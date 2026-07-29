@@ -231,11 +231,22 @@ function Auxiliary.NumberLPCondition(e,p,val,chk)
 	return false
 end
 
+--CUSTOM-OFFICIAL HYBRIDS
+local function _IsSetCardTemplate(set,...)
+	local official_codes={...}
+	return	function(c)
+				return c:IsSetCard(set) or c:IsCode(official_codes)
+			end
+end
 
---SALVO
+if Kappa then
+	OFFICIAL_CODES_KAPPA = {48109103,7892180,61831093,50789693,4729591}
+	Card.IsKappa = _IsSetCardTemplate(SET_KAPPA,table.unpack(OFFICIAL_CODES_KAPPA))
+end
 if Salvo then
-	function Card.IsSalvo(c)
-		return c:IsSetCard(SET_SALVO) or c:IsCode({88671720,59482302,70865988})
-	end
+	Card.IsSalvo = _IsSetCardTemplate(SET_SALVO,88671720,59482302,70865988)
+	-- function Card.IsSalvo(c)
+	-- 	return c:IsSetCard(SET_SALVO) or c:IsCode({88671720,59482302,70865988})
+	-- end
 	
 end

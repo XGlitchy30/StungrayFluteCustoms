@@ -7,6 +7,11 @@ Scripted by: XGlitchy30
 local s,id=GetID()
 Duel.LoadScript("glitchylib_new.lua")
 
+if not Kappa then
+	Kappa = {}
+	Duel.LoadScript("glitchylib_archetypes.lua",false)
+end
+
 function s.initial_effect(c)
 	c:Activation()
 	--You can only control 1 "Kappa Lair".
@@ -17,7 +22,7 @@ function s.initial_effect(c)
 	e1:SetCode(EFFECT_UPDATE_ATTACK)
 	e1:SetRange(LOCATION_SZONE)
 	e1:SetTargetRange(LOCATION_MZONE,0)
-	e1:SetTarget(aux.TargetBoolFunction(Card.IsSetCard,SET_KAPPA))
+	e1:SetTarget(aux.TargetBoolFunction(Card.IsKappa))
 	e1:SetValue(200)
 	c:RegisterEffect(e1)
 	e1:UpdateDefenseClone(c)
@@ -39,7 +44,7 @@ s.lists_kappa_monster=true
 
 --E1
 function s.ctfilter(c)
-	return c:IsFaceup() and c:IsSetCard(SET_KAPPA)
+	return c:IsFaceup() and c:IsKappa()
 end
 function s.statstg(e,tp,eg,ep,ev,re,r,rp,chk,chkc)
 	if chkc then return chkc:IsLocation(LOCATION_MZONE) and chkc:IsControler(1-tp) and chkc:IsFaceup() end

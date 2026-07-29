@@ -5,7 +5,13 @@ Scripted by: XGlitchy30
 ]]
 
 local s,id=GetID()
-Duel.LoadScript("glitchylib.lua")
+Duel.LoadScript("glitchylib_new.lua")
+
+if not Kappa then
+	Kappa = {}
+	Duel.LoadScript("glitchylib_archetypes.lua",false)
+end
+
 function s.initial_effect(c)
     --FLIP: Target 1 Spell/Trap in your GY that mentions ""Kappa" monster" in its text; add it to your hand.
     local e1=Effect.CreateEffect(c)
@@ -52,7 +58,7 @@ end
 
 --E2
 function s.tgfilter(c)
-	return c:IsMonster() and c:IsSetCard(SET_KAPPA) and c:IsAbleToGrave()
+	return c:IsMonster() and c:IsKappa() and c:IsAbleToGrave()
 end
 function s.tgtg(e,tp,eg,ep,ev,re,r,rp,chk)
 	if chk==0 then return Duel.IsExistingMatchingCard(s.tgfilter,tp,LOCATION_DECK,0,1,nil) end
