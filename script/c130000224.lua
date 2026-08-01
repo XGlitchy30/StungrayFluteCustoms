@@ -47,7 +47,7 @@ function s.filter(c)
 	return c:IsFaceup() and c:IsSetCard(SET_FUR_HIRE) and c:IsAbleToHand()
 end
 function s.cost(e,tp,eg,ep,ev,re,r,rp,chk)
-	if chk==0 then return true end
+	if chk==0 then return Duel.IsExistingTarget(s.filter,tp,LOCATION_MZONE,0,1,nil) end
 	if Duel.CheckReleaseGroupCost(tp,s.cfilter,1,1,false,nil,nil,tp) and Duel.SelectYesNo(tp,STRING_ASK_TRIBUTE) then
 		local g=Duel.SelectReleaseGroupCost(tp,s.cfilter,1,1,false,nil,nil,tp)
 		Duel.Release(g,REASON_COST)
