@@ -7,6 +7,7 @@ Scripted by: XGlitchy30
 local s,id = GetID()
 Duel.LoadScript("glitchylib_new.lua")
 Duel.LoadScript("glitchymods_fusion.lua")
+Duel.LoadScript("glitchylib_delayed_event.lua")
 function s.initial_effect(c)
 	c:EnableReviveLimit()
 	--7 DARK "Crystal Beast" and/or "Rainbow Dark" monsters with different names, including "Crystal Beast Rainbow Dark Dragon"
