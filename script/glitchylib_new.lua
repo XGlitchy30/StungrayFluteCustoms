@@ -42,6 +42,9 @@ EFFECT_CANNOT_MODIFY_LEVEL_X		=	2013	--Players affected by this effect cannot ch
 EFFECT_CANNOT_MODIFY_CODE			=	2014	--Players affected by this effect cannot change the name of the specified cards, nor add names to them. Needed for implementation of "The Valley of the Gravekeepers".
 EFFECT_CANNOT_MODIFY_ATTRIBUTE		=	2015	--Players affected by this effect cannot change the Attribute of, nor add Attributes to, the specified cards, nor add names to them. Needed for implementation of "The Valley of the Gravekeepers".
 EFFECT_CANNOT_MODIFY_RACE			=	2016	--Players affected by this effect cannot change the Monster Type of, nor add Monster Types to, the specified cards, nor add names to them. Needed for implementation of "The Valley of the Gravekeepers".
+EFFECT_REMEMBER_PREVIOUS_TYPE		=	2017	--Effect that makes it possible for a card to retain memory of its COMPLETE previous type on field. Requires glitchymods_cardstats to be loaded. Needed to bypass internal core limitations (see Crystal Commander)
+EFFECT_ADD_ORIGINAL_TYPE			=	2018	--Cards affected by this effect will have their original card type also be treated as the ones specified in the Effect Value. Requires glitchymods_cardstats to be loaded. See Crystal Refraction.
+EFFECT_REMEMBER_MONSTER_ATTRIBUTES	=	2019	--Trap Monsters affected by this effect will retain the monster properties specified in the Effect Value when Special Summoned by external effects. Requires glitchymods_cardstats to be loaded. See Crystal Refraction.
 
 --Locations
 
@@ -1869,6 +1872,20 @@ function Duel.GetMZoneCountFromLocation(tp,up,g,c)
 end
 
 --Location Groups
+function Duel.GetField(p)
+	if not p then
+		return Duel.GetFieldGroup(0,LOCATION_ONFIELD,LOCATION_ONFIELD)
+	else
+		return Duel.GetFieldGroup(p,LOCATION_ONFIELD,0)
+	end
+end
+function Duel.GetFieldCount(p)
+	if not p then
+		return Duel.GetFieldGroupCount(0,LOCATION_ONFIELD,LOCATION_ONFIELD)
+	else
+		return Duel.GetFieldGroupCount(p,LOCATION_ONFIELD,0)
+	end
+end
 function Duel.GetMonsters(p)
 	if not p then
 		return Duel.GetFieldGroup(0,LOCATION_MZONE,LOCATION_MZONE)

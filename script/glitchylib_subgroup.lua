@@ -84,7 +84,7 @@ function Glitchy.SelectUnselectGroup(customLargeGroupThreshold,g,e,tp,minc,maxc,
 		customLargeGroupThreshold=nil
 	end
 
-	local LARGE_GROUP_SIZE = customLargeGroupThreshold or 16
+	local LARGE_GROUP_SIZE = 0 --customLargeGroupThreshold or 16
 	
 	--Use regular auxiliary for small groups
 	if #g<LARGE_GROUP_SIZE then
@@ -203,6 +203,28 @@ function Glitchy.dloccheck_field(g,e,tp,mg,c)
     local valid = g:GetClassCount(Card.GetLocationSimple)==#g
     local razor = {aux.NOT(Card.IsLocation),c:GetLocationSimple()}
     return valid,false,razor
+end
+
+----Each members satisfies a different filter
+function Glitchy.SubGroupCheckDuo(f1,f2)
+	return	function (g,e,tp,mg,c)
+				if #g==0 then return true end
+				if #g==1 then
+					local c1=g:GetFirst()
+					local razor
+					if f1(c1,e,tp) then
+						razor = function(_c,_sg,_e,_tp) return f2(_c,_e,_tp) end
+					end
+					return true,false,razor
+				end
+				local c1,c2=g:GetFirst(),g:GetNext()
+				return (f1(c1,e,tp) and f2(c2,e,tp)) or (f1(c2,e,tp) and f2(c1,e,tp))
+			end
+end
+function Glitchy.SubGroupCheckDuoSingleFilter(f,p1,p2)
+	local f1=aux.FilterBoolFunction(f,p1)
+	local f2=aux.FilterBoolFunction(f,p2)
+	return Glitchy.SubGroupCheckDuo(f1,f2)
 end
 
 --Group logical operations
