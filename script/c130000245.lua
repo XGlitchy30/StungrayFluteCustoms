@@ -58,21 +58,24 @@ function s.ffilter(c,fc,sumtype,tp,sub,mg,sg)
 	else
 		attrchk=c:IsAttribute(ATTRIBUTE_DARK,fc,sumtype,tp)
 	end
-	return attrchk and c:IsSetCard({SET_CRYSTAL_BEAST,SET_RAINBOW_DARK},fc,sumtype,tp)
+	return attrchk and (c:IsSetCard({SET_CRYSTAL_BEAST,SET_RAINBOW_DARK},fc,sumtype,tp) or c:IsSummonCode(fc,sumtype,tp,79407975))
 end
-function s.fgoalcheck(tp,sg,fc,sumtype)
-	return sg:IsExists(Card.IsSummonCode,1,nil,fc,sumtype,tp,130000241)
+function s.mandatory_fusmat(c,fc,sumtype,tp,sub,sub2)
+	return c:IsSummonCode(fc,sumtype,tp,130000241) or (sub and c:CheckFusionSubstitute(fc)) or (sub2 and c:IsHasEffect(CARD_FUSION_PARASITE_ANIME))
 end
-function s.fprunecheck(tp,sg,fc,sumtype)
-	return not sg:IsExists(s.dupfilter,1,nil,sg,fc,sumtype,tp)
+function s.fgoalcheck(tp,sg,fc,sumtype,sub,sub2)
+	return sg:IsExists(s.mandatory_fusmat,1,nil,fc,sumtype,tp,sub,sub2)
 end
-function s.dupfilter(c,sg,fc,sumtype,tp)
-	if c:IsHasEffect(CARD_FUSION_PARASITE_ANIME) then return false end
+function s.fprunecheck(tp,sg,fc,sumtype,sub,sub2)
+	return not sg:IsExists(s.dupfilter,1,nil,sg,fc,sumtype,tp,sub,sub2)
+end
+function s.dupfilter(c,sg,fc,sumtype,tp,sub,sub2)
+	if sub2 and c:IsHasEffect(CARD_FUSION_PARASITE_ANIME) then return false end
 	local code=c:GetCode(fc,sumtype,tp)
-	return sg:IsExists(s.samenamefilter,1,c,code,fc,sumtype,tp)
+	return sg:IsExists(s.samenamefilter,1,c,code,fc,sumtype,tp,sub2)
 end
-function s.samenamefilter(c,code,fc,sumtype,tp)
-	if c:IsHasEffect(CARD_FUSION_PARASITE_ANIME) then return false end
+function s.samenamefilter(c,code,fc,sumtype,tp,sub2)
+	if sub2 and c:IsHasEffect(CARD_FUSION_PARASITE_ANIME) then return false end
     return c:IsSummonCode(fc,sumtype,tp,code)
 end
 

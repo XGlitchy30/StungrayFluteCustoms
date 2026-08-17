@@ -31,7 +31,7 @@ end
 
 function s.target(e,tp,eg,ep,ev,re,r,rp,chk)
 	if chk==0 then return true end
-	if Duel.GetExtraDeckCount(tp) == 6 and not Duel.PlayerHasFlagEffect(tp,id) then
+	if Duel.GetExtraDeckCount(tp)==0 and not Duel.PlayerHasFlagEffect(tp,id) then
 		e:SetCategory(CATEGORY_TOGRAVE)
 		Duel.SetTargetParam(1)
 		Duel.SetPossibleOperationInfo(0,CATEGORY_TOGRAVE,nil,1,tp,LOCATION_DECK)

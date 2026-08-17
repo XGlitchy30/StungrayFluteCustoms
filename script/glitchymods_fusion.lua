@@ -158,8 +158,8 @@ end
 --([FIX-C] hooks, then the effect-installed Fusion.CheckAdditional).
 function Fusion.CheckMixGoal(tp,sg,fc,sub,sub2,contact,sumtype,chkf,...)
 	--[FIX-C] per-card group constraints (cheap, so they run first)
-	if fc.fusion_gcheck_prune and not fc.fusion_gcheck_prune(tp,sg,fc,sumtype) then return false end
-	if fc.fusion_gcheck_goal and not fc.fusion_gcheck_goal(tp,sg,fc,sumtype) then return false end
+	if fc.fusion_gcheck_prune and not fc.fusion_gcheck_prune(tp,sg,fc,sumtype,sub,sub2,contact,chkf,...) then return false end
+	if fc.fusion_gcheck_goal and not fc.fusion_gcheck_goal(tp,sg,fc,sumtype,sub,sub2,contact,chkf,...) then return false end
 	--[FIX-B] slot assignment
 	local matched
 	if #sg<=Fusion.CheckMixDPLimit then
@@ -241,7 +241,7 @@ function Fusion.SelectMixStep(c,pool,previdx,tp,mg,sg,mustg,fc,sub,sub2,contact,
     --[FIX-C]/[FIX-D] Fail-monotone constraints may already rule out this
 	--PARTIAL selection - this is what rejects an infeasible UI candidate in
 	--O(1) instead of after an exhaustive completion search.
-    if (fc.fusion_gcheck_prune and not fc.fusion_gcheck_prune(tp,sg,fc,sumtype)) or (Fusion.CheckAdditionalPrunable and Fusion.CheckAdditional and not Fusion.CheckAdditional(tp,sg,fc,sumtype,tp)) then
+    if (fc.fusion_gcheck_prune and not fc.fusion_gcheck_prune(tp,sg,fc,sumtype,sub,sub2,contact,sumtype,chkf,...)) or (Fusion.CheckAdditionalPrunable and Fusion.CheckAdditional and not Fusion.CheckAdditional(tp,sg,fc,sumtype,tp)) then
         res=false
     elseif #sg<totalcount then
         --[FIX-A] Build the pool snapshot once per top-level query, then
