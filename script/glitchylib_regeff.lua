@@ -702,6 +702,11 @@ function Card.GetAttack(c)
 	local batk,bdef=math.max(c:GetTextAttack(),0),math.max(c:GetTextDefense(),0)
 	aux.TempBaseAttack=batk
 	aux.TempAttack=batk
+
+	-- Debug.Message('(1)---')
+	-- Debug.Message('TempBaseAttack ='..tostring(aux.TempBaseAttack))
+	-- Debug.Message('TempAttack ='..tostring(aux.TempAttack))
+	-- Debug.Message('---')
 	
 	local atk=-1
 	local up_atk,upc_atk=0,0
@@ -716,7 +721,7 @@ function Card.GetAttack(c)
 	end
 	
 	for _,ecode in ipairs(ecodes) do
-		local elist={c:IsHasEffect(ecode)}
+		local elist={c:GetCardEffect(ecode)}
 		for _,e in ipairs(elist) do
 			local l1,l2=e:GetLabel()
 			if ecode~=EFFECT_SET_ATTACK_FINAL or (l1~=EFFECT_SET_BASE_ATTACK and l2~=EFFECT_SET_BASE_DEFENSE) then
@@ -754,6 +759,11 @@ function Card.GetAttack(c)
 	end)
 	
 	aux.TempAttack=batk
+
+	-- Debug.Message('(2)---')
+	-- Debug.Message('TempBaseAttack ='..tostring(aux.TempBaseAttack))
+	-- Debug.Message('TempAttack ='..tostring(aux.TempAttack))
+	-- Debug.Message('---')
 	
 	local hasActivatedSetStatFinalEffect=false
 	local hasContinuousSetStatEffect=false
@@ -813,11 +823,28 @@ function Card.GetAttack(c)
 		
 		aux.TempBaseAttack=batk
 		aux.TempAttack = math.max(0,(atk<0 and batk or atk) + (up_atk + upc_atk)*(not rev and 1 or -1))
+
+		-- Debug.Message('(3.'..tostring(_)..')---')
+		-- Debug.Message('Effect code: '..tostring(code))
+		-- Debug.Message('Effect owner: '..tostring(eff:GetOwner():GetOriginalCode()))
+		-- Debug.Message('TempBaseAttack ='..tostring(aux.TempBaseAttack))
+		-- Debug.Message('TempAttack ='..tostring(aux.TempAttack))
+		-- Debug.Message('---')
 	end
 	
 	for _,eff in ipairs(effects_atk) do
 		aux.TempAttack=eff:Evaluate(c)
+
+		-- Debug.Message('(4.'..tostring(_)..')---')
+		-- Debug.Message('TempBaseAttack ='..tostring(aux.TempBaseAttack))
+		-- Debug.Message('TempAttack ='..tostring(aux.TempAttack))
+		-- Debug.Message('---')			
 	end
+
+	-- Debug.Message('(5)---')
+	-- Debug.Message('TempBaseAttack ='..tostring(aux.TempBaseAttack))
+	-- Debug.Message('TempAttack ='..tostring(aux.TempAttack))
+	-- Debug.Message('---')
 	
 	if aux.TempDefense==math.maxinteger then
 		if swap_final then
@@ -828,10 +855,19 @@ function Card.GetAttack(c)
 			if eff:IsHasProperty(EFFECT_FLAG_REPEAT) then
 				aux.TempAttack=eff:Evaluate(c)
 			end
+
+			-- Debug.Message('(6.'..tostring(_)..')---')
+			-- Debug.Message('TempBaseAttack ='..tostring(aux.TempBaseAttack))
+			-- Debug.Message('TempAttack ='..tostring(aux.TempAttack))
+			-- Debug.Message('---')
 		end
 	end
 	
 	atk = math.max(0,aux.TempAttack)
+	-- Debug.Message('(7)---')
+	-- Debug.Message('TempBaseAttack ='..tostring(aux.TempBaseAttack))
+	-- Debug.Message('TempAttack ='..tostring(aux.TempAttack))
+	-- Debug.Message('---')
 	
 	aux.TempBaseAttack=math.maxinteger
 	aux.TempAttack=math.maxinteger

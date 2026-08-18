@@ -60,6 +60,7 @@ end
 
 --E2
 function s.limcon(e,tp,eg,ep,ev,re,r,rp)
+	if r&REASON_LOST_TARGET~=0 then return false end
 	local c=e:GetHandler()
 	if c:IsLocation(LOCATION_DECK|LOCATION_HAND) or c:IsBanished(POS_FACEDOWN) or not c:IsPreviousLocation(LOCATION_OVERLAY) then
 		return false
@@ -69,9 +70,9 @@ function s.limcon(e,tp,eg,ep,ev,re,r,rp)
 end
 function s.limtg(e,tp,eg,ep,ev,re,r,rp,chk,chkc)
 	if chkc then return chkc:IsControler(1-tp) and chkc:IsLocation(LOCATION_SZONE) and chkc:IsFacedown() end
-	if chk==0 then return Duel.IsExistingTarget(s.cafilter,tp,0,LOCATION_SZONE,1,nil) end
+	if chk==0 then return Duel.IsExistingTarget(Card.IsFacedown,tp,0,LOCATION_SZONE,1,nil) end
 	Duel.Hint(HINT_SELECTMSG,tp,HINTMSG_FACEDOWN)
-	Duel.SelectTarget(tp,s.cafilter,tp,0,LOCATION_SZONE,1,1,nil)
+	Duel.SelectTarget(tp,Card.IsFacedown,tp,0,LOCATION_SZONE,1,1,nil)
 end
 function s.limop(e,tp,eg,ep,ev,re,r,rp)
 	local tc=Duel.GetFirstTarget()

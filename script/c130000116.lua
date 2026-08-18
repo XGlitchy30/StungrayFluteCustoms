@@ -56,6 +56,7 @@ end
 
 --E2
 function s.thcon(e,tp,eg,ep,ev,re,r,rp)
+	if r&REASON_LOST_TARGET~=0 then return false end
 	local c=e:GetHandler()
 	return not (c:IsLocation(LOCATION_DECK|LOCATION_HAND) or c:IsBanished(POS_FACEDOWN) or not c:IsPreviousLocation(LOCATION_OVERLAY))
 end

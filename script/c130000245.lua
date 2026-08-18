@@ -13,6 +13,9 @@ function s.initial_effect(c)
 	--7 DARK "Crystal Beast" and/or "Rainbow Dark" monsters with different names, including "Crystal Beast Rainbow Dark Dragon"
 	Fusion.AddProcMixN(c,true,true,s.ffilter,7)
 	Fusion.SetMaterialGroupCheck(c,s.fgoalcheck,s.fprunecheck)
+	local mt=c:GetMetatable()
+	if not mt.material then mt.material={} end
+	table.insert(mt.material,130000241)
 	--If this card is Fusion Summoned: Special Summon any number of "Crystal Beast" Monster Cards from your Spell & Trap Zones.
 	local e1=Effect.CreateEffect(c)
 	e1:SetDescription(aux.Stringid(id,0))
