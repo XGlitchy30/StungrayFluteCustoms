@@ -15,7 +15,8 @@ function s.initial_effect(c)
 	e1:SetRange(LOCATION_HAND)
 	e1:HOPT()
 	e1:SetCost(Cost.SelfDiscard)
-	e1:SetSearchFunctions(aux.FilterBoolFunction(Card.IsCode,CARD_ADVANCED_DARK))
+	e1:SetTarget(s.thtg)
+	e1:SetOperation(s.thop)
 	c:RegisterEffect(e1)
 	--If another "Crystal Beast" card(s) is sent to the GY, even during the Damage Step: You can place this card from your GY into your Spell & Trap Zone as a Continuous Spell, and if you do, add 1 "Crystal Miracle" from your Deck to your hand. You cannot Special Summon monsters, except by the effect of "Crystal Miracle", until you have activated "Crystal Miracle" or until the end of your next turn.
 	local e2=Effect.CreateEffect(c)
@@ -34,6 +35,21 @@ function s.initial_effect(c)
 end
 s.listed_names={CARD_ADVANCED_DARK,CARD_CRYSTAL_MIRACLE}
 s.listed_series={SET_CRYSTAL_BEAST}
+
+--E1
+function s.thfilter0(c)
+	return c:IsCode(CARD_ADVANCED_DARK) and c:IsAbleToHand()
+end
+function s.thtg(e,tp,eg,ep,ev,re,r,rp,chk)
+	if chk==0 then return Duel.IsExistingMatchingCard(s.thfilter0,tp,LOCATION_DECK,0,1,nil) end
+	Duel.SetOperationInfo(0,CATEGORY_TOHAND,nil,1,tp,LOCATION_DECK)
+end
+function s.thop(e,tp,eg,ep,ev,re,r,rp)
+	local tc=Duel.GetFirstMatchingCard(s.thfilter0,tp,LOCATION_DECK,0,nil)
+	if tc then
+		Duel.Search(tc)
+	end
+end
 
 
 --E2
