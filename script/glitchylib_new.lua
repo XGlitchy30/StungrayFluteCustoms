@@ -13,6 +13,7 @@ CATEGORY_ATTRIBUTE_CHANGE		=	0x20
 CATEGORY_PLACE_IN_STZONE 		=	0x40
 CATEGORY_NEGATE_ATTACK			=	0x80
 CATEGORY_CHANGE_ATTACK_TARGET	=	0x100
+CATEGORY_ADD_BATTLE_PHASE		=	0x200
 
 CATEGORY_FLAG_ANCESTAGON_PLASMATAIL = 0x1
 CATEGORY_FLAG_DRAINING_PARASITE		= 0x2	--Flag for effects that can call a stat-calculating function on the handler, while already calculating the stat of the handler
