@@ -105,18 +105,26 @@ function Glitchy.RevealSelfCost(reset,rct)
 		return	function(e,tp,eg,ep,ev,re,r,rp,chk)
 				local c=e:GetHandler()
 				if chk==0 then return not c:IsPublic() end
-				Duel.ConfirmCards(1-tp,c)
+				if Duel.RevealCards then
+					Duel.RevealCards(1-tp,c,REASON_COST)
+				else
+					Duel.ConfirmCards(1-tp,c)
+				end
 			end
 	else
 		if not rct then rct=1 end
 		return	function(e,tp,eg,ep,ev,re,r,rp,chk)
 					local c=e:GetHandler()
 					if chk==0 then return not c:IsPublic() end
-					local e1=Effect.CreateEffect(c)
-					e1:SetType(EFFECT_TYPE_SINGLE)
-					e1:SetCode(EFFECT_PUBLIC)
-					e1:SetReset(RESET_EVENT|RESETS_STANDARD|reset,rct)
-					c:RegisterEffect(e1)
+					if xgl.DiscloseCardsPersistent then
+						xgl.DiscloseCardsPersistent(DISCLOSURE_REVEAL,e,c,reset,rct,REASON_COST)
+					else
+						local e1=Effect.CreateEffect(c)
+						e1:SetType(EFFECT_TYPE_SINGLE)
+						e1:SetCode(EFFECT_PUBLIC)
+						e1:SetReset(RESET_EVENT|RESETS_STANDARD|reset,rct)
+						c:RegisterEffect(e1)
+					end
 				end
 	end
 end
@@ -232,7 +240,11 @@ function Glitchy.RevealCost(f,min,max,exc,reset,rct)
 					Duel.Hint(HINT_SELECTMSG,tp,HINTMSG_CONFIRM)
 					local g=Duel.SelectMatchingCard(tp,xgl.RevealFilter(f),tp,LOCATION_HAND,0,min,max,exc,e,tp,eg,ep,ev,re,r,rp)
 					if #g>0 then
-						Duel.ConfirmCards(1-tp,g)
+						if Duel.RevealCards then
+							Duel.RevealCards(1-tp,g,REASON_COST)
+						else
+							Duel.ConfirmCards(1-tp,g)
+						end
 						Duel.ShuffleHand(tp)
 					end
 				end
@@ -243,12 +255,16 @@ function Glitchy.RevealCost(f,min,max,exc,reset,rct)
 					if chk==0 then return Duel.IsExistingMatchingCard(xgl.RevealFilter(f),tp,LOCATION_HAND,0,min,exc) end
 					Duel.Hint(HINT_SELECTMSG,tp,HINTMSG_CONFIRM)
 					local g=Duel.SelectMatchingCard(tp,xgl.RevealFilter(f),tp,LOCATION_HAND,0,min,max,exc,e,tp,eg,ep,ev,re,r,rp)
-					for tc in aux.Next(g) do
-						local e1=Effect.CreateEffect(e:GetHandler())
-						e1:SetType(EFFECT_TYPE_SINGLE)
-						e1:SetCode(EFFECT_PUBLIC)
-						e1:SetReset(RESET_EVENT|RESETS_STANDARD|reset,rct)
-						tc:RegisterEffect(e1)
+					if xgl.DiscloseCardsPersistent then
+						xgl.DiscloseCardsPersistent(DISCLOSURE_REVEAL,e,g,reset,rct,REASON_COST)
+					else
+						for tc in aux.Next(g) do
+							local e1=Effect.CreateEffect(e:GetHandler())
+							e1:SetType(EFFECT_TYPE_SINGLE)
+							e1:SetCode(EFFECT_PUBLIC)
+							e1:SetReset(RESET_EVENT|RESETS_STANDARD|reset,rct)
+							tc:RegisterEffect(e1)
+						end
 					end
 				end
 	end
