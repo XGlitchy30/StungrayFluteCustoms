@@ -84,7 +84,7 @@ end
 
 --E2
 function s.replacement(c,e)
-	return c:IsDestructable(e) and not c:IsStatus(STATUS_DESTROY_CONFIRMED|STATUS_BATTLE_DESTROYED) 
+	return c:IsDestructable(e) and c:IsFaceup() and c:IsSetCard(SET_X_SABER) and not c:IsStatus(STATUS_DESTROY_CONFIRMED|STATUS_BATTLE_DESTROYED) 
 end
 function s.repfilter(c,tp)
 	return c:IsFaceup() and c:IsSetCard(SET_X_SABER) and c:IsLocation(LOCATION_MZONE) and c:IsControler(tp) and not c:IsReason(REASON_REPLACE) and c:IsReason(REASON_EFFECT)
